@@ -532,14 +532,34 @@ namespace SoundBoard
             }
             catch (Exception ex)
             {
-                // Immediately back up the config
-                File.Copy(ConfigFilePath, TempConfigFilePath, overwrite: true);
+                // Immediately back up the config that actually failed to load, which is not necessarily ConfigFilePath
+                // (we may have been asked to load a legacy config, an imported file, or an undo state).
+                // Backing up is best effort: the file may not exist, may already be the backup file, or may be locked.
+                // None of those should replace the error we're actually reporting.
+                string backupFilePath = null;
+                try
+                {
+                    if (File.Exists(configFilePath)
+                        && string.Equals(Path.GetFullPath(configFilePath), Path.GetFullPath(TempConfigFilePath), StringComparison.OrdinalIgnoreCase) == false)
+                    {
+                        File.Copy(configFilePath, TempConfigFilePath, overwrite: true);
+                        backupFilePath = TempConfigFilePath;
+                    }
+                }
+                catch
+                {
+                    // Swallow. We couldn't back up the config, so we just won't tell the user that we did.
+                }
 
                 // Do better error handling
                 Dispatcher.Invoke(async () =>
                 {
+                    string errorMessage = backupFilePath is null
+                        ? Properties.Resources.ConfigLoadErrorNoBackup
+                        : string.Format(Properties.Resources.ConfigLoadError, backupFilePath);
+
                     var res = await this.ShowMessageAsync(Properties.Resources.Error,
-                        string.Join(Environment.NewLine, string.Format(Properties.Resources.ConfigLoadError, TempConfigFilePath), string.Empty, ex.Message),
+                        string.Join(Environment.NewLine, errorMessage, string.Empty, ex.Message),
                         MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
                         {
                             AffirmativeButtonText = Properties.Resources.CopyDetails,
@@ -548,7 +568,7 @@ namespace SoundBoard
 
                     if (res == MessageDialogResult.Affirmative)
                     {
-                        Clipboard.SetText(string.Join(Environment.NewLine, TempConfigFilePath, string.Empty, ex.ToString()));
+                        Clipboard.SetText(string.Join(Environment.NewLine, backupFilePath ?? configFilePath, string.Empty, ex.ToString()));
                     }
                 });
             }
