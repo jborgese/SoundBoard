@@ -12,9 +12,13 @@ namespace SoundBoard.Model
     /// one per cell, with each <see cref="Sound.Row"/>/<see cref="Sound.Column"/> matching its position. Empty cells are
     /// <see cref="Sound"/> instances with <see cref="Sound.IsEmpty"/> set. This ordering is what index-based consumers rely on.
     /// </remarks>
-    public class Page
+    public class Page : ObservableObject
     {
         private readonly List<Sound> _sounds = new List<Sound>();
+        private string _name;
+        private int _rows;
+        private int _columns;
+        private bool _isFocused;
 
         /// <summary>
         /// Creates a page with the given dimensions, filled with empty cells.
@@ -38,25 +42,41 @@ namespace SoundBoard.Model
         }
 
         /// <summary>
-        /// Tab header text.
+        /// Tab header text. Never null.
         /// </summary>
-        public string Name { get; set; }
+        public string Name
+        {
+            get => _name;
+            set => SetField(ref _name, value ?? string.Empty);
+        }
 
         /// <summary>
         /// Number of rows in the grid. Change via <see cref="Resize"/>.
         /// </summary>
-        public int Rows { get; private set; }
+        public int Rows
+        {
+            get => _rows;
+            private set => SetField(ref _rows, value);
+        }
 
         /// <summary>
         /// Number of columns in the grid. Change via <see cref="Resize"/>.
         /// </summary>
-        public int Columns { get; private set; }
+        public int Columns
+        {
+            get => _columns;
+            private set => SetField(ref _columns, value);
+        }
 
         /// <summary>
         /// Whether this page was the selected tab when the config was saved. Exactly one page should be focused, but the
         /// serializer tolerates zero or many.
         /// </summary>
-        public bool IsFocused { get; set; }
+        public bool IsFocused
+        {
+            get => _isFocused;
+            set => SetField(ref _isFocused, value);
+        }
 
         /// <summary>
         /// Every cell, row-major. See the class remarks for the invariant.
@@ -96,6 +116,7 @@ namespace SoundBoard.Model
             }
 
             _sounds[sound.Row * Columns + sound.Column] = sound;
+            OnPropertyChanged(nameof(Sounds));
         }
 
         /// <summary>
@@ -134,8 +155,15 @@ namespace SoundBoard.Model
                 }
             }
 
+            OnPropertyChanged(nameof(Sounds));
+
             return dropped;
         }
+
+        /// <summary>
+        /// Finds the cell holding a sound with the given <see cref="Sound.Id"/>, or null.
+        /// </summary>
+        public Sound FindSound(string id) => string.IsNullOrEmpty(id) ? null : _sounds.FirstOrDefault(s => s.Id == id);
 
         /// <summary>
         /// Returns an independent copy.

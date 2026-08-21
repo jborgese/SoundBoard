@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MahApps.Metro.Controls;
+using Page = SoundBoard.Model.Page;
 using Point = System.Windows.Point;
 
 #endregion
@@ -142,9 +143,33 @@ namespace SoundBoard
             {
                 _headerText = value;
                 Header = MainWindow.Instance.IsAnySoundPlayingOnTab(this) ? $"{_headerText}\uD83D\uDD69" : _headerText;
+
+                if (Page != null)
+                {
+                    Page.Name = value;
+                }
             }
         }
         private string _headerText;
+
+        /// <summary>
+        /// The model page this tab displays, or null for tabs that are not sound pages (the welcome page).
+        /// Assigning a page also sets <see cref="HeaderText"/> from its name.
+        /// </summary>
+        public Page Page
+        {
+            get => _page;
+            set
+            {
+                _page = value;
+
+                if (_page != null)
+                {
+                    HeaderText = _page.Name;
+                }
+            }
+        }
+        private Page _page;
 
         internal void IndicateSoundPlaying()
         {
