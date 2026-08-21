@@ -1490,7 +1490,7 @@ namespace SoundBoard
                 _progressBarCancellationToken?.Cancel();
                 _progressBarCancellationToken?.Dispose();
                 _progressBarCancellationToken = new CancellationTokenSource();
-                UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), _progressBarCancellationToken.Token);
+                await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), _progressBarCancellationToken.Token);
             }
             catch (Exception ex)
             {
@@ -1852,11 +1852,15 @@ namespace SoundBoard
             return result;
         }
 
-        private async void UpdateProgressTask(Func<bool> action, TimeSpan interval, CancellationToken token)
+        /// <summary>
+        /// Repeatedly invokes <paramref name="action"/> every <paramref name="interval"/> until it reports that
+        /// there is no more progress to update (i.e., it returns <see langword="true"/>) or until <paramref name="token"/> is canceled.
+        /// </summary>
+        private async Task UpdateProgressTask(Func<bool> action, TimeSpan interval, CancellationToken token)
         {
             bool result = false;
 
-            while (token.IsCancellationRequested == false || result == false)
+            while (token.IsCancellationRequested == false && result == false)
             {
                 result = action();
                 await Task.Delay(interval);
