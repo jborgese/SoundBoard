@@ -360,8 +360,16 @@ namespace SoundBoard
 
             try
             {
-                // Parse the file into the model, then build the UI from it
-                SoundBoardConfig config = ConfigSerializer.Read(configFilePath, warning => Logger.Warn("{0}: {1}", configFilePath, warning));
+                // Parse the file into the model, then build the UI from it. The current settings are passed as defaults so that
+                // a file which predates a setting (e.g. an imported pre-1.9 config) leaves the running value alone.
+                var currentSettings = new BoardSettings
+                {
+                    AudioPassthroughLatency = GlobalSettings.AudioPassthroughLatency,
+                    NewPageDefaultRows = GlobalSettings.NewPageDefaultRows,
+                    NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns,
+                };
+
+                SoundBoardConfig config = ConfigSerializer.Read(configFilePath, warning => Logger.Warn("{0}: {1}", configFilePath, warning), currentSettings);
 
                 if (config.SchemaVersion != SoundBoardConfig.CurrentSchemaVersion)
                 {
@@ -562,7 +570,7 @@ namespace SoundBoard
                     {
                         page.Set(sound);
                     }
-                    else
+                    else if (!sound.IsEmpty)
                     {
                         Logger.Warn("Not saving sound \"{0}\" at ({1}, {2}): outside the {3}x{4} grid of page \"{5}\"", sound.Name, sound.Row, sound.Column, page.Rows, page.Columns, page.Name);
                     }

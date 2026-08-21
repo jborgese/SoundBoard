@@ -155,7 +155,7 @@ namespace SoundBoard.Tests
             Page second = config.Pages[1];
             Assert.Equal("Second & \"quoted\" page", second.Name);
             Assert.False(second.IsFocused);
-            Assert.Same(second[0, 0], config.FindSound(airhorn.NextSoundId is null ? null : "55555555-5555-5555-5555-555555555555"));
+            Assert.Same(second[0, 0], config.FindSound("55555555-5555-5555-5555-555555555555"));
             Assert.Equal(new Hotkey(Key.Z, ModifierKeys.Windows), second[0, 0].GlobalHotkey);
         }
 
@@ -207,6 +207,69 @@ namespace SoundBoard.Tests
 
             Assert.Equal(7, config.Pages[0].Rows);
             Assert.Equal(3, config.Pages[0].Columns);
+        }
+
+        [Fact]
+        public void Defaults_FillSettingsTheFileDoesNotSpecify_ButNeverOverrideIt()
+        {
+            var defaults = new BoardSettings { AudioPassthroughLatency = 50, NewPageDefaultRows = 4, NewPageDefaultColumns = 3 };
+            defaults.OutputDevices.Add(Guid.NewGuid());
+
+            // No GlobalSettings at all, and a tab with no rows/columns: everything comes from the defaults
+            SoundBoardConfig legacy = ReadWithDefaults(ReadFixture("legacy-minimal.config"), defaults);
+            Assert.Equal(50, legacy.Settings.AudioPassthroughLatency);
+            Assert.Equal(4, legacy.Settings.NewPageDefaultRows);
+            Assert.Equal(3, legacy.Settings.NewPageDefaultColumns);
+            Assert.Empty(legacy.Settings.OutputDevices); // device lists are not inherited
+            Assert.Equal(4, legacy.Pages[0].Rows);
+            Assert.Equal(3, legacy.Pages[0].Columns);
+            Assert.Equal("Three", legacy.Pages[0][0, 2].Name); // index positions follow the inherited column count
+
+            // The file's own values win when present
+            SoundBoardConfig current = ReadWithDefaults(ReadFixture("current-1.10.2.config"), defaults);
+            Assert.Equal(25, current.Settings.AudioPassthroughLatency);
+            Assert.Equal(3, current.Settings.NewPageDefaultRows);
+            Assert.Equal(4, current.Settings.NewPageDefaultColumns);
+            Assert.Equal(2, current.Pages[0].Rows);
+        }
+
+        private static SoundBoardConfig ReadWithDefaults(string xml, BoardSettings defaults)
+        {
+            using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(xml)))
+            {
+                return ConfigSerializer.Read(stream, null, defaults);
+            }
+        }
+
+        [Fact]
+        public void NegativeOrZeroDimensions_DoNotFailTheLoad()
+        {
+            var warnings = new List<string>();
+            SoundBoardConfig config = Read(
+                "<tabs>" +
+                "<tab rows=\"-1\" columns=\"2\"><name>neg</name><button0 name=\"a\" path=\"C:\\a.mp3\" /></tab>" +
+                "<tab rows=\"1\" columns=\"0\"><name>zero</name><button0 name=\"b\" path=\"C:\\b.mp3\" /><button1 name=\"c\" path=\"C:\\c.mp3\" /></tab>" +
+                "</tabs>", warnings);
+
+            Assert.Equal(2, config.Pages.Count);
+            Assert.Equal(0, config.Pages[0].Rows);
+            Assert.Empty(config.Pages[0].Sounds);
+            Assert.Equal(0, config.Pages[1].Columns);
+            Assert.Empty(config.Pages[1].Sounds);
+            Assert.Contains(warnings, w => w.Contains("neg"));
+            Assert.Contains("rows=\"0\" columns=\"2\"", Write(config));
+        }
+
+        [Fact]
+        public void NegativeNewPageDefaults_AreIgnored()
+        {
+            var warnings = new List<string>();
+            SoundBoardConfig config = Read("<tabs><GlobalSettings NewPageDefaultRows=\"-1\" NewPageDefaultColumns=\"-2\" /><tab><name>n</name></tab></tabs>", warnings);
+
+            Assert.Equal(BoardSettings.DefaultNewPageRows, config.Settings.NewPageDefaultRows);
+            Assert.Equal(BoardSettings.DefaultNewPageColumns, config.Settings.NewPageDefaultColumns);
+            Assert.Equal(BoardSettings.DefaultNewPageRows, config.Pages[0].Rows);
+            Assert.Equal(2, warnings.Count);
         }
 
         [Fact]

@@ -63,12 +63,13 @@ namespace SoundBoard.Model
         /// </summary>
         /// <param name="path">File to read.</param>
         /// <param name="warn">Optional sink for non-fatal problems (e.g. a sound outside its page's grid was dropped).</param>
+        /// <param name="defaults">See <see cref="Read(Stream, Action{string}, BoardSettings)"/>.</param>
         /// <exception cref="XmlException">The file is not well-formed XML.</exception>
-        public static SoundBoardConfig Read(string path, Action<string> warn = null)
+        public static SoundBoardConfig Read(string path, Action<string> warn = null, BoardSettings defaults = null)
         {
             using (FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                return Read(stream, warn);
+                return Read(stream, warn, defaults);
             }
         }
 
@@ -77,8 +78,14 @@ namespace SoundBoard.Model
         /// </summary>
         /// <param name="stream">Stream to read. Left open.</param>
         /// <param name="warn">Optional sink for non-fatal problems (e.g. a sound outside its page's grid was dropped).</param>
+        /// <param name="defaults">
+        /// Optional values to use for <see cref="BoardSettings.AudioPassthroughLatency"/>, <see cref="BoardSettings.NewPageDefaultRows"/>
+        /// and <see cref="BoardSettings.NewPageDefaultColumns"/> when the file does not specify them. Pass the currently active
+        /// settings when loading a file on top of a running app (import, undo) so that an old file which predates those settings
+        /// leaves them alone — which is what the app has always done. Device lists are never taken from here.
+        /// </param>
         /// <exception cref="XmlException">The stream is not well-formed XML.</exception>
-        public static SoundBoardConfig Read(Stream stream, Action<string> warn = null)
+        public static SoundBoardConfig Read(Stream stream, Action<string> warn = null, BoardSettings defaults = null)
         {
             if (stream is null) throw new ArgumentNullException(nameof(stream));
             warn = warn ?? (_ => { });
@@ -87,6 +94,13 @@ namespace SoundBoard.Model
             xmlDocument.Load(stream);
 
             var config = new SoundBoardConfig();
+
+            if (defaults != null)
+            {
+                config.Settings.AudioPassthroughLatency = defaults.AudioPassthroughLatency;
+                config.Settings.NewPageDefaultRows = defaults.NewPageDefaultRows;
+                config.Settings.NewPageDefaultColumns = defaults.NewPageDefaultColumns;
+            }
 
             XmlElement root = xmlDocument.DocumentElement;
             if (root is null)
@@ -109,7 +123,7 @@ namespace SoundBoard.Model
             // Global settings. These must be read before the tabs, because a tab without rows/columns falls back to the new-page defaults.
             if (xmlDocument.SelectSingleNode($"/{RootElement}/{GlobalSettingsElement}") is XmlNode globalSettingsNode)
             {
-                ReadGlobalSettings(globalSettingsNode, config.Settings);
+                ReadGlobalSettings(globalSettingsNode, config.Settings, warn);
             }
 
             // Tabs
@@ -125,7 +139,7 @@ namespace SoundBoard.Model
             return config;
         }
 
-        private static void ReadGlobalSettings(XmlNode node, BoardSettings settings)
+        private static void ReadGlobalSettings(XmlNode node, BoardSettings settings, Action<string> warn)
         {
             ReadGuidList(node, OutputDeviceGuidAttribute, settings.OutputDevices);
             ReadGuidList(node, InputDeviceGuidAttribute, settings.InputDevices);
@@ -136,14 +150,17 @@ namespace SoundBoard.Model
                 settings.AudioPassthroughLatency = latency;
             }
 
+            // A negative default grid size would make every page created from it (and every later save) invalid, so ignore it.
             if (TryReadInt(node, NewPageDefaultRowsAttribute, out int rows))
             {
-                settings.NewPageDefaultRows = rows;
+                if (rows >= 0) settings.NewPageDefaultRows = rows;
+                else warn($"Ignoring invalid {NewPageDefaultRowsAttribute}=\"{rows}\".");
             }
 
             if (TryReadInt(node, NewPageDefaultColumnsAttribute, out int columns))
             {
-                settings.NewPageDefaultColumns = columns;
+                if (columns >= 0) settings.NewPageDefaultColumns = columns;
+                else warn($"Ignoring invalid {NewPageDefaultColumnsAttribute}=\"{columns}\".");
             }
         }
 
@@ -167,6 +184,14 @@ namespace SoundBoard.Model
 
             int rows = TryReadInt(tabNode, "rows", out int parsedRows) ? parsedRows : settings.NewPageDefaultRows;
             int columns = TryReadInt(tabNode, "columns", out int parsedColumns) ? parsedColumns : settings.NewPageDefaultColumns;
+
+            // The legacy loader treated a negative size as "no cells" rather than failing the load.
+            if (rows < 0 || columns < 0)
+            {
+                warn($"Page \"{name}\" has an invalid size {rows}x{columns}; treating negative dimensions as 0.");
+                rows = Math.Max(rows, 0);
+                columns = Math.Max(columns, 0);
+            }
 
             var page = new Page(name, rows, columns);
 

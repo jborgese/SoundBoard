@@ -73,7 +73,8 @@ vstest.console.exe SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
 
 (`vstest.console.exe` ships with Visual Studio under
 `Common7\IDE\CommonExtensions\Microsoft\TestWindow\` and is on `PATH` in a Developer
-shell.) Or run `dotnet test SoundBoard.Tests\SoundBoard.Tests.csproj`, which builds only
+shell. It is *not* on `PATH` on GitHub's hosted runners, which is why the CI workflow
+locates it with `vswhere`.) Or run `dotnet test SoundBoard.Tests\SoundBoard.Tests.csproj`, which builds only
 the model and test projects.
 
 ## Notes and gotchas
