@@ -172,6 +172,42 @@ namespace SoundBoard
 
         #endregion
 
+        #region TabContextMenu property
+
+        /// <summary>
+        /// The <see cref="ContextMenu"/> that has been built for the <see cref="TabItem"/> it is set on.
+        /// </summary>
+        /// <remarks>
+        /// Tab context menus are shown manually (rather than assigned to <see cref="FrameworkElement.ContextMenu"/>)
+        /// so that bubbled right-clicks from child controls can be filtered out, so we need somewhere to record whether
+        /// a menu has already been built for a given tab. Storing it as an attached property means the menu is released
+        /// as soon as the tab is.
+        /// </remarks>
+        public static readonly DependencyProperty TabContextMenuProperty = DependencyProperty.RegisterAttached(
+            "TabContextMenu", typeof(ContextMenu), typeof(TabItemExtensions), new PropertyMetadata(null));
+
+        /// <summary>
+        /// Get the TabContextMenu property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <returns></returns>
+        public static ContextMenu GetTabContextMenu(this TabItem tabItem)
+        {
+            return (ContextMenu)tabItem.GetValue(TabContextMenuProperty);
+        }
+
+        /// <summary>
+        /// Set the TabContextMenu property
+        /// </summary>
+        /// <param name="tabItem"></param>
+        /// <param name="value"></param>
+        public static void SetTabContextMenu(this TabItem tabItem, ContextMenu value)
+        {
+            tabItem.SetValue(TabContextMenuProperty, value);
+        }
+
+        #endregion
+
         #region Columns property
 
         /// <summary>

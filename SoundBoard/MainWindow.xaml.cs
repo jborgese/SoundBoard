@@ -567,7 +567,7 @@ namespace SoundBoard
             // Add context menu to each tab
             foreach (MetroTabItem tab in Tabs.Items)
             {
-                if (_tabContextMenus.ContainsKey(tab)) continue;
+                if (tab.GetTabContextMenu() is null == false) continue;
 
                 ContextMenu contextMenu = new ContextMenu();
 
@@ -609,7 +609,8 @@ namespace SoundBoard
 
                 // Because we're managing the tab context menus manually (instead of assigning to the tab's ContextMenu property)
                 // we also have to keep track of whether we've created a context menu for this tab yet.
-                _tabContextMenus[tab] = contextMenu;
+                // This is stored on the tab itself so that it goes away when the tab does.
+                tab.SetTabContextMenu(contextMenu);
             }
         }
 
@@ -2017,7 +2018,6 @@ namespace SoundBoard
         private readonly IKeyboardMouseEvents _globalMouseEvents;
         private string _searchString = string.Empty;
         private Action _undoAction;
-        private readonly Dictionary<MetroTabItem, ContextMenu> _tabContextMenus = new Dictionary<MetroTabItem, ContextMenu>();
         private readonly WpfUpdateChecker _updateChecker;
         private MenuItem _newPageDefaultMenu;
         private MenuItem _audioPassthroughMenu;
