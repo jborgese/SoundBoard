@@ -99,8 +99,9 @@
 
     <Grid>
         <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs">
-            <Controls:MetroTabItem>
-            </Controls:MetroTabItem>
+            <!-- Must be a MyMetroTabItem: LoadSettings casts this placeholder when building the welcome page. -->
+            <local:MyMetroTabItem>
+            </local:MyMetroTabItem>
         </TabControl>
 
     </Grid>
