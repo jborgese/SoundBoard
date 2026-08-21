@@ -24,6 +24,10 @@ jobs:
       - name: Build Release
         run: msbuild SoundBoard.sln /p:Configuration=Release /m /verbosity:minimal
 
+      # vstest.console rather than `dotnet test`: the solution contains a legacy (non-SDK) WPF project that the dotnet CLI cannot build.
+      - name: Run tests
+        run: vstest.console.exe SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
+
       - name: Upload SoundBoard.exe
         uses: actions/upload-artifact@v4
         with:

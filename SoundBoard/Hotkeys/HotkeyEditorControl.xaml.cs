@@ -1,6 +1,7 @@
 ﻿// https://tyrrrz.me/blog/hotkey-editor-control-in-wpf
 using System.Windows.Input;
 using System.Windows;
+using SoundBoard.Model;
 
 namespace SoundBoard
 {

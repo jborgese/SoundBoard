@@ -1,4 +1,6 @@
-﻿namespace SoundBoard
+﻿using SoundBoard.Model;
+
+namespace SoundBoard
 {
     #region IUndoable interface
 

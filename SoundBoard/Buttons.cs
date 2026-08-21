@@ -25,6 +25,7 @@ using System.Media;
 using System.Windows.Media.Animation;
 using Humanizer;
 using NLog;
+using SoundBoard.Model;
 
 #endregion
 

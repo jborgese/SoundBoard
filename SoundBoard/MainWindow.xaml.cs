@@ -2,7 +2,6 @@
 
 using System;
 using System.IO;
-using System.Xml;
 using System.Text;
 using NAudio.Wave;
 using System.Windows;
@@ -33,7 +32,9 @@ using MenuItem = System.Windows.Controls.MenuItem;
 using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media;
 using NLog;
+using SoundBoard.Model;
 using Logger = NLog.Logger;
+using Page = SoundBoard.Model.Page;
 
 #endregion
 
@@ -359,195 +360,15 @@ namespace SoundBoard
 
             try
             {
-                // try to load settings
-                XmlDocument xmlDocument = new XmlDocument();
+                // Parse the file into the model, then build the UI from it
+                SoundBoardConfig config = ConfigSerializer.Read(configFilePath, warning => Logger.Warn("{0}: {1}", configFilePath, warning));
 
-                xmlDocument.Load(configFilePath);
-
-                XmlElement xelRoot = xmlDocument.DocumentElement;
-                if (xelRoot != null)
+                if (config.SchemaVersion != SoundBoardConfig.CurrentSchemaVersion)
                 {
-                    // Get global settings
-                    if (xmlDocument.SelectSingleNode($"/tabs/{nameof(GlobalSettings)}") is XmlNode globalSettings)
-                    {
-                        if (globalSettings.Attributes?[GlobalSettings.OutputDeviceGuidSettingName] is XmlAttribute outputDeviceGuidAttribute)
-                        {
-                            outputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
-                            {
-                                if (Guid.TryParse(guid, out var outputDeviceGuid))
-                                {
-                                    GlobalSettings.AddOutputDeviceGuid(outputDeviceGuid);
-                                }
-                            });
-                        }
-
-                        if (globalSettings.Attributes?[GlobalSettings.InputDeviceGuidSettingName] is XmlAttribute inputDeviceGuidAttribute)
-                        {
-                            inputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
-                            {
-                                if (Guid.TryParse(guid, out var inputDeviceGuid))
-                                {
-                                    GlobalSettings.AddInputDeviceGuid(inputDeviceGuid);
-                                }
-                            });
-                        }
-
-                        if (globalSettings.Attributes?[GlobalSettings.PassthroughOutputDeviceGuidSettingName] is XmlAttribute passthroughOutputDeviceGuidAttribute)
-                        {
-                            passthroughOutputDeviceGuidAttribute.Value.Split(',').ToList().ForEach(guid =>
-                            {
-                                if (Guid.TryParse(guid, out var passthroughOutputDeviceGuid))
-                                {
-                                    GlobalSettings.AddPassthroughOutputDeviceGuid(passthroughOutputDeviceGuid);
-                                }
-                            });
-                        }
-
-                        if (globalSettings.Attributes?[nameof(GlobalSettings.AudioPassthroughLatency)] is XmlAttribute audioPassthroughLatencyAttribute
-                            && int.TryParse(audioPassthroughLatencyAttribute.Value, out int audioPassthroughLatency))
-                        {
-                            GlobalSettings.AudioPassthroughLatency = audioPassthroughLatency;
-                        }
-
-                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultRows)] is XmlAttribute newPageDefaultRowsAttribute
-                            && int.TryParse(newPageDefaultRowsAttribute.Value, out int newPageDefaultRows))
-                        {
-                            GlobalSettings.NewPageDefaultRows = newPageDefaultRows;
-                        }
-
-                        if (globalSettings.Attributes?[nameof(GlobalSettings.NewPageDefaultColumns)] is XmlAttribute newPageDefaultColumnsAttribute
-                            && int.TryParse(newPageDefaultColumnsAttribute.Value, out int newPageDefaultColumns))
-                        {
-                            GlobalSettings.NewPageDefaultColumns = newPageDefaultColumns;
-                        }
-                    }
-
-                    // Get tabs
-                    XmlNodeList tabNodes = xelRoot.SelectNodes("/tabs/tab");
-
-                    // Remove default tabs
-                    Tabs.Items.Clear();
-
-                    if (tabNodes != null)
-                    {
-                        TabItem selectedTab = null;
-
-                        foreach (XmlNode node in tabNodes)
-                        {
-                            string name = node["name"]?.InnerText;
-
-                            MyMetroTabItem tab = new MyMetroTabItem {HeaderText = name};
-                            Tabs.Items.Add(tab);
-
-                            if (node.Attributes?["focused"]?.Value is string focusedString &&
-                                bool.TryParse(focusedString, out bool focused) && focused)
-                            {
-                                selectedTab = tab;
-                            }
-
-                            if (node.Attributes?["rows"]?.Value is string rowsString &&
-                                int.TryParse(rowsString, out int rows))
-                            {
-                                tab.SetRows(rows);
-                            }
-
-                            if (node.Attributes?["columns"]?.Value is string columnsString &&
-                                int.TryParse(columnsString, out int columns))
-                            {
-                                tab.SetColumns(columns);
-                            }
-
-                            TwoDimensionalList<SoundButtonUndoState> buttons = new TwoDimensionalList<SoundButtonUndoState>();
-
-                            // Read the button data
-                            int i = 0;
-                            for (int rowIndex = 0; rowIndex < tab.GetRows() || node["button" + (i + 1)] is null == false; ++rowIndex)
-                            {
-                                for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex, ++i)
-                                {
-                                    SoundButtonUndoState soundButtonUndoState = new SoundButtonUndoState
-                                    {
-                                        SoundName = node["button" + i]?.Attributes["name"].Value,
-                                        SoundPath = node["button" + i]?.Attributes["path"].Value,
-                                    };
-
-                                    if (node["button" + i]?.Attributes["color"]?.Value is string colorString && string.IsNullOrEmpty(colorString) == false)
-                                    {
-                                        var drawingColor = ColorTranslator.FromHtml(colorString);
-                                        soundButtonUndoState.Color = Color.FromArgb(drawingColor.A, drawingColor.R, drawingColor.G, drawingColor.B);
-                                    }
-
-                                    if (node["button" + i]?.Attributes["volumeOffset"]?.Value is string volumeOffsetString &&
-                                        string.IsNullOrEmpty(volumeOffsetString) == false && int.TryParse(volumeOffsetString, out int volumeOffset))
-                                    {
-                                        soundButtonUndoState.VolumeOffset = volumeOffset;
-                                    }
-
-                                    if (node["button" + i]?.Attributes["loop"]?.Value is string loopString &&
-                                        string.IsNullOrEmpty(loopString) == false && bool.TryParse(loopString, out bool loop))
-                                    {
-                                        soundButtonUndoState.Loop = loop;
-                                    }
-
-                                    if (node["button" + i]?.Attributes["stopAllSounds"]?.Value is string stopAllSoundsString &&
-                                        string.IsNullOrEmpty(stopAllSoundsString) == false && bool.TryParse(stopAllSoundsString, out bool stopAllSounds))
-                                    {
-                                        soundButtonUndoState.StopAllSounds = stopAllSounds;
-                                    }
-
-                                    if (node["button" + i]?.Attributes["nextSound"]?.Value is string nextSound &&
-                                        string.IsNullOrEmpty(nextSound) == false)
-                                    {
-                                        soundButtonUndoState.NextSound = nextSound;
-                                    }
-
-                                    if (node["button" + i]?.Attributes["id"]?.Value is string id &&
-                                        string.IsNullOrEmpty(id) == false)
-                                    {
-                                        soundButtonUndoState.Id = id;
-                                    }
-
-                                    if (node["button" + i]?.Attributes["localHotkey"]?.Value is string localHotKeyStr
-                                        && !string.IsNullOrEmpty(localHotKeyStr))
-                                    {
-                                        soundButtonUndoState.LocalHotkey = Hotkey.FromString(localHotKeyStr);
-                                    }
-
-                                    if (node["button" + i]?.Attributes["globalHotkey"]?.Value is string globalHotKeyStr
-                                        && !string.IsNullOrEmpty(globalHotKeyStr))
-                                    {
-                                        soundButtonUndoState.GlobalHotkey = Hotkey.FromString(globalHotKeyStr);
-                                    }
-
-                                    int buttonRow = rowIndex;
-                                    if (node["button" + i]?.Attributes["row"]?.Value is string rowString &&
-                                        string.IsNullOrEmpty(rowString) == false && int.TryParse(rowString, out int row))
-                                    {
-                                        buttonRow = row;
-                                    }
-
-                                    int buttonColumn = columnIndex;
-                                    if (node["button" + i]?.Attributes["column"]?.Value is string columnString &&
-                                        string.IsNullOrEmpty(columnString) == false && int.TryParse(columnString, out int column))
-                                    {
-                                        buttonColumn = column;
-                                    }
-
-                                    buttons.Add(soundButtonUndoState, buttonRow, buttonColumn);
-                                }
-                            }
-
-                            CreatePageContent(tab, buttons);
-                        }
-
-                        if (selectedTab is null == false)
-                        {
-                            Tabs.SelectedItem = selectedTab;
-                        }
-
-                        CreateTabContextMenus();
-                    }
+                    Logger.Info("Config schema version is {0} (current is {1})", config.SchemaVersion, SoundBoardConfig.CurrentSchemaVersion);
                 }
+
+                ApplyConfigToUi(config);
 
                 Logger.Info("Loaded config: {0} tab(s), {1} sound(s), output device(s) [{2}], passthrough input [{3}], passthrough output(s) [{4}], latency {5}",
                     Tabs.Items.Count, GetSoundButtons().Count(sb => sb.HasValidSound),
@@ -662,7 +483,98 @@ namespace SoundBoard
             }
         }
 
-        private void CreatePageContent(MyMetroTabItem tab, TwoDimensionalList<SoundButtonUndoState> buttons = null)
+        /// <summary>
+        /// Populates the static <see cref="GlobalSettings"/> and the tab control from a loaded config.
+        /// </summary>
+        /// <remarks>
+        /// Device settings are applied additively (they are never cleared first), which is how every previous release behaved
+        /// when loading or importing a config on top of the current one.
+        /// </remarks>
+        private void ApplyConfigToUi(SoundBoardConfig config)
+        {
+            BoardSettings settings = config.Settings;
+            settings.OutputDevices.ToList().ForEach(GlobalSettings.AddOutputDeviceGuid);
+            settings.InputDevices.ToList().ForEach(GlobalSettings.AddInputDeviceGuid);
+            settings.PassthroughOutputDevices.ToList().ForEach(GlobalSettings.AddPassthroughOutputDeviceGuid);
+            GlobalSettings.AudioPassthroughLatency = settings.AudioPassthroughLatency;
+            GlobalSettings.NewPageDefaultRows = settings.NewPageDefaultRows;
+            GlobalSettings.NewPageDefaultColumns = settings.NewPageDefaultColumns;
+
+            // Remove default tabs
+            Tabs.Items.Clear();
+
+            TabItem selectedTab = null;
+
+            foreach (Page page in config.Pages)
+            {
+                MyMetroTabItem tab = new MyMetroTabItem {HeaderText = page.Name};
+                Tabs.Items.Add(tab);
+
+                if (page.IsFocused)
+                {
+                    selectedTab = tab;
+                }
+
+                tab.SetRows(page.Rows);
+                tab.SetColumns(page.Columns);
+
+                CreatePageContent(tab, page);
+            }
+
+            if (selectedTab is null == false)
+            {
+                Tabs.SelectedItem = selectedTab;
+            }
+
+            CreateTabContextMenus();
+        }
+
+        /// <summary>
+        /// Captures the current UI state (global settings, tabs, and every sound button) as a config.
+        /// </summary>
+        private SoundBoardConfig BuildConfigFromUi()
+        {
+            var config = new SoundBoardConfig();
+
+            BoardSettings settings = config.Settings;
+            settings.OutputDevices.UnionWith(GlobalSettings.GetOutputDeviceGuids());
+            settings.InputDevices.UnionWith(GlobalSettings.GetInputDeviceGuids());
+            settings.PassthroughOutputDevices.UnionWith(GlobalSettings.GetPassthroughOutputDeviceGuids());
+            settings.AudioPassthroughLatency = GlobalSettings.AudioPassthroughLatency;
+            settings.NewPageDefaultRows = GlobalSettings.NewPageDefaultRows;
+            settings.NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns;
+
+            foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
+            {
+                // A tab without a grid (the welcome page) is not a sound page and is not persisted
+                if (!(tab.Content is Grid grid))
+                {
+                    continue;
+                }
+
+                var page = new Page(tab.HeaderText, tab.GetRows(), tab.GetColumns()) { IsFocused = tab.IsSelectedItem() };
+
+                foreach (SoundButton button in grid.Children.OfType<SoundButton>())
+                {
+                    Sound sound = button.ToSound();
+
+                    if (page.IsInRange(sound.Row, sound.Column))
+                    {
+                        page.Set(sound);
+                    }
+                    else
+                    {
+                        Logger.Warn("Not saving sound \"{0}\" at ({1}, {2}): outside the {3}x{4} grid of page \"{5}\"", sound.Name, sound.Row, sound.Column, page.Rows, page.Columns, page.Name);
+                    }
+                }
+
+                config.Pages.Add(page);
+            }
+
+            return config;
+        }
+
+        private void CreatePageContent(MyMetroTabItem tab, Page page = null)
         {
             Grid parentGrid = new Grid();
 
@@ -688,9 +600,9 @@ namespace SoundBoard
                     // Sound button
                     SoundButton soundButton = new SoundButton(parentTab: tab);
 
-                    if (buttons is null == false && buttons.TryGet(rowIndex, columnIndex, out var buttonState))
+                    if (page is null == false && page.IsInRange(rowIndex, columnIndex))
                     {
-                        soundButton.LoadState(buttonState);
+                        soundButton.LoadState(page[rowIndex, columnIndex].ToUndoState());
                     }
 
                     Grid.SetColumn(soundButton, columnIndex);
@@ -909,71 +821,7 @@ namespace SoundBoard
                 File.Copy(configFilePath, $"{configFilePath}-{GetDateTimeString()}.bak", true);
             }
 
-            using (FileStream fileStream = new FileStream(configFilePath, FileMode.Create))
-            using (StreamWriter streamWriter = new StreamWriter(fileStream))
-            using (XmlTextWriter textWriter = new XmlTextWriter(streamWriter))
-            {
-                textWriter.Formatting = Formatting.Indented;
-                textWriter.Indentation = 4;
-
-                textWriter.WriteStartDocument();
-                textWriter.WriteStartElement("tabs"); // <tabs>
-
-                // Save global settings
-                textWriter.WriteStartElement(nameof(GlobalSettings)); // <GlobalSettings>
-                textWriter.WriteAttributeString(GlobalSettings.OutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetOutputDeviceGuids()));
-                textWriter.WriteAttributeString(GlobalSettings.InputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetInputDeviceGuids()));
-                textWriter.WriteAttributeString(GlobalSettings.PassthroughOutputDeviceGuidSettingName, string.Join(@",", GlobalSettings.GetPassthroughOutputDeviceGuids()));
-                textWriter.WriteAttributeString(nameof(GlobalSettings.AudioPassthroughLatency), GlobalSettings.AudioPassthroughLatency.ToString());
-                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultRows), GlobalSettings.NewPageDefaultRows.ToString());
-                textWriter.WriteAttributeString(nameof(GlobalSettings.NewPageDefaultColumns), GlobalSettings.NewPageDefaultColumns.ToString());
-                textWriter.WriteEndElement();  // <GlobalSettings>
-
-                foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
-                {
-                    if (tab.Content is Grid grid)
-                    {
-                        string name = tab.HeaderText;
-                        textWriter.WriteStartElement("tab");
-                        textWriter.WriteAttributeString("focused", tab.IsSelectedItem().ToString());
-                        textWriter.WriteAttributeString("rows", tab.GetRows().ToString());
-                        textWriter.WriteAttributeString("columns", tab.GetColumns().ToString());
-
-                        textWriter.WriteElementString("name", name);
-
-                        int j = 0;
-                        foreach (var child in grid.Children)
-                        {
-                            if (child is SoundButton button)
-                            {
-                                textWriter.WriteStartElement("button" + j++);
-                                textWriter.WriteAttributeString("name", button.SoundName);
-                                textWriter.WriteAttributeString("path", button.SoundPath);
-                                textWriter.WriteAttributeString("color", button.Color.ToString());
-                                textWriter.WriteAttributeString("volumeOffset", button.VolumeOffset.ToString());
-                                textWriter.WriteAttributeString("loop", button.Loop.ToString());
-                                textWriter.WriteAttributeString("stopAllSounds", button.StopAllSounds.ToString());
-                                textWriter.WriteAttributeString("nextSound", button.NextSound);
-                                textWriter.WriteAttributeString("id", button.Id);
-                                textWriter.WriteAttributeString("localHotkey", button.LocalHotkey?.ToString() ?? string.Empty);
-                                textWriter.WriteAttributeString("globalHotkey", button.GlobalHotkey?.ToString() ?? string.Empty);
-                                textWriter.WriteAttributeString("row", button.GetRow().ToString());
-                                textWriter.WriteAttributeString("column", button.GetColumn().ToString());
-                                textWriter.WriteEndElement();
-                            }
-                        }
-
-                        textWriter.WriteEndElement();
-                    }
-                    else // It doesn't have a grid, so it's not a sound page
-                    {
-                        continue;
-                    }
-                }
-
-                textWriter.WriteEndElement(); // </tabs>
-                textWriter.WriteEndDocument();
-            }
+            ConfigSerializer.Write(BuildConfigFromUi(), configFilePath);
         }
 
         /// <summary>
