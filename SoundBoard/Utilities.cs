@@ -34,7 +34,10 @@ namespace SoundBoard
         {
             bool truncated = false;
 
-            while (TextRenderer.MeasureText(input + ELLIPSES, font).Width + TextRenderer.MeasureText(offsetString, font).Width > maxWidth)
+            // Stop at the empty string. If even the ellipses alone don't fit (a very small maxWidth, or an
+            // offsetString that already exceeds it), there is nothing left to trim and Substring would throw.
+            while (string.IsNullOrEmpty(input) == false
+                   && TextRenderer.MeasureText(input + ELLIPSES, font).Width + TextRenderer.MeasureText(offsetString, font).Width > maxWidth)
             {
                 truncated = true;
                 input = input.Substring(0, input.Length - 1);
