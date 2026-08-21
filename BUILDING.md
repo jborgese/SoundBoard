@@ -46,8 +46,36 @@ msbuild SoundBoard.sln /p:Configuration=Release /m
 Or open `SoundBoard.sln` in Visual Studio and build the `Release` configuration.
 
 **Output:** `SoundBoard\bin\Release\SoundBoard.exe`. Costura.Fody embeds all managed
-dependencies into the executable at build time, so this single `.exe` is the complete,
-distributable application.
+dependencies into the executable at build time — including `SoundBoard.Model.dll` from
+the model project below — so this single `.exe` is the complete, distributable
+application.
+
+## Projects
+
+| Project | Type | Purpose |
+|---|---|---|
+| `SoundBoard\SoundBoard.csproj` | classic WPF `.csproj`, `packages.config` | The application. |
+| `SoundBoard.Model\SoundBoard.Model.csproj` | SDK-style class library, `net48` | UI-free data model (`SoundBoardConfig` → `Page` → `Sound`) and the `soundboard.config` serializer. Deliberately references **no** WPF presentation assemblies (only `WindowsBase` for the `Key` enum and `System.Drawing` for color parsing) so nothing UI-specific can leak into it. |
+| `SoundBoard.Tests\SoundBoard.Tests.csproj` | SDK-style xUnit, `net48` | Unit tests for the model and serializer, including golden-file config round-trips (`SoundBoard.Tests\Fixtures`). |
+
+`nuget restore SoundBoard.sln` restores both the `packages.config` project and the
+`PackageReference` projects (NuGet 5+). The two SDK-style projects *can* be built and
+tested with `dotnet build` / `dotnet test SoundBoard.Tests` on their own; the solution as
+a whole cannot (see below).
+
+## Test
+
+After a Release build:
+
+```powershell
+vstest.console.exe SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
+```
+
+(`vstest.console.exe` ships with Visual Studio under
+`Common7\IDE\CommonExtensions\Microsoft\TestWindow\` and is on `PATH` in a Developer
+shell. It is *not* on `PATH` on GitHub's hosted runners, which is why the CI workflow
+locates it with `vswhere`.) Or run `dotnet test SoundBoard.Tests\SoundBoard.Tests.csproj`, which builds only
+the model and test projects.
 
 ## Notes and gotchas
 
@@ -76,8 +104,8 @@ from Visual Studio or Build Tools.
 pull request: it checks out the repo on `windows-latest` (Windows Server 2025 with
 Visual Studio 2026 preinstalled, as of the June 2026 runner-image migration —
 pin to `windows-2022` instead if you ever need the older VS 2022 image), restores
-with `nuget restore`, builds `Release` with MSBuild, and uploads the resulting
-`SoundBoard.exe` as a workflow artifact.
+with `nuget restore`, builds `Release` with MSBuild, runs the unit tests with
+`vstest.console.exe`, and uploads the resulting `SoundBoard.exe` as a workflow artifact.
 
 Visual Studio 2026 has an open IDE-integrated NuGet Package Manager bug
 ([NU1109](https://github.com/nuget/home/issues/14653)) around central package

@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Plain-C# data model for SoundBoard (config -> pages -> sounds) and its serializer.
+
+    This project deliberately references NO WPF presentation assemblies. WindowsBase is referenced only
+    for System.Windows.Input.Key / ModifierKeys (the Hotkey wire format); System.Drawing only for
+    ColorTranslator, which the legacy config reader has always used. If something in here needs
+    PresentationCore/PresentationFramework, it belongs in the SoundBoard exe project instead.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>SoundBoard.Model</RootNamespace>
+    <AssemblyName>SoundBoard.Model</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <UseWPF>false</UseWPF>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors>1591</WarningsAsErrors>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Drawing" />
+  </ItemGroup>
+
+</Project>

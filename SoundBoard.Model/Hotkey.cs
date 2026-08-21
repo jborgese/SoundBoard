@@ -1,15 +1,19 @@
-﻿// https://tyrrrz.me/blog/hotkey-editor-control-in-wpf
+// https://tyrrrz.me/blog/hotkey-editor-control-in-wpf
 using System;
 using System.Linq;
 using System.Text;
 using System.Windows.Input;
 
-namespace SoundBoard
+namespace SoundBoard.Model
 {
     /// <summary>
     /// Represents a Hotkey
     /// </summary>
-    public class Hotkey
+    /// <remarks>
+    /// <see cref="ToString"/> and <see cref="FromString"/> are the config-file wire format for hotkeys
+    /// (the <c>localHotkey</c> / <c>globalHotkey</c> attributes), so their output must not change.
+    /// </remarks>
+    public class Hotkey : IEquatable<Hotkey>
     {
         /// <summary>
         /// The key (without the modifier)
@@ -50,7 +54,7 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// "Deserializes" a string to a HotKey
+        /// "Deserializes" a string to a HotKey. Returns <see langword="null"/> if the key portion is not a recognized key name.
         /// </summary>
         public static Hotkey FromString(string hotkeyStr)
         {
@@ -86,5 +90,14 @@ namespace SoundBoard
 
             return default;
         }
+
+        /// <inheritdoc/>
+        public bool Equals(Hotkey other) => other != null && Key == other.Key && Modifiers == other.Modifiers;
+
+        /// <inheritdoc/>
+        public override bool Equals(object obj) => Equals(obj as Hotkey);
+
+        /// <inheritdoc/>
+        public override int GetHashCode() => ((int)Key * 397) ^ (int)Modifiers;
     }
 }

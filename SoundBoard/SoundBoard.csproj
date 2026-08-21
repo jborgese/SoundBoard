@@ -147,15 +147,13 @@
     <Compile Include="HotkeyDialog.xaml.cs">
       <DependentUpon>HotkeyDialog.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Hotkeys\Hotkey.cs">
-      <Generator>MSBuild:Compile</Generator>
-    </Compile>
     <Compile Include="Hotkeys\HotkeyEditorControl.xaml.cs">
       <DependentUpon>HotkeyEditorControl.xaml</DependentUpon>
     </Compile>
     <Compile Include="Log.cs" />
     <Compile Include="LoopStream.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="ModelMapping.cs" />
     <Compile Include="ChildWindowBase.cs" />
     <Compile Include="MyMetroTabItem.cs" />
     <Compile Include="ButtonGridDialog.xaml.cs">
@@ -163,7 +161,6 @@
     </Compile>
     <Compile Include="MyUpdateChecker.cs" />
     <Compile Include="ShortcutCommands.cs" />
-    <Compile Include="TwoDimensionalList.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="ViewboxPanel.cs" />
@@ -229,6 +226,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\SoundBoard.Model\SoundBoard.Model.csproj">
+      <Project>{B645DC6F-8876-4CD2-A569-6BCDF2CB2649}</Project>
+      <Name>SoundBoard.Model</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <COMReference Include="stdole">

@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Forms;
 using BondTech.HotKeyManagement.WPF._4;
 using NLog;
+using SoundBoard.Model;
 using Keys = BondTech.HotKeyManagement.WPF._4.Keys;
 
 namespace SoundBoard
