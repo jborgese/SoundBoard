@@ -1573,7 +1573,9 @@ namespace SoundBoard
                     foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Reverse())
                     {
                         // If we can't determine the device's guid, we can't select it. (We must not fall back to
-                        // Guid.Empty, which means "the default device.") Show it, but disabled.
+                        // Guid.Empty, which means "the default device.") Show it, but disabled, and don't wire up a
+                        // handler at all -- being disabled already keeps it out of the input route, but not relying on
+                        // that means flipping IsEnabled later can't silently resurrect the default-device aliasing.
                         bool hasGuid = device.TryGetGuid(out Guid deviceGuid);
 
                         MenuItem menuItem = new MenuItem
@@ -1583,7 +1585,14 @@ namespace SoundBoard
                             StaysOpenOnClick = true,
                             IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(deviceGuid, args.ChangedButton);
+                        if (hasGuid)
+                        {
+                            menuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(deviceGuid, args.ChangedButton);
+                        }
+                        else
+                        {
+                            Logger.Warn("Could not parse a guid from audio device ID '{0}' ({1}); it cannot be selected", device.ID, device.FriendlyName);
+                        }
                         audioPassthroughMenu.Items.Insert(0, menuItem);
                     }
 
@@ -1626,7 +1635,14 @@ namespace SoundBoard
                             StaysOpenOnClick = true,
                             IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughInputDeviceSelection(deviceGuid);
+                        if (hasGuid)
+                        {
+                            menuItem.PreviewMouseUp += (_, args) => HandlePassthroughInputDeviceSelection(deviceGuid);
+                        }
+                        else
+                        {
+                            Logger.Warn("Could not parse a guid from audio device ID '{0}' ({1}); it cannot be selected", device.ID, device.FriendlyName);
+                        }
                         audioPassthroughMenu.Items.Insert(0, menuItem);
                     }
                 }
@@ -1683,7 +1699,14 @@ namespace SoundBoard
                             StaysOpenOnClick = true,
                             IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(deviceGuid, args.ChangedButton);
+                        if (hasGuid)
+                        {
+                            menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(deviceGuid, args.ChangedButton);
+                        }
+                        else
+                        {
+                            Logger.Warn("Could not parse a guid from audio device ID '{0}' ({1}); it cannot be selected", device.ID, device.FriendlyName);
+                        }
                         outputDeviceMenuItem.Items.Insert(0, menuItem);
                     }
 
