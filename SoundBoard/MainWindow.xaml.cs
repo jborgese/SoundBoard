@@ -1478,13 +1478,18 @@ namespace SoundBoard
                     // Now add the rest
                     foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Reverse())
                     {
+                        // If we can't determine the device's guid, we can't select it. (We must not fall back to
+                        // Guid.Empty, which means "the default device.") Show it, but disabled.
+                        bool hasGuid = device.TryGetGuid(out Guid deviceGuid);
+
                         MenuItem menuItem = new MenuItem
                         {
                             Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
-                            Icon = GlobalSettings.GetPassthroughOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
-                            StaysOpenOnClick = true
+                            Icon = hasGuid && GlobalSettings.GetPassthroughOutputDeviceGuids().Contains(deviceGuid) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true,
+                            IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughOutputDeviceSelection(deviceGuid, args.ChangedButton);
                         audioPassthroughMenu.Items.Insert(0, menuItem);
                     }
 
@@ -1517,13 +1522,17 @@ namespace SoundBoard
                     // Now add the rest
                     foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active).Reverse())
                     {
+                        // See the note on the output devices above.
+                        bool hasGuid = device.TryGetGuid(out Guid deviceGuid);
+
                         MenuItem menuItem = new MenuItem
                         {
                             Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
-                            Icon = GlobalSettings.GetInputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
-                            StaysOpenOnClick = true
+                            Icon = hasGuid && GlobalSettings.GetInputDeviceGuids().Contains(deviceGuid) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true,
+                            IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughInputDeviceSelection(device.GetGuid());
+                        menuItem.PreviewMouseUp += (_, args) => HandlePassthroughInputDeviceSelection(deviceGuid);
                         audioPassthroughMenu.Items.Insert(0, menuItem);
                     }
                 }
@@ -1570,13 +1579,17 @@ namespace SoundBoard
                     // Now add the rest
                     foreach (MMDevice device in deviceEnumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active).Reverse())
                     {
+                        // See the note on the passthrough output devices above.
+                        bool hasGuid = device.TryGetGuid(out Guid deviceGuid);
+
                         MenuItem menuItem = new MenuItem
                         {
                             Header = string.Format(Properties.Resources.SingleSpecifier, device.FriendlyName),
-                            Icon = GlobalSettings.GetOutputDeviceGuids().Contains(device.GetGuid()) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
-                            StaysOpenOnClick = true
+                            Icon = hasGuid && GlobalSettings.GetOutputDeviceGuids().Contains(deviceGuid) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null,
+                            StaysOpenOnClick = true,
+                            IsEnabled = hasGuid
                         };
-                        menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(device.GetGuid(), args.ChangedButton);
+                        menuItem.PreviewMouseUp += (_, args) => HandleOutputDeviceSelection(deviceGuid, args.ChangedButton);
                         outputDeviceMenuItem.Items.Insert(0, menuItem);
                     }
 

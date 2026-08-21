@@ -249,24 +249,40 @@ namespace SoundBoard
     public static class MMDeviceExtensions
     {
         /// <summary>
-        /// Converts the <see cref="MMDevice.ID"/> into a <see cref="Guid"/>.
+        /// Converts the <see cref="MMDevice.ID"/> into a <see cref="Guid"/>,
+        /// or <see langword="null"/> if the ID cannot be parsed.
         /// </summary>
+        /// <remarks>
+        /// This deliberately does not fall back to <see cref="Guid.Empty"/> on failure, because
+        /// <see cref="Guid.Empty"/> is the sentinel meaning "the default device" everywhere else in the app.
+        /// Returning it here would make an unparseable device indistinguishable from the default one.
+        /// </remarks>
         /// <param name="mmDevice"></param>
         /// <returns></returns>
-        public static Guid GetGuid(this MMDevice mmDevice)
+        public static Guid? GetGuid(this MMDevice mmDevice)
         {
-            Guid result = Guid.Empty;
+            return TryGetGuid(mmDevice, out Guid result) ? result : (Guid?)null;
+        }
 
+        /// <summary>
+        /// Attempts to convert the <see cref="MMDevice.ID"/> into a <see cref="Guid"/>.
+        /// Returns <see langword="true"/> on success, in which case <paramref name="guid"/> holds the parsed value.
+        /// </summary>
+        /// <param name="mmDevice"></param>
+        /// <param name="guid"></param>
+        /// <returns></returns>
+        public static bool TryGetGuid(this MMDevice mmDevice, out Guid guid)
+        {
             try
             {
-                result = Guid.Parse(mmDevice.ID.Substring(mmDevice.ID.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length));
+                return Guid.TryParse(mmDevice.ID.Substring(mmDevice.ID.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length), out guid);
             }
             catch
             {
-                // In case there's any exception parsing the guid, just return the empty guid.
+                // The ID wasn't even shaped like we expect (too short, no brace, null), so there's nothing to parse.
+                guid = Guid.Empty;
+                return false;
             }
-
-            return result;
         }
     }
 
