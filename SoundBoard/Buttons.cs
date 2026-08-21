@@ -743,7 +743,10 @@ namespace SoundBoard
 
             FontSize = 20;
             Margin = new Thickness(10);
-            AllowDrop = true;
+
+            // Search results share the source cell's Sound, so they must never be a drop target: a drop would rewrite
+            // the real sound without the real button knowing.
+            AllowDrop = soundButtonMode == SoundButtonMode.Normal;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -783,8 +786,8 @@ namespace SoundBoard
                 }
             }
 
-            // Verify that NextSound is valid
-            if (!MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
+            // Verify that NextSound is valid. Only the real button may repair its sound; a search result shares it.
+            if (Mode == SoundButtonMode.Normal && !MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
             {
                 NextSound = default;
             }
@@ -1192,8 +1195,12 @@ namespace SoundBoard
             {
                 if (string.IsNullOrEmpty(SoundPath))
                 {
-                    // If this button doesn't have a sound yet, browse for it now
-                    BrowseForSound();
+                    // If this button doesn't have a sound yet, browse for it now. (A search result shares its source
+                    // cell's sound, so browsing from it would assign the file behind the real button's back.)
+                    if (Mode == SoundButtonMode.Normal)
+                    {
+                        BrowseForSound();
+                    }
                 }
                 else
                 {
@@ -1307,6 +1314,13 @@ namespace SoundBoard
         /// <inheritdoc />
         protected override void OnDrop(DragEventArgs e)
         {
+            if (Mode != SoundButtonMode.Normal)
+            {
+                // See the constructor: search results are not drop targets
+                e.Handled = true;
+                return;
+            }
+
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 // Get the dropped file(s)
@@ -1549,11 +1563,20 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// Binds this button to a model cell and shows it. Used when a page's buttons are (re)built from its
-        /// <see cref="Model.Page"/>; any hotkeys on the sound are registered, as they are when loading button state.
+        /// Binds this freshly constructed button to a model cell and shows it. Used when a page's buttons are (re)built
+        /// from its <see cref="Model.Page"/>; any hotkeys on the sound are registered, as they are when loading button state.
         /// </summary>
+        /// <remarks>
+        /// Construct-time only: it does not release registrations for a previously attached sound, so rebinding a live
+        /// button would orphan them.
+        /// </remarks>
         public void AttachSound(Sound sound)
         {
+            if (!Sound.IsEmpty)
+            {
+                throw new InvalidOperationException("AttachSound may only be called on a button that has not been given a sound yet.");
+            }
+
             Sound = sound ?? throw new ArgumentNullException(nameof(sound));
 
             RefreshFromSound();

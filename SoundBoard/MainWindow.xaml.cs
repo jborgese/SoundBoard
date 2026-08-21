@@ -702,6 +702,8 @@ namespace SoundBoard
 
         private void CreateHelpContent(MyMetroTabItem tab)
         {
+            // The welcome page is not a sound page and must never be persisted
+            tab.Page = null;
             tab.HeaderText = Properties.Resources.Welcome;
 
             tab.Tag = WELCOME_PAGE_TAG;
@@ -967,6 +969,12 @@ namespace SoundBoard
         /// </summary>
         public void ChangeButtonGrid(int rowCount, int columnCount)
         {
+            if (!(SelectedTab is MyMetroTabItem tab && tab.Page is Page page))
+            {
+                Logger.Warn("ChangeButtonGrid called with no sound page selected; ignoring");
+                return;
+            }
+
             using (new WaitCursor())
             {
                 ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
@@ -981,7 +989,7 @@ namespace SoundBoard
 
                 // The buttons on this tab are about to be recreated, so stop them and release their hotkey registrations
                 // (the new buttons register again when they attach to their cells)
-                foreach (SoundButton soundButton in GetSoundButtons(SelectedTab))
+                foreach (SoundButton soundButton in GetSoundButtons(tab))
                 {
                     soundButton.Stop();
                     soundButton.UnregisterLocalHotkey();
@@ -989,13 +997,12 @@ namespace SoundBoard
                 }
 
                 // Resize the page and rebuild just this tab from it
-                if (SelectedTab is MyMetroTabItem tab)
+                foreach (Sound dropped in page.Resize(rowCount, columnCount).Where(sound => !sound.IsEmpty))
                 {
-                    tab.SetRows(rowCount);
-                    tab.SetColumns(columnCount);
-                    CreatePageContent(tab);
+                    Logger.Warn("Dropping sound \"{0}\" at ({1}, {2}): outside the new {3}x{4} grid of page \"{5}\"", dropped.Name, dropped.Row, dropped.Column, rowCount, columnCount, page.Name);
                 }
 
+                CreatePageContent(tab);
                 SaveSettings();
             }
         }
