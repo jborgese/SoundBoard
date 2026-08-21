@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using NAudio.CoreAudioApi;
+using NLog;
 
 #endregion
 
@@ -248,6 +249,8 @@ namespace SoundBoard
     /// </summary>
     public static class MMDeviceExtensions
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         /// <summary>
         /// Converts the <see cref="MMDevice.ID"/> into a <see cref="Guid"/>,
         /// or <see langword="null"/> if the ID cannot be parsed.
@@ -277,9 +280,10 @@ namespace SoundBoard
             {
                 return Guid.TryParse(mmDevice.ID.Substring(mmDevice.ID.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length), out guid);
             }
-            catch
+            catch (Exception ex)
             {
                 // The ID wasn't even shaped like we expect (too short, no brace, null), so there's nothing to parse.
+                Logger.Debug(ex, "Device ID '{0}' is not in the expected format", mmDevice?.ID);
                 guid = Guid.Empty;
                 return false;
             }

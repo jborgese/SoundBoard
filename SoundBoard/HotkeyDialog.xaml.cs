@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
 using BondTech.HotKeyManagement.WPF._4;
+using NLog;
 using Keys = BondTech.HotKeyManagement.WPF._4.Keys;
 
 namespace SoundBoard
@@ -12,6 +13,8 @@ namespace SoundBoard
     /// </summary>
     internal partial class HotkeyDialog
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         internal HotkeyDialog(SoundButton soundButton)
         {
             InitializeComponent();
@@ -99,8 +102,9 @@ namespace SoundBoard
                     _soundButton.ReregisterLocalHotkey();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}'", LocalHotkey, _soundButton.SoundName);
                 _soundButton.LocalHotkey = null;
                 WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, LocalHotkey);
                 WarningLabel.Visibility = Visibility.Visible;
@@ -120,8 +124,9 @@ namespace SoundBoard
                     _soundButton.ReregisterGlobalHotkey();
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}'", GlobalHotkey, _soundButton.SoundName);
                 _soundButton.GlobalHotkey = null;
                 WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, GlobalHotkey);
                 WarningLabel.Visibility = Visibility.Visible;

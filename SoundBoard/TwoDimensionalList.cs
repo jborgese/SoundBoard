@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using NLog;
 
 #endregion
 
@@ -14,6 +15,8 @@ namespace SoundBoard
     /// <typeparam name="T"></typeparam>
     internal class TwoDimensionalList<T>
     {
+        private static readonly Logger Logger = LogManager.GetLogger(nameof(TwoDimensionalList<T>));
+
         #region Public methods
 
         /// <summary>
@@ -55,6 +58,7 @@ namespace SoundBoard
             // It is probably safe to remove, but remains as a safety precaution.
             catch (Exception ex) when (ex is ArgumentNullException || ex is InvalidOperationException)
             {
+                Logger.Warn(ex, "Lookup at row {0}, column {1} threw; treating as not found", row, column);
                 value = default;
                 return false;
             }

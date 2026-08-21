@@ -1,6 +1,8 @@
 ﻿#region Usings
 
+using System;
 using NAudio.Wave;
+using NLog;
 
 #endregion
 
@@ -18,6 +20,8 @@ namespace SoundBoard
     public class LoopStream : WaveStream
     {
         #region Private fields
+
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
         readonly WaveStream _sourceStream;
 
@@ -93,9 +97,12 @@ namespace SoundBoard
                     totalBytesRead += bytesRead;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // Swallow
+                // Swallow. This runs on NAudio's playback thread; throwing here would kill the player with no message.
+                // Returning a short read makes the player stop cleanly instead. It is most likely the source stream
+                // being disposed under us when the sound is stopped/restarted.
+                Logger.Warn(ex, "Read from looped source stream failed after {0} byte(s); playback will stop", totalBytesRead);
             }
 
             return totalBytesRead;

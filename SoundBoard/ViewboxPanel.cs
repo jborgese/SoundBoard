@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using NLog;
 
 namespace SoundBoard
 {
@@ -13,6 +14,8 @@ namespace SoundBoard
     /// </remarks>
     public class ViewboxPanel : Panel
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         /// <inheritdoc/>
         protected override Size MeasureOverride(Size availableSize)
         {
@@ -49,9 +52,10 @@ namespace SoundBoard
                     var newWidth = Math.Min(finalSize.Width / _scale, double.MaxValue);
                     child.Arrange(new Rect(new Point(0, Math.Max(0, finalSize.Height / 2 - child.DesiredSize.Height / 2)), new Size(newWidth, child.DesiredSize.Height)));
                 }
-                catch
+                catch (Exception ex)
                 {
                     // Handle any NaN, divide by 0, etc. errors. Just make it invisible.
+                    Logger.Debug(ex, "Arrange failed (scale={0}, finalSize={1}); collapsing child", _scale, finalSize);
                     child.Arrange(new Rect(new Point(0, 0), new Size(0, 0)));
                 }
 

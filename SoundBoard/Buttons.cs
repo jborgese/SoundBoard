@@ -24,6 +24,7 @@ using BondTech.HotKeyManagement.WPF._4;
 using System.Media;
 using System.Windows.Media.Animation;
 using Humanizer;
+using NLog;
 
 #endregion
 
@@ -506,6 +507,8 @@ namespace SoundBoard
 
     internal sealed class SoundWarningIconButton : IconButtonBase
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         public SoundWarningIconButton(SoundButton parentButton) : base(parentButton)
         {
             VerticalAlignment = VerticalAlignment.Top;
@@ -557,9 +560,11 @@ namespace SoundBoard
 
                         // Don't do anything else. Let it get disposed immediately.
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         // AudioFileReader will throw an exception if the file doesn't contain audio.
+                        // It also throws for missing codecs and corrupt files, which is why we log the actual reason.
+                        Logger.Warn(ex, "No audio track (or unreadable file) for '{0}'", ParentButton.SoundPath);
                         ToolTip = string.Format(Properties.Resources.NoAudioTrackWarning, Path.GetFileName(ParentButton.SoundPath));
                         Visibility = Visibility.Visible;
                     }
@@ -707,6 +712,8 @@ namespace SoundBoard
     /// </summary>
     internal sealed class SoundButton : Button, IUndoable<SoundButtonUndoState>
     {
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
         #region Constructor
 
         /// <summary>
@@ -852,6 +859,13 @@ namespace SoundBoard
 
         private void SoundStoppedHandler(object sender, StoppedEventArgs e)
         {
+            if (e.Exception != null)
+            {
+                // NAudio reports playback failures (device removed, decoder error mid-stream) here rather than throwing.
+                // Nothing is shown to the user; the sound just stops.
+                Logger.Warn(e.Exception, "Playback of '{0}' ({1}) stopped with an error", SoundName, SoundPath);
+            }
+
             if (sender is IWavePlayer player)
             {
                 HandleSoundStopped(player);
@@ -1423,15 +1437,17 @@ namespace SoundBoard
                     }
                     else if (!addedDefaultDevice)
                     {
+                        Logger.Info("Configured output device {0} not found; falling back to the default device", d);
                         _players.Add(new DirectSoundOut(Guid.Empty));
                         addedDefaultDevice = true;
                     }
                 });
 
-                _waveProviders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
+                // Closing a stream that's already been torn down by NAudio can throw; there's nothing to clean up in that case.
+                _waveProviders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous wave provider failed"); } });
                 _waveProviders.Clear();
 
-                _audioFileReaders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch { /* Swallow */ } });
+                _audioFileReaders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous audio file reader failed"); } });
 
                 _audioFileReaders.Clear();
                 _players.ForEach(p => _audioFileReaders[p] = new AudioFileReader(SoundPath));
@@ -1494,6 +1510,7 @@ namespace SoundBoard
             }
             catch (Exception ex)
             {
+                Logger.Error(ex, "Failed to start sound '{0}' ({1}) on device(s) [{2}]", SoundName, SoundPath, string.Join(",", GlobalSettings.GetOutputDeviceGuids()));
                 await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
@@ -1669,9 +1686,10 @@ namespace SoundBoard
                     {
                         MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Swallow
+                        // Swallow. The hotkey manager may already have dropped it; either way there's nothing more to do.
+                        Logger.Warn(ex, "Failed to unregister local hotkey {0} for sound '{1}'", LocalHotkey, SoundName);
                     }
 
                     break;
@@ -1689,9 +1707,10 @@ namespace SoundBoard
                     {
                         MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Swallow
+                        // Swallow. A global hotkey that fails to unregister stays registered with Windows until the process exits.
+                        Logger.Warn(ex, "Failed to unregister global hotkey {0} for sound '{1}'", GlobalHotkey, SoundName);
                     }
 
                     break;
@@ -1711,7 +1730,7 @@ namespace SoundBoard
                 // The mapping failed
                 if (mappedKey == default)
                 {
-                    throw new Exception();
+                    throw new Exception($"Key '{LocalHotkey.Key}' has no equivalent in the hotkey manager");
                 }
 
                 LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
@@ -1731,7 +1750,7 @@ namespace SoundBoard
                 // The mapping failed
                 if (mappedKey == default)
                 {
-                    throw new Exception();
+                    throw new Exception($"Key '{GlobalHotkey.Key}' has no equivalent in the hotkey manager");
                 }
 
                 GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
@@ -2645,22 +2664,24 @@ namespace SoundBoard
                 LocalHotkey = undoState.LocalHotkey;
                 GlobalHotkey = undoState.GlobalHotkey;
 
+                // Swallow registration failures here: this runs during drag/drop swaps, undo, and config load, none of
+                // which can show a dialog. The hotkey stays assigned (and saved) so the next launch reports it properly.
                 try
                 {
                     ReregisterLocalHotkey();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Swallow
+                    Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' while loading button state", LocalHotkey, SoundName);
                 }
 
                 try
                 {
                     ReregisterGlobalHotkey();
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // Swallow
+                    Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' while loading button state", GlobalHotkey, SoundName);
                 }
             }
             else

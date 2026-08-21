@@ -329,6 +329,15 @@ namespace SoundBoard.Properties {
                 return ResourceManager.GetString("ExportConfiguration", resourceCulture);
             }
         }
+
+        /// <summary>
+        ///   Looks up a localized string similar to Open log folder.
+        /// </summary>
+        internal static string OpenLogFolder {
+            get {
+                return ResourceManager.GetString("OpenLogFolder", resourceCulture);
+            }
+        }
         
         /// <summary>
         ///   Looks up a localized string similar to File &apos;{0}&apos; doesn&apos;t seem to exist..

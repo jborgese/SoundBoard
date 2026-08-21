@@ -32,6 +32,8 @@ using KeyEventArgs = System.Windows.Input.KeyEventArgs;
 using MenuItem = System.Windows.Controls.MenuItem;
 using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media;
+using NLog;
+using Logger = NLog.Logger;
 
 #endregion
 
@@ -209,14 +211,21 @@ namespace SoundBoard
             {
                 HotKeyManager.AddGlobalHotKey(ignore);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // Expected on the first launch after the executable changes (see above). Only a problem if it happens every time.
+                Logger.Warn(ex, "Throwaway global hotkey registration failed (expected once after the exe changes)");
+            }
 
             // Unregister -- this will work for all but the bad scenario
             try
             {
                 HotKeyManager.RemoveGlobalHotKey(ignore);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Throwaway global hotkey unregistration failed (expected if registration failed)");
+            }
 
             // Load existing hotkeys
             List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
@@ -228,8 +237,9 @@ namespace SoundBoard
                     {
                         sb.ReregisterLocalHotkey();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' on load", sb.LocalHotkey, sb.SoundName);
                         badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
                     }
                 }
@@ -240,12 +250,15 @@ namespace SoundBoard
                     {
                         sb.ReregisterGlobalHotkey();
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' on load", sb.GlobalHotkey, sb.SoundName);
                         badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
                     }
                 }
             }
+
+            Logger.Info("Hotkey registration on load complete: {0} failed", badHotkeys.Count);
 
             if (badHotkeys.Any())
             {
@@ -298,6 +311,8 @@ namespace SoundBoard
             // For backwards compatibility, see if the legacy config file exists.
             if (File.Exists(LegacyConfigFilePath))
             {
+                Logger.Info("Legacy config found at {0}; migrating to {1}", Path.GetFullPath(LegacyConfigFilePath), ConfigFilePath);
+
                 // Load the settings with the legacy path
                 LoadSettings(LegacyConfigFilePath);
 
@@ -327,10 +342,14 @@ namespace SoundBoard
         {
             if (!File.Exists(configFilePath) && Tabs.Items.Count == 1)
             {
+                Logger.Info("No config file at {0}; showing welcome page", configFilePath);
+
                 // Populate content for "welcome"
                 CreateHelpContent((MyMetroTabItem)Tabs.Items[0]);
                 return;
             }
+
+            Logger.Info("Loading config from {0}", configFilePath);
 
             // If we get here, we can remove the default tab.
             if (Tabs.Items.Count == 1)
@@ -529,9 +548,16 @@ namespace SoundBoard
                         CreateTabContextMenus();
                     }
                 }
+
+                Logger.Info("Loaded config: {0} tab(s), {1} sound(s), output device(s) [{2}], passthrough input [{3}], passthrough output(s) [{4}], latency {5}",
+                    Tabs.Items.Count, GetSoundButtons().Count(sb => sb.HasValidSound),
+                    string.Join(",", GlobalSettings.GetOutputDeviceGuids()), string.Join(",", GlobalSettings.GetInputDeviceGuids()),
+                    string.Join(",", GlobalSettings.GetPassthroughOutputDeviceGuids()), GlobalSettings.AudioPassthroughLatency);
             }
             catch (Exception ex)
             {
+                Logger.Error(ex, "Failed to load config from {0}", configFilePath);
+
                 // Immediately back up the config that actually failed to load, which is not necessarily ConfigFilePath
                 // (we may have been asked to load a legacy config, an imported file, or an undo state).
                 // Backing up is best effort: the file may not exist, may already be the backup file, or may be locked.
@@ -544,11 +570,13 @@ namespace SoundBoard
                     {
                         File.Copy(configFilePath, TempConfigFilePath, overwrite: true);
                         backupFilePath = TempConfigFilePath;
+                        Logger.Info("Backed up failing config to {0}", backupFilePath);
                     }
                 }
-                catch
+                catch (Exception backupEx)
                 {
                     // Swallow. We couldn't back up the config, so we just won't tell the user that we did.
+                    Logger.Warn(backupEx, "Could not back up failing config {0} to {1}", configFilePath, TempConfigFilePath);
                 }
 
                 // Do better error handling
@@ -848,13 +876,32 @@ namespace SoundBoard
 
         private void SaveSettings(string configFilePath)
         {
+            try
+            {
+                SaveSettingsCore(configFilePath);
+                Logger.Debug("Saved config to {0}", configFilePath);
+            }
+            catch (Exception ex)
+            {
+                // Callers (the autosave timer, window close, import/export) decide how to surface this; we just make sure it's recorded.
+                Logger.Error(ex, "Failed to save config to {0}", configFilePath);
+                throw;
+            }
+        }
+
+        private void SaveSettingsCore(string configFilePath)
+        {
             // Ensure that the directory for the given config file exists
             try
             {
                 // ReSharper disable once AssignNullToNotNullAttribute
                 Directory.CreateDirectory(Path.GetDirectoryName(configFilePath));
             }
-            catch { /* Ignored */ }
+            catch (Exception ex)
+            {
+                // Ignored: if the directory really couldn't be created, opening the FileStream below will fail with a better error.
+                Logger.Warn(ex, "Could not create config directory for {0}", configFilePath);
+            }
 
             // If a config file already exists, create a backup in case any part of the saving fails
             if (File.Exists(configFilePath))
@@ -974,16 +1021,25 @@ namespace SoundBoard
 
         private void CleanupBackups()
         {
-            // Check if there are any backup config files
-            string directory = Path.GetDirectoryName(ConfigFilePath);
-            if (Directory.Exists(directory))
+            // This runs on a background task with nothing awaiting it, so any exception here would otherwise be lost.
+            try
             {
-                var files = Directory.GetFiles(directory, "*.bak").OrderByDescending(File.GetCreationTime).ToList();
-                if (files.Count > MAX_BACKUP_FILES)
+                // Check if there are any backup config files
+                string directory = Path.GetDirectoryName(ConfigFilePath);
+                if (Directory.Exists(directory))
                 {
-                    // Delete all but the newest five
-                    files.Skip(MAX_BACKUP_FILES).ToList().ForEach(File.Delete);
+                    var files = Directory.GetFiles(directory, "*.bak").OrderByDescending(File.GetCreationTime).ToList();
+                    if (files.Count > MAX_BACKUP_FILES)
+                    {
+                        // Delete all but the newest five
+                        files.Skip(MAX_BACKUP_FILES).ToList().ForEach(File.Delete);
+                        Logger.Debug("Deleted {0} old config backup(s)", files.Count - MAX_BACKUP_FILES);
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Failed to clean up old config backups");
             }
         }
 
@@ -1255,6 +1311,10 @@ namespace SoundBoard
 
                 _outputDeviceMenu = new MenuItem {Header = Properties.Resources.SoundOutputDevice};
                 _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
+                _outputDeviceMenu.SetSeparator(true);
+
+                MenuItem openLogFolder = new MenuItem {Header = Properties.Resources.OpenLogFolder};
+                openLogFolder.Click += OpenLogFolder_Click;
 
                 // Add a placeholder menu item so that "Output device" will have a submenu
                 // even before we have evaluated the audio devices to add to the menu
@@ -1272,6 +1332,7 @@ namespace SoundBoard
                 overflowMenu.Items.Add(_newPageDefaultMenu);
                 overflowMenu.Items.Add(_audioPassthroughMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
+                overflowMenu.Items.Add(openLogFolder);
 
                 overflowMenu.AddSeparators();
 
@@ -1359,9 +1420,11 @@ namespace SoundBoard
                 try
                 {
                     File.Copy(ConfigFilePath, saveFileDialog.FileName, true);
+                    Logger.Info("Exported config to {0}", saveFileDialog.FileName);
                 }
                 catch (Exception ex)
                 {
+                    Logger.Error(ex, "Failed to export config to {0}", saveFileDialog.FileName);
                     await this.ShowMessageAsync(Properties.Resources.Error,
                         Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
@@ -1378,6 +1441,8 @@ namespace SoundBoard
 
             if (openFileDialog.ShowDialog() == true)
             {
+                Logger.Info("Importing config from {0}", openFileDialog.FileName);
+
                 try
                 {
                     // Stop all sounds
@@ -1406,6 +1471,7 @@ namespace SoundBoard
                 }
                 catch (Exception ex)
                 {
+                    Logger.Error(ex, "Failed to import config from {0}", openFileDialog.FileName);
                     await this.ShowMessageAsync(Properties.Resources.Error,
                         Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
                 }
@@ -1414,6 +1480,8 @@ namespace SoundBoard
 
         private async void ClearConfig_Click(object sender, RoutedEventArgs e)
         {
+            Logger.Info("Clearing config");
+
             try
             {
                 // Stop all sounds
@@ -1439,6 +1507,32 @@ namespace SoundBoard
             }
             catch (Exception ex)
             {
+                Logger.Error(ex, "Failed to clear config");
+                await this.ShowMessageAsync(Properties.Resources.Error,
+                    Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
+
+        private async void OpenLogFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Log.Flush();
+
+                // Select the active log file if it exists, otherwise just open the folder
+                if (File.Exists(Log.LogFilePath))
+                {
+                    System.Diagnostics.Process.Start("explorer.exe", $"/select, \"{Log.LogFilePath}\"");
+                }
+                else
+                {
+                    Directory.CreateDirectory(Log.LogDirectory);
+                    System.Diagnostics.Process.Start("explorer.exe", $"\"{Log.LogDirectory}\"");
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to open log folder {0}", Log.LogDirectory);
                 await this.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
@@ -1649,6 +1743,8 @@ namespace SoundBoard
                 GlobalSettings.AddInputDeviceGuid(deviceGuid);
             }
 
+            Logger.Info("Passthrough input device toggled {0}; now [{1}]", deviceGuid, string.Join(",", GlobalSettings.GetInputDeviceGuids()));
+
             // Refresh the menu
             AudioPassthroughMenuOpened(_audioPassthroughMenu, new RoutedEventArgs());
 
@@ -1695,6 +1791,8 @@ namespace SoundBoard
                 }
             }
 
+            Logger.Info("Passthrough output device {0} ({1}-click); now [{2}]", guid, mouseButton, string.Join(",", GlobalSettings.GetPassthroughOutputDeviceGuids()));
+
             // Refresh the menu
             AudioPassthroughMenuOpened(_audioPassthroughMenu, new RoutedEventArgs());
 
@@ -1709,6 +1807,9 @@ namespace SoundBoard
             if (GlobalSettings.GetInputDeviceGuids().Any())
             {
                 Guid inputDeviceId = GlobalSettings.GetInputDeviceGuids().First();
+
+                Logger.Info("Starting audio passthrough from {0} to [{1}] with latency {2}ms",
+                    inputDeviceId, string.Join(",", GlobalSettings.GetPassthroughOutputDeviceGuids()), GlobalSettings.AudioPassthroughLatency);
 
                 foreach (var outputDeviceId in GlobalSettings.GetPassthroughOutputDeviceGuids())
                 {
@@ -1744,25 +1845,34 @@ namespace SoundBoard
                     }
                     catch (Exception ex)
                     {
+                        Logger.Error(ex, "Audio passthrough failed for input {0} -> output {1}", inputDeviceId, outputDeviceId);
+
                         HandlePassthroughRecordingStopped(this, new StoppedEventArgs());
                         HandlePassthroughPlaybackStopped(this, new StoppedEventArgs());
 
                         Dispatcher.Invoke(async () =>
                         {
                             // Try to get the friendly input/output device names.
+                            // GetDevice returns null if the device is gone, so these fail (by design) for a missing device.
                             string inputDeviceName = Properties.Resources.UNKNOWN;
                             string outputDeviceName = Properties.Resources.UNKNOWN;
                             try
                             {
                                 inputDeviceName = Utilities.GetDevice(inputDeviceId, DataFlow.Capture).FriendlyName;
                             }
-                            catch {}
+                            catch (Exception nameEx)
+                            {
+                                Logger.Debug(nameEx, "Could not resolve friendly name for input device {0}", inputDeviceId);
+                            }
                             try
                             {
                                 outputDeviceName = Utilities.GetDevice(outputDeviceId, DataFlow.Render).FriendlyName;
                             }
-                            catch {}
-                            
+                            catch (Exception nameEx)
+                            {
+                                Logger.Debug(nameEx, "Could not resolve friendly name for output device {0}", outputDeviceId);
+                            }
+
                             string error = string.Format(Properties.Resources.AudioPassthroughError, inputDeviceName, outputDeviceName);
 
                             if (ex is COMException comException)
@@ -1800,6 +1910,8 @@ namespace SoundBoard
         private void HandlePassthroughRecordingStopped(object sender, StoppedEventArgs args)
         {
             // Handle the input device being disabled/disconnected/etc.
+            Logger.Warn(args.Exception, "Passthrough recording stopped; clearing input device [{0}]", string.Join(",", GlobalSettings.GetInputDeviceGuids()));
+
             GlobalSettings.RemoveAllInputDeviceGuids();
             CleanUpAudioPassthrough();
         }
@@ -1810,6 +1922,8 @@ namespace SoundBoard
             if (args.Exception != null)
             {
                 // Handle the output device being disabled/disconnected/etc.
+                Logger.Warn(args.Exception, "Passthrough playback stopped with error; clearing output devices [{0}]", string.Join(",", GlobalSettings.GetPassthroughOutputDeviceGuids()));
+
                 GlobalSettings.RemoveAllPassthroughOutputDeviceGuids();
                 CleanUpAudioPassthrough();
             }
@@ -1887,6 +2001,8 @@ namespace SoundBoard
                 GlobalSettings.RemoveAllOutputDeviceGuids();
                 GlobalSettings.AddOutputDeviceGuid(deviceGuid);
             }
+
+            Logger.Info("Output device {0} ({1}-click); now [{2}]", deviceGuid, mouseButton, string.Join(",", GlobalSettings.GetOutputDeviceGuids()));
 
             // Refresh the menu
             OutputDeviceMenuOpened(_outputDeviceMenu, new RoutedEventArgs());
@@ -2048,6 +2164,7 @@ namespace SoundBoard
 
         #region Private fields
 
+        private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
         private readonly IKeyboardMouseEvents _globalMouseEvents;
         private string _searchString = string.Empty;
         private Action _undoAction;
@@ -2102,18 +2219,19 @@ namespace SoundBoard
                     {
                         soundButton.ReregisterLocalHotkey();
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Swallow
+                        // Swallow. Unlike the load path, the user isn't told; the hotkey just silently stops working.
+                        Logger.Warn(ex, "Failed to re-register local hotkey {0} for sound '{1}' after undoing tab removal", soundButton.LocalHotkey, soundButton.SoundName);
                     }
 
                     try
                     {
                         soundButton.ReregisterGlobalHotkey();
                     }
-                    catch
+                    catch (Exception ex)
                     {
-                        // Swallow
+                        Logger.Warn(ex, "Failed to re-register global hotkey {0} for sound '{1}' after undoing tab removal", soundButton.GlobalHotkey, soundButton.SoundName);
                     }
                 }
             }
