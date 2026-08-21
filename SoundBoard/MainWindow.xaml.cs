@@ -492,7 +492,8 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// Populates the static <see cref="GlobalSettings"/> and the tab control from a loaded config.
+        /// Populates the live settings (<see cref="GlobalSettings.Current"/>) and the tab control from a loaded config.
+        /// The config's pages become the tabs' live pages; the config object itself is not retained.
         /// </summary>
         /// <remarks>
         /// Device settings are applied additively (they are never cleared first), which is how every previous release behaved
@@ -501,12 +502,12 @@ namespace SoundBoard
         private void ApplyConfigToUi(SoundBoardConfig config)
         {
             BoardSettings settings = config.Settings;
-            settings.OutputDevices.ToList().ForEach(GlobalSettings.AddOutputDeviceGuid);
-            settings.InputDevices.ToList().ForEach(GlobalSettings.AddInputDeviceGuid);
-            settings.PassthroughOutputDevices.ToList().ForEach(GlobalSettings.AddPassthroughOutputDeviceGuid);
-            GlobalSettings.AudioPassthroughLatency = settings.AudioPassthroughLatency;
-            GlobalSettings.NewPageDefaultRows = settings.NewPageDefaultRows;
-            GlobalSettings.NewPageDefaultColumns = settings.NewPageDefaultColumns;
+            GlobalSettings.Current.OutputDevices.UnionWith(settings.OutputDevices);
+            GlobalSettings.Current.InputDevices.UnionWith(settings.InputDevices);
+            GlobalSettings.Current.PassthroughOutputDevices.UnionWith(settings.PassthroughOutputDevices);
+            GlobalSettings.Current.AudioPassthroughLatency = settings.AudioPassthroughLatency;
+            GlobalSettings.Current.NewPageDefaultRows = settings.NewPageDefaultRows;
+            GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
 
             // Remove default tabs
             Tabs.Items.Clear();
@@ -515,7 +516,7 @@ namespace SoundBoard
 
             foreach (Page page in config.Pages)
             {
-                MyMetroTabItem tab = new MyMetroTabItem {HeaderText = page.Name};
+                MyMetroTabItem tab = new MyMetroTabItem { Page = page };
                 Tabs.Items.Add(tab);
 
                 if (page.IsFocused)
@@ -523,10 +524,7 @@ namespace SoundBoard
                     selectedTab = tab;
                 }
 
-                tab.SetRows(page.Rows);
-                tab.SetColumns(page.Columns);
-
-                CreatePageContent(tab, page);
+                CreatePageContent(tab);
             }
 
             if (selectedTab is null == false)
@@ -538,80 +536,77 @@ namespace SoundBoard
         }
 
         /// <summary>
-        /// Captures the current UI state (global settings, tabs, and every sound button) as a config.
+        /// The live pages, in tab order. Tabs that are not sound pages (the welcome page) are excluded.
+        /// </summary>
+        public IEnumerable<Page> Pages => Tabs.Items.OfType<MyMetroTabItem>().Select(tab => tab.Page).Where(page => page != null);
+
+        /// <summary>
+        /// Finds the sound with the given <see cref="Sound.Id"/> on any page, or null.
+        /// </summary>
+        public Sound FindSound(string id) => string.IsNullOrEmpty(id) ? null : Pages.Select(page => page.FindSound(id)).FirstOrDefault(sound => sound != null);
+
+        /// <summary>
+        /// Finds the button displaying the given sound, or null.
+        /// </summary>
+        internal SoundButton FindButton(Sound sound) => sound is null ? null : GetSoundButtons().FirstOrDefault(button => ReferenceEquals(button.Sound, sound));
+
+        /// <summary>
+        /// Captures the current state (live settings and pages, in tab order) as a config ready to be written.
+        /// The pages in the result are the live objects, not copies.
         /// </summary>
         private SoundBoardConfig BuildConfigFromUi()
         {
-            var config = new SoundBoardConfig();
-
-            BoardSettings settings = config.Settings;
-            settings.OutputDevices.UnionWith(GlobalSettings.GetOutputDeviceGuids());
-            settings.InputDevices.UnionWith(GlobalSettings.GetInputDeviceGuids());
-            settings.PassthroughOutputDevices.UnionWith(GlobalSettings.GetPassthroughOutputDeviceGuids());
-            settings.AudioPassthroughLatency = GlobalSettings.AudioPassthroughLatency;
-            settings.NewPageDefaultRows = GlobalSettings.NewPageDefaultRows;
-            settings.NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns;
+            var config = new SoundBoardConfig { Settings = GlobalSettings.Current };
 
             foreach (MyMetroTabItem tab in Tabs.Items.OfType<MyMetroTabItem>())
             {
-                // A tab without a grid (the welcome page) is not a sound page and is not persisted
-                if (!(tab.Content is Grid grid))
+                if (tab.Page is Page page)
                 {
-                    continue;
+                    page.IsFocused = tab.IsSelectedItem();
+                    config.Pages.Add(page);
                 }
-
-                var page = new Page(tab.HeaderText, tab.GetRows(), tab.GetColumns()) { IsFocused = tab.IsSelectedItem() };
-
-                foreach (SoundButton button in grid.Children.OfType<SoundButton>())
-                {
-                    Sound sound = button.ToSound();
-
-                    if (page.IsInRange(sound.Row, sound.Column))
-                    {
-                        page.Set(sound);
-                    }
-                    else if (!sound.IsEmpty)
-                    {
-                        Logger.Warn("Not saving sound \"{0}\" at ({1}, {2}): outside the {3}x{4} grid of page \"{5}\"", sound.Name, sound.Row, sound.Column, page.Rows, page.Columns, page.Name);
-                    }
-                }
-
-                config.Pages.Add(page);
             }
 
             return config;
         }
 
-        private void CreatePageContent(MyMetroTabItem tab, Page page = null)
+        /// <summary>
+        /// (Re)builds the tab's button grid from its <see cref="MyMetroTabItem.Page"/>, creating a default-sized empty page
+        /// first if the tab has none.
+        /// </summary>
+        private void CreatePageContent(MyMetroTabItem tab)
         {
+            if (tab.Page is null)
+            {
+                tab.Page = new Page(tab.HeaderText, GlobalSettings.NewPageDefaultRows, GlobalSettings.NewPageDefaultColumns);
+            }
+
+            Page page = tab.Page;
             Grid parentGrid = new Grid();
 
             // Add column definitions to the grid
-            for (int i = 0; i < tab.GetColumns(); ++i)
+            for (int i = 0; i < page.Columns; ++i)
             {
                 ColumnDefinition col = new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) };
                 parentGrid.ColumnDefinitions.Add(col);
             }
 
             // Add row definitions to the grid
-            for (int i = 0; i < tab.GetRows(); ++i)
+            for (int i = 0; i < page.Rows; ++i)
             {
                 RowDefinition row = new RowDefinition { Height = new GridLength(1, GridUnitType.Star) };
                 parentGrid.RowDefinitions.Add(row);
             }
 
             // Add the buttons to the grid
-            for (int rowIndex = 0; rowIndex < tab.GetRows(); ++rowIndex) 
+            for (int rowIndex = 0; rowIndex < page.Rows; ++rowIndex)
             {
-                for (int columnIndex = 0; columnIndex < tab.GetColumns(); ++columnIndex)
+                for (int columnIndex = 0; columnIndex < page.Columns; ++columnIndex)
                 {
-                    // Sound button
+                    // Sound button, bound to its model cell. This happens before the child buttons are created, so the
+                    // child buttons pick up the sound's state through their own constructors, as they always have.
                     SoundButton soundButton = new SoundButton(parentTab: tab);
-
-                    if (page is null == false && page.IsInRange(rowIndex, columnIndex))
-                    {
-                        soundButton.LoadState(page[rowIndex, columnIndex].ToUndoState());
-                    }
+                    soundButton.AttachSound(page[rowIndex, columnIndex]);
 
                     Grid.SetColumn(soundButton, columnIndex);
                     Grid.SetRow(soundButton, rowIndex);
@@ -707,6 +702,8 @@ namespace SoundBoard
 
         private void CreateHelpContent(MyMetroTabItem tab)
         {
+            // The welcome page is not a sound page and must never be persisted
+            tab.Page = null;
             tab.HeaderText = Properties.Resources.Welcome;
 
             tab.Tag = WELCOME_PAGE_TAG;
@@ -972,16 +969,14 @@ namespace SoundBoard
         /// </summary>
         public void ChangeButtonGrid(int rowCount, int columnCount)
         {
+            if (!(SelectedTab is MyMetroTabItem tab && tab.Page is Page page))
+            {
+                Logger.Warn("ChangeButtonGrid called with no sound page selected; ignoring");
+                return;
+            }
+
             using (new WaitCursor())
             {
-                // Stop all sounds
-                foreach (SoundButton soundButton in GetSoundButtons())
-                {
-                    soundButton.Stop();
-                    soundButton.UnregisterLocalHotkey();
-                    soundButton.UnregisterGlobalHotkey();
-                }
-
                 ConfigUndoState configUndoState = (this as IUndoable<ConfigUndoState>).SaveState();
 
                 // Set up our UndoAction
@@ -992,11 +987,23 @@ namespace SoundBoard
                 string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
                 ShowUndoSnackbar(truncatedMessage);
 
-                // Do the change
-                SelectedTab.SetRows(rowCount);
-                SelectedTab.SetColumns(columnCount);
+                // The buttons on this tab are about to be recreated, so stop them and release their hotkey registrations
+                // (the new buttons register again when they attach to their cells)
+                foreach (SoundButton soundButton in GetSoundButtons(tab))
+                {
+                    soundButton.Stop();
+                    soundButton.UnregisterLocalHotkey();
+                    soundButton.UnregisterGlobalHotkey();
+                }
+
+                // Resize the page and rebuild just this tab from it
+                foreach (Sound dropped in page.Resize(rowCount, columnCount).Where(sound => !sound.IsEmpty))
+                {
+                    Logger.Warn("Dropping sound \"{0}\" at ({1}, {2}): outside the new {3}x{4} grid of page \"{5}\"", dropped.Name, dropped.Row, dropped.Column, rowCount, columnCount, page.Name);
+                }
+
+                CreatePageContent(tab);
                 SaveSettings();
-                LoadSettings();
             }
         }
 
@@ -1086,8 +1093,8 @@ namespace SoundBoard
                         {
                             if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
                             {
+                                // The search result displays the source button's sound directly
                                 SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
-                                button.SetFile(soundButton.SoundPath, soundButton.SoundName);
 
                                 ResultsPanel.Children.Add(button);
                             }

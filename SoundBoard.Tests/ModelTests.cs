@@ -68,6 +68,47 @@ namespace SoundBoard.Tests
             Assert.False(sound.IsEmpty);
         }
 
+        [Fact]
+        public void Id_NeverNullOrEmpty()
+        {
+            var sound = new Sound();
+            string original = sound.Id;
+
+            sound.Id = null;
+            Assert.False(string.IsNullOrEmpty(sound.Id));
+            Assert.NotEqual(original, sound.Id);
+
+            sound.Id = "";
+            Assert.False(string.IsNullOrEmpty(sound.Id));
+
+            sound.Id = "custom";
+            Assert.Equal("custom", sound.Id);
+        }
+
+        [Fact]
+        public void NameAndPath_NullBecomesEmpty()
+        {
+            var sound = new Sound { Name = null, Path = null };
+            Assert.Equal(string.Empty, sound.Name);
+            Assert.Equal(string.Empty, sound.Path);
+            Assert.True(sound.IsEmpty);
+        }
+
+        [Fact]
+        public void PropertyChanged_RaisedOnChangeOnly()
+        {
+            var sound = new Sound();
+            var changed = new System.Collections.Generic.List<string>();
+            sound.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            sound.Path = @"C:\a.mp3";
+            sound.Path = @"C:\a.mp3"; // no change
+            sound.Loop = true;
+            sound.Loop = true; // no change
+
+            Assert.Equal(new[] { nameof(Sound.Path), nameof(Sound.IsEmpty), nameof(Sound.Loop) }, changed);
+        }
+
         internal static Sound Filled() => new Sound
         {
             Name = "name",
@@ -144,6 +185,34 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void FindSound_ById()
+        {
+            var page = new Page("p", 1, 2);
+            Sound target = page[0, 1];
+
+            Assert.Same(target, page.FindSound(target.Id));
+            Assert.Null(page.FindSound("missing"));
+            Assert.Null(page.FindSound(null));
+        }
+
+        [Fact]
+        public void Name_NullBecomesEmpty_AndNotifies()
+        {
+            var page = new Page(null, 1, 1);
+            Assert.Equal(string.Empty, page.Name);
+
+            var changed = new System.Collections.Generic.List<string>();
+            page.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+            page.Name = "x";
+            page.Resize(2, 2);
+
+            Assert.Contains(nameof(Page.Name), changed);
+            Assert.Contains(nameof(Page.Rows), changed);
+            Assert.Contains(nameof(Page.Columns), changed);
+            Assert.Contains(nameof(Page.Sounds), changed);
+        }
+
+        [Fact]
         public void DeepClone_IsIndependent()
         {
             var page = new Page("p", 1, 2) { IsFocused = true };
@@ -193,6 +262,25 @@ namespace SoundBoard.Tests
             Assert.Single(config.Settings.OutputDevices);
             Assert.Equal(42, config.Settings.AudioPassthroughLatency);
             Assert.Single(config.Pages);
+        }
+
+        [Fact]
+        public void Settings_CopyFrom_ReplacesEverything()
+        {
+            var source = new BoardSettings { AudioPassthroughLatency = 7, NewPageDefaultRows = 1, NewPageDefaultColumns = 9 };
+            source.OutputDevices.Add(Guid.NewGuid());
+
+            var target = new BoardSettings();
+            target.OutputDevices.Add(Guid.NewGuid());
+            target.InputDevices.Add(Guid.NewGuid());
+
+            target.CopyFrom(source);
+
+            Assert.Equal(7, target.AudioPassthroughLatency);
+            Assert.Equal(1, target.NewPageDefaultRows);
+            Assert.Equal(9, target.NewPageDefaultColumns);
+            Assert.Equal(source.OutputDevices, target.OutputDevices);
+            Assert.Empty(target.InputDevices);
         }
 
         [Fact]

@@ -6,6 +6,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using NAudio.CoreAudioApi;
 using NLog;
+using Page = SoundBoard.Model.Page;
 
 #endregion
 
@@ -137,68 +138,44 @@ namespace SoundBoard
             return tabItem == (tabItem.Parent as TabControl)?.SelectedItem;
         }
 
-        #region Rows property
+        #region Rows / Columns
 
         /// <summary>
-        /// The number of button rows on the <see cref="TabItem"/> it is set on.
+        /// The number of button rows on the tab's page, or the new-page default if the tab has no page yet.
         /// </summary>
-        /// <remarks>
-        /// This is an attached property (rather than, say, a static dictionary keyed on the tab item) so that the
-        /// value lives on the tab item itself and is collected along with it. The default in the property metadata is
-        /// unused: <see cref="GetRows"/> reads the local value so that "never set" stays distinguishable from "set to
-        /// zero", and falls back to the current global setting, which can change at runtime.
-        /// </remarks>
-        public static readonly DependencyProperty RowsProperty = DependencyProperty.RegisterAttached(
-            "Rows", typeof(int), typeof(TabItemExtensions), new PropertyMetadata());
-
-        /// <summary>
-        /// Get the Rows property
-        /// </summary>
-        /// <param name="tabItem"></param>
-        /// <returns></returns>
         public static int GetRows(this TabItem tabItem)
         {
-            return tabItem.ReadLocalValue(RowsProperty) is int rows ? rows : GlobalSettings.NewPageDefaultRows;
+            return (tabItem as MyMetroTabItem)?.Page?.Rows ?? GlobalSettings.NewPageDefaultRows;
         }
 
         /// <summary>
-        /// Set the Rows property
+        /// Resizes the tab's page to the given number of rows. Sounds that fall outside the new grid are dropped.
         /// </summary>
-        /// <param name="tabItem"></param>
-        /// <param name="value"></param>
         public static void SetRows(this TabItem tabItem, int value)
         {
-            tabItem.SetValue(RowsProperty, value);
+            if ((tabItem as MyMetroTabItem)?.Page is Page page)
+            {
+                page.Resize(value, page.Columns);
+            }
         }
 
-        #endregion
-
-        #region Columns property
-
         /// <summary>
-        /// The number of button columns on the <see cref="TabItem"/> it is set on. See <see cref="RowsProperty"/>.
+        /// The number of button columns on the tab's page, or the new-page default if the tab has no page yet.
         /// </summary>
-        public static readonly DependencyProperty ColumnsProperty = DependencyProperty.RegisterAttached(
-            "Columns", typeof(int), typeof(TabItemExtensions), new PropertyMetadata());
-
-        /// <summary>
-        /// Get the Columns property
-        /// </summary>
-        /// <param name="tabItem"></param>
-        /// <returns></returns>
         public static int GetColumns(this TabItem tabItem)
         {
-            return tabItem.ReadLocalValue(ColumnsProperty) is int columns ? columns : GlobalSettings.NewPageDefaultColumns;
+            return (tabItem as MyMetroTabItem)?.Page?.Columns ?? GlobalSettings.NewPageDefaultColumns;
         }
 
         /// <summary>
-        /// Set the Columns property
+        /// Resizes the tab's page to the given number of columns. Sounds that fall outside the new grid are dropped.
         /// </summary>
-        /// <param name="tabItem"></param>
-        /// <param name="value"></param>
         public static void SetColumns(this TabItem tabItem, int value)
         {
-            tabItem.SetValue(ColumnsProperty, value);
+            if ((tabItem as MyMetroTabItem)?.Page is Page page)
+            {
+                page.Resize(page.Rows, value);
+            }
         }
 
         #endregion

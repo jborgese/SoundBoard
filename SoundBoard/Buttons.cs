@@ -730,12 +730,23 @@ namespace SoundBoard
 
             if (soundButtonMode == SoundButtonMode.Normal)
             {
+                // A placeholder until the page content builder attaches the real cell (see AttachSound)
+                Sound = new Sound();
                 SetDefaultText();
+            }
+            else
+            {
+                // A search result shows (and shares) the source button's sound
+                Sound = sourceTabAndButton.SourceButton?.Sound ?? new Sound();
+                SetContent(SoundName);
             }
 
             FontSize = 20;
             Margin = new Thickness(10);
-            AllowDrop = true;
+
+            // Search results share the source cell's Sound, so they must never be a drop target: a drop would rewrite
+            // the real sound without the real button knowing.
+            AllowDrop = soundButtonMode == SoundButtonMode.Normal;
 
             SetUpStyle();
             SetUpContextMenu();
@@ -775,8 +786,8 @@ namespace SoundBoard
                 }
             }
 
-            // Verify that NextSound is valid
-            if (!MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
+            // Verify that NextSound is valid. Only the real button may repair its sound; a search result shares it.
+            if (Mode == SoundButtonMode.Normal && !MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
             {
                 NextSound = default;
             }
@@ -1184,8 +1195,12 @@ namespace SoundBoard
             {
                 if (string.IsNullOrEmpty(SoundPath))
                 {
-                    // If this button doesn't have a sound yet, browse for it now
-                    BrowseForSound();
+                    // If this button doesn't have a sound yet, browse for it now. (A search result shares its source
+                    // cell's sound, so browsing from it would assign the file behind the real button's back.)
+                    if (Mode == SoundButtonMode.Normal)
+                    {
+                        BrowseForSound();
+                    }
                 }
                 else
                 {
@@ -1299,6 +1314,13 @@ namespace SoundBoard
         /// <inheritdoc />
         protected override void OnDrop(DragEventArgs e)
         {
+            if (Mode != SoundButtonMode.Normal)
+            {
+                // See the constructor: search results are not drop targets
+                e.Handled = true;
+                return;
+            }
+
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 // Get the dropped file(s)
@@ -1538,6 +1560,49 @@ namespace SoundBoard
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Binds this freshly constructed button to a model cell and shows it. Used when a page's buttons are (re)built
+        /// from its <see cref="Model.Page"/>; any hotkeys on the sound are registered, as they are when loading button state.
+        /// </summary>
+        /// <remarks>
+        /// Construct-time only: it does not release registrations for a previously attached sound, so rebinding a live
+        /// button would orphan them.
+        /// </remarks>
+        public void AttachSound(Sound sound)
+        {
+            if (!Sound.IsEmpty)
+            {
+                throw new InvalidOperationException("AttachSound may only be called on a button that has not been given a sound yet.");
+            }
+
+            Sound = sound ?? throw new ArgumentNullException(nameof(sound));
+
+            RefreshFromSound();
+
+            if (!Sound.IsEmpty)
+            {
+                // Swallow registration failures here for the same reason as in LoadState: this runs during config load,
+                // which cannot show a dialog. The hotkey stays assigned (and saved) so the next launch reports it properly.
+                try
+                {
+                    ReregisterLocalHotkey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' while attaching", LocalHotkey, SoundName);
+                }
+
+                try
+                {
+                    ReregisterGlobalHotkey();
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' while attaching", GlobalHotkey, SoundName);
+                }
+            }
         }
 
         /// <summary>
@@ -1813,23 +1878,41 @@ namespace SoundBoard
 
         private void SetDefaultText()
         {
-            SoundPath = string.Empty;
-            SoundName = string.Empty;
-            SetContent(Properties.Resources.DragASoundHere);
-            Color = null;
-            VolumeOffset = 0;
-            Loop = false;
-            StopAllSounds = false;
-            LocalHotkey = null;
-            GlobalHotkey = null;
-            NextSound = default;
-
-            // Clear any hotkeys
+            // Clear any hotkeys. This has to happen before the model is cleared, because registrations are keyed on Id
+            // and Clear() issues a new one.
             UnregisterLocalHotkey();
             UnregisterGlobalHotkey();
 
-            Id = Guid.NewGuid().ToString();
+            Sound.Clear();
+
+            RefreshFromSound();
             IsSelected = false;
+        }
+
+        /// <summary>
+        /// Pushes every value in <see cref="Sound"/> through to the visuals (content text, style, icon buttons, context menu).
+        /// Call after changing the model behind this button's back.
+        /// </summary>
+        private void RefreshFromSound()
+        {
+            SetContent(Sound.IsEmpty ? Properties.Resources.DragASoundHere : SoundName);
+
+            ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
+            ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+            ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
+            ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+            ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
+
+            if (Loop)
+            {
+                ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
+            }
+            else
+            {
+                ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
+            }
+
+            MainWindow.Instance.OnAnySoundRenamed();
 
             SetUpStyle();
             SetUpContextMenu();
@@ -2410,69 +2493,70 @@ namespace SoundBoard
         public SoundProgressBar SoundProgressBar { get; set; } = new SoundProgressBar();
 
         /// <summary>
+        /// The model cell this button displays and edits. Every data property on this class reads and writes through it.
+        /// In <see cref="SoundButtonMode.Normal"/> this is the cell of <see cref="ParentTab"/>'s page at this button's grid
+        /// position; in <see cref="SoundButtonMode.Search"/> it is the source button's sound (shared, not copied).
+        /// </summary>
+        public Sound Sound { get; private set; }
+
+        /// <summary>
         /// Defines the path of the underlying sound file
         /// </summary>
         public string SoundPath
         {
-            get => _soundPath;
+            get => Sound.Path;
             private set
             {
-                _soundPath = value;
+                Sound.Path = value;
                 ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
             }
         }
-        private string _soundPath;
 
         /// <summary>
         /// Defines the name of the sound file as displayed on the button
         /// </summary>
         public string SoundName
         {
-            get => _soundName;
+            get => Sound.Name;
             private set
             {
-                _soundName = value;
+                Sound.Name = value;
                 MainWindow.Instance.OnAnySoundRenamed();
             }
         }
-        private string _soundName;
 
         /// <summary>
         /// Defines the background color of the button
         /// </summary>
         public Color? Color
         {
-            get => _color;
+            get => Sound.Color?.ToMediaColor();
             private set
             {
-                _color = value;
+                Sound.Color = value?.ToSoundColor();
                 SetUpStyle();
             }
         }
 
-        private Color? _color = null; // Backing field. Need the "= null", even though it's the default.
-
         public int VolumeOffset
         {
-            get => _volumeOffset;
+            get => Sound.VolumeOffset;
             private set
             {
-                _volumeOffset = value;
+                Sound.VolumeOffset = value;
 
                 ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
             }
         }
 
-        private int _volumeOffset = 0; // Backing field
-
         public bool Loop
         {
-            get => _loop;
+            get => Sound.Loop;
             private set
             {
-                _loop = value;
+                Sound.Loop = value;
 
-                if (_loop)
+                if (value)
                 {
                     ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
                 }
@@ -2483,42 +2567,41 @@ namespace SoundBoard
             }
         }
 
-        private bool _loop; // Backing field
-
         public bool StopAllSounds
         {
-            get => _stopAllSounds;
+            get => Sound.StopAllSounds;
             set
             {
-                _stopAllSounds = value;
+                Sound.StopAllSounds = value;
                 ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
             }
         }
-        private bool _stopAllSounds;
 
-        public string Id { get; set; }
+        public string Id
+        {
+            get => Sound.Id;
+            set => Sound.Id = value;
+        }
 
         public Hotkey LocalHotkey
         {
-            get => _localHotkey;
+            get => Sound.LocalHotkey;
             set
             {
-                _localHotkey = value;
+                Sound.LocalHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             }
         }
-        private Hotkey _localHotkey;
 
         public Hotkey GlobalHotkey
         {
-            get => _globalHotkey;
+            get => Sound.GlobalHotkey;
             set
             {
-                _globalHotkey = value;
+                Sound.GlobalHotkey = value;
                 ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             }
         }
-        private Hotkey _globalHotkey;
 
         /// <summary>
         /// Contains a list of child buttons
@@ -2563,14 +2646,13 @@ namespace SoundBoard
 
         public string NextSound
         {
-            get => _nextSound;
+            get => Sound.NextSoundId;
             set
             {
-                _nextSound = value;
+                Sound.NextSoundId = value;
                 ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
             }
         }
-        private string _nextSound;
 
         #endregion
 

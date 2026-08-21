@@ -1,52 +1,44 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using SoundBoard.Model;
 
 namespace SoundBoard
 {
     /// <summary>
-    /// Holds settings that are global to the application
+    /// Static facade over the application's live <see cref="BoardSettings"/> (<see cref="Current"/>).
     /// </summary>
+    /// <remarks>
+    /// The settings themselves live in the model. This class only exists so that the many existing call sites keep
+    /// compiling while the UI is migrated; new code should use <see cref="Current"/> directly.
+    /// </remarks>
     public static class GlobalSettings
     {
+        /// <summary>
+        /// The settings in effect for this process. The instance never changes; its contents do.
+        /// </summary>
+        public static BoardSettings Current { get; } = new BoardSettings();
+
         #region Output device
 
         /// <summary>
         /// Add an output device to the current list
         /// </summary>
-        public static void AddOutputDeviceGuid(Guid guid) => OutputDeviceGuids.Add(guid);
+        public static void AddOutputDeviceGuid(Guid guid) => Current.OutputDevices.Add(guid);
 
         /// <summary>
         /// Remove an output device from the current list
         /// </summary>
-        public static void RemoveOutputDeviceGuid(Guid guid) => OutputDeviceGuids.Remove(guid);
+        public static void RemoveOutputDeviceGuid(Guid guid) => Current.OutputDevices.Remove(guid);
 
         /// <summary>
         /// Removes all current output devices
         /// </summary>
-        public static void RemoveAllOutputDeviceGuids() => OutputDeviceGuids.Clear();
+        public static void RemoveAllOutputDeviceGuids() => Current.OutputDevices.Clear();
 
         /// <summary>
-        /// Get the current list of output devices
+        /// Get the current list of output devices, or the default device (<see cref="Guid.Empty"/>) when none are selected
         /// </summary>
-        public static List<Guid> GetOutputDeviceGuids() => (OutputDeviceGuids.Any() ? OutputDeviceGuids : new HashSet<Guid> {Guid.Empty}).ToList();
-
-        /// <summary>
-        /// The name of the OutputDeviceGuid setting name. 
-        /// </summary>
-        /// <remarks>
-        /// This is for backwards compatibility with old settings files. We used to use nameof(OutputDeviceGuid),
-        /// but there is no property with that name any more.
-        /// </remarks>
-        public static string OutputDeviceGuidSettingName = "OutputDeviceGuid";
-
-        /// <summary>
-        /// Defines the ID(s) of the audio output device(s) to use when playing sounds
-        /// </summary>
-        /// <remarks>
-        /// HashSet to prevent duplicate GUIDs.
-        /// </remarks>
-        private static HashSet<Guid> OutputDeviceGuids { get; } = new HashSet<Guid>();
+        public static List<Guid> GetOutputDeviceGuids() => Current.GetOutputDeviceGuidsOrDefault();
 
         #endregion
 
@@ -55,88 +47,74 @@ namespace SoundBoard
         /// <summary>
         /// Add an input device to the current list
         /// </summary>
-        public static void AddInputDeviceGuid(Guid guid) => InputDeviceGuids.Add(guid);
+        public static void AddInputDeviceGuid(Guid guid) => Current.InputDevices.Add(guid);
 
         /// <summary>
         /// Remove an input device from the current list
         /// </summary>
-        public static void RemoveInputDeviceGuid(Guid guid) => InputDeviceGuids.Remove(guid);
+        public static void RemoveInputDeviceGuid(Guid guid) => Current.InputDevices.Remove(guid);
 
         /// <summary>
         /// Removes all current input devices
         /// </summary>
-        public static void RemoveAllInputDeviceGuids() => InputDeviceGuids.Clear();
+        public static void RemoveAllInputDeviceGuids() => Current.InputDevices.Clear();
 
         /// <summary>
         /// Get the current list of input devices
         /// </summary>
-        public static List<Guid> GetInputDeviceGuids() => (InputDeviceGuids.Any() ? InputDeviceGuids : Enumerable.Empty<Guid>()).ToList();
-
-        /// <summary>
-        /// The name of the InputDeviceGuid setting name. 
-        /// </summary>
-        public static string InputDeviceGuidSettingName = "InputDeviceGuid";
-
-        /// <summary>
-        /// Defines the ID(s) of the audio input device(s) to use when playing sounds
-        /// </summary>
-        /// <remarks>
-        /// HashSet to prevent duplicate GUIDs.
-        /// </remarks>
-        private static HashSet<Guid> InputDeviceGuids { get; } = new HashSet<Guid>();
-
-        /// <summary>
-        /// The number of button columns to use by default for new pages
-        /// </summary>
-        public static int NewPageDefaultColumns { get; set; } = 2;
-
-        /// <summary>
-        /// The number of button rows to use by default for new pages
-        /// </summary>
-        public static int NewPageDefaultRows { get; set; } = 5;
+        public static List<Guid> GetInputDeviceGuids() => new List<Guid>(Current.InputDevices);
 
         #endregion
 
         #region Passthrough output device
 
         /// <summary>
-        /// Add an output device to the current list
+        /// Add a passthrough output device to the current list
         /// </summary>
-        public static void AddPassthroughOutputDeviceGuid(Guid guid) => PassthroughOutputDeviceGuids.Add(guid);
+        public static void AddPassthroughOutputDeviceGuid(Guid guid) => Current.PassthroughOutputDevices.Add(guid);
 
         /// <summary>
-        /// Remove an output device from the current list
+        /// Remove a passthrough output device from the current list
         /// </summary>
-        public static void RemovePassthroughOutputDeviceGuid(Guid guid) => PassthroughOutputDeviceGuids.Remove(guid);
+        public static void RemovePassthroughOutputDeviceGuid(Guid guid) => Current.PassthroughOutputDevices.Remove(guid);
 
         /// <summary>
-        /// Removes all current output devices
+        /// Removes all current passthrough output devices
         /// </summary>
-        public static void RemoveAllPassthroughOutputDeviceGuids() => PassthroughOutputDeviceGuids.Clear();
+        public static void RemoveAllPassthroughOutputDeviceGuids() => Current.PassthroughOutputDevices.Clear();
 
         /// <summary>
-        /// Get the current list of output devices
+        /// Get the current list of passthrough output devices
         /// </summary>
-        public static List<Guid> GetPassthroughOutputDeviceGuids() => (PassthroughOutputDeviceGuids.Any() ? PassthroughOutputDeviceGuids : Enumerable.Empty<Guid>()).ToList();
-
-        /// <summary>
-        /// The name of the OutputDeviceGuid setting name. 
-        /// </summary>
-        public static string PassthroughOutputDeviceGuidSettingName = "PassthroughOutputDeviceGuid";
-
-        /// <summary>
-        /// Defines the ID(s) of the audio output device(s) to use when playing sounds
-        /// </summary>
-        /// <remarks>
-        /// HashSet to prevent duplicate GUIDs.
-        /// </remarks>
-        private static HashSet<Guid> PassthroughOutputDeviceGuids { get; } = new HashSet<Guid>();
+        public static List<Guid> GetPassthroughOutputDeviceGuids() => new List<Guid>(Current.PassthroughOutputDevices);
 
         #endregion
 
         /// <summary>
+        /// The number of button columns to use by default for new pages
+        /// </summary>
+        public static int NewPageDefaultColumns
+        {
+            get => Current.NewPageDefaultColumns;
+            set => Current.NewPageDefaultColumns = value;
+        }
+
+        /// <summary>
+        /// The number of button rows to use by default for new pages
+        /// </summary>
+        public static int NewPageDefaultRows
+        {
+            get => Current.NewPageDefaultRows;
+            set => Current.NewPageDefaultRows = value;
+        }
+
+        /// <summary>
         /// The latency to use when chaining input to outputs
         /// </summary>
-        public static int AudioPassthroughLatency { get; set; } = 10;
+        public static int AudioPassthroughLatency
+        {
+            get => Current.AudioPassthroughLatency;
+            set => Current.AudioPassthroughLatency = value;
+        }
     }
 }
