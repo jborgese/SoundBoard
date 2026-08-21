@@ -1,7 +1,6 @@
 ﻿#region Usings
 
 using System;
-using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -21,12 +20,21 @@ namespace SoundBoard
         #region Separator property
 
         /// <summary>
+        /// Indicates whether a <see cref="Separator"/> should be added after the <see cref="MenuItem"/> it is set on.
+        /// </summary>
+        /// <remarks>
+        /// This is an attached property (rather than, say, a static dictionary keyed on the menu item) so that the
+        /// value lives on the menu item itself and is collected along with it.
+        /// </remarks>
+        public static readonly DependencyProperty SeparatorProperty = DependencyProperty.RegisterAttached(
+            "Separator", typeof(bool), typeof(MenuItemExtensions), new PropertyMetadata(false));
+
+        /// <summary>
         /// Get the Separator property
         /// </summary>
         public static bool GetSeparator(this MenuItem menuItem)
         {
-            _separator.TryGetValue(menuItem, out bool result);
-            return result;
+            return (bool)menuItem.GetValue(SeparatorProperty);
         }
 
         /// <summary>
@@ -36,10 +44,8 @@ namespace SoundBoard
         /// <param name="value"></param>
         public static void SetSeparator(this MenuItem menuItem, bool value)
         {
-            _separator[menuItem] = value;
+            menuItem.SetValue(SeparatorProperty, value);
         }
-
-        private static readonly Dictionary<MenuItem, bool> _separator = new Dictionary<MenuItem, bool>();
 
         #endregion
     }
@@ -133,18 +139,25 @@ namespace SoundBoard
         #region Rows property
 
         /// <summary>
+        /// The number of button rows on the <see cref="TabItem"/> it is set on.
+        /// </summary>
+        /// <remarks>
+        /// This is an attached property (rather than, say, a static dictionary keyed on the tab item) so that the
+        /// value lives on the tab item itself and is collected along with it. There is deliberately no default in the
+        /// property metadata; when no value has been set, <see cref="GetRows"/> falls back to the current global
+        /// setting, which can change at runtime.
+        /// </remarks>
+        public static readonly DependencyProperty RowsProperty = DependencyProperty.RegisterAttached(
+            "Rows", typeof(int), typeof(TabItemExtensions), new PropertyMetadata());
+
+        /// <summary>
         /// Get the Rows property
         /// </summary>
         /// <param name="tabItem"></param>
         /// <returns></returns>
         public static int GetRows(this TabItem tabItem)
         {
-            if (_rows.TryGetValue(tabItem, out int result))
-            {
-                return result;
-            }
-
-            return GlobalSettings.NewPageDefaultRows;
+            return tabItem.ReadLocalValue(RowsProperty) is int rows ? rows : GlobalSettings.NewPageDefaultRows;
         }
 
         /// <summary>
@@ -154,14 +167,18 @@ namespace SoundBoard
         /// <param name="value"></param>
         public static void SetRows(this TabItem tabItem, int value)
         {
-            _rows[tabItem] = value;
+            tabItem.SetValue(RowsProperty, value);
         }
-
-        private static readonly Dictionary<TabItem, int> _rows = new Dictionary<TabItem, int>();
 
         #endregion
 
         #region Columns property
+
+        /// <summary>
+        /// The number of button columns on the <see cref="TabItem"/> it is set on. See <see cref="RowsProperty"/>.
+        /// </summary>
+        public static readonly DependencyProperty ColumnsProperty = DependencyProperty.RegisterAttached(
+            "Columns", typeof(int), typeof(TabItemExtensions), new PropertyMetadata());
 
         /// <summary>
         /// Get the Columns property
@@ -170,12 +187,7 @@ namespace SoundBoard
         /// <returns></returns>
         public static int GetColumns(this TabItem tabItem)
         {
-            if (_columns.TryGetValue(tabItem, out int result))
-            {
-                return result;
-            }
-
-            return GlobalSettings.NewPageDefaultColumns;
+            return tabItem.ReadLocalValue(ColumnsProperty) is int columns ? columns : GlobalSettings.NewPageDefaultColumns;
         }
 
         /// <summary>
@@ -185,10 +197,8 @@ namespace SoundBoard
         /// <param name="value"></param>
         public static void SetColumns(this TabItem tabItem, int value)
         {
-            _columns[tabItem] = value;
+            tabItem.SetValue(ColumnsProperty, value);
         }
-
-        private static readonly Dictionary<TabItem, int> _columns = new Dictionary<TabItem, int>();
 
         #endregion
     }
