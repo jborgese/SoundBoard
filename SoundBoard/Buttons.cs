@@ -1499,8 +1499,6 @@ namespace SoundBoard
             }
         }
 
-        private object _lock = new object();
-
         /// <summary>
         /// Prompt the user to browse for and choose a sound for this button
         /// </summary>
