@@ -165,6 +165,9 @@
       <DependentUpon>ButtonGridDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="MyUpdateChecker.cs" />
+    <Compile Include="Update\CommandLine.cs" />
+    <Compile Include="Update\UpdateApplier.cs" />
+    <Compile Include="Update\UpdateVerifier.cs" />
     <Compile Include="ShortcutCommands.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />

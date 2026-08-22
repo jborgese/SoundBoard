@@ -25,6 +25,9 @@
       re-declared here at the same versions as SoundBoard\packages.config.
     -->
     <ProjectReference Include="..\SoundBoard\SoundBoard.csproj" />
+    <Reference Include="AppHelpers.WPF">
+      <HintPath>..\packages\AppHelpers.WPF.0.1.0\lib\net45\AppHelpers.WPF.dll</HintPath>
+    </Reference>
     <Reference Include="HotKeyManagement.WPF.4">
       <HintPath>..\SoundBoard\lib\HotKeyManagement.WPF.4.dll</HintPath>
     </Reference>

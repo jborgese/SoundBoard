@@ -183,10 +183,22 @@ the one that published the build.
 `MainWindow` constructs `MyUpdateChecker` with `BuildInfo.UpdateManifestUrl`
 (`https://raw.githubusercontent.com/<owner>/SoundBoard/master/SoundBoard/VersionInfo.xml`).
 The Bluegrams `AppHelpers.WPF` update checker downloads that manifest, compares
-`<Version>` to the running `AssemblyVersion`, downloads `<DownloadLink>`, and - when
-`<FileHash>` is non-empty - recomputes the hash with the algorithm named in the
-`algorithm` attribute and refuses the file on mismatch (the attribute is required: the
-library defaults to MD5 when it is absent). The manifest format is described by
+`<Version>` to the running `AssemblyVersion` and downloads the `<Download key="portable">`
+entry into `%TEMP%`. `MyUpdateChecker` then enforces a fail-closed policy that is stricter
+than the library's own (which passes an empty hash, skips a missing `<FileHash>` element,
+and defaults the algorithm to MD5): the entry **must** carry
+`<FileHash algorithm="SHA256">` with a 64-hex-digit value, and the download must match it,
+or the file is deleted and an error dialog is shown. Nothing is ever applied unverified.
+
+The verified file is then swapped into place by `SoundBoard/Update/UpdateApplier.cs`
+without any shell: Windows allows a running executable to be *renamed* (not deleted), so
+`SoundBoard.exe` is renamed to `SoundBoard.exe.old` and the download moved into its place
+in-process, after which the app shuts down cleanly (saving settings) and starts the new
+executable. No elevation is needed for a portable exe in a user-writable folder. Only if
+the folder is not writable (e.g. `Program Files`) does it request UAC, and then the
+elevated process is `SoundBoard.exe --apply-update <file> <sha256>` - a mode that can only
+replace its own image, and only with a file matching the given hash. `SoundBoard.exe.old`
+is deleted on the next start. The manifest format is described by
 [SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd).
 
 Because `VersionInfo.xml` on `master` is overwritten by the workflow, never edit it by
