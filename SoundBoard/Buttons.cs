@@ -735,14 +735,19 @@ namespace SoundBoard
             if (soundButtonMode == SoundButtonMode.Normal)
             {
                 // A placeholder until the page content builder attaches the real cell (see AttachSound)
-                Sound = new Sound();
+                ListenTo(new Sound());
                 SetDefaultText();
             }
             else
             {
-                // A search result shows (and shares) the source button's sound
-                Sound = sourceTabAndButton.SourceButton?.Sound ?? new Sound();
-                SetContent(SoundName);
+                // A search result shows (and shares) the source button's sound, so it updates live with the real button.
+                // Results are thrown away whenever the search text changes, so stop listening once removed from the tree
+                // (otherwise the long-lived sound would keep every past result alive). Page buttons must not do this:
+                // they are unloaded whenever their tab is deselected and have to keep tracking their sound meanwhile.
+                ListenTo(sourceTabAndButton.SourceButton?.Sound ?? new Sound());
+                UpdateContent();
+                Unloaded += (_, __) => Detach();
+                Loaded += (_, __) => { ListenTo(Sound); UpdateContent(); }; // in case the flyout is hidden and shown again
             }
 
             FontSize = 20;
@@ -829,7 +834,7 @@ namespace SoundBoard
 
             if (!string.IsNullOrEmpty(result))
             {
-                SetContent(SoundName = result);
+                SoundName = result;
             }
 
             // Rehandle keypresses in main window
@@ -1520,7 +1525,7 @@ namespace SoundBoard
                 throw new InvalidOperationException("AttachSound may only be called on a button that has not been given a sound yet.");
             }
 
-            Sound = sound ?? throw new ArgumentNullException(nameof(sound));
+            ListenTo(sound ?? throw new ArgumentNullException(nameof(sound)));
 
             RefreshFromSound();
 
@@ -1571,16 +1576,12 @@ namespace SoundBoard
                 return;
             }
 
+            // The visuals (content, style, context menu, warning icon) follow from the property changes
             SoundPath = soundPath;
 
             SoundName = string.IsNullOrEmpty(soundName)
                 ? Path.GetFileNameWithoutExtension(soundPath).Replace(@"_", "")
                 : soundName.Replace(@"_", "");
-
-            SetContent(SoundName);
-
-            SetUpStyle();
-            SetUpContextMenu();
         }
 
         /// <summary>
@@ -1761,18 +1762,106 @@ namespace SoundBoard
 
         /// <summary>
         /// Pushes every value in <see cref="Sound"/> through to the visuals (content text, style, icon buttons, context menu).
-        /// Call after changing the model behind this button's back.
+        /// Used when a sound is first attached; individual changes afterwards arrive through <see cref="Sound_PropertyChanged"/>.
         /// </summary>
         private void RefreshFromSound()
         {
-            SetContent(Sound.IsEmpty ? Properties.Resources.DragASoundHere : SoundName);
+            UpdateContent();
 
             ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
+            UpdateLoopIcon();
 
+            Host.OnAnySoundRenamed();
+
+            SetUpStyle();
+            SetUpContextMenu();
+        }
+
+        /// <summary>
+        /// Starts listening to <paramref name="sound"/>, after stopping listening to the previous one.
+        /// </summary>
+        private void ListenTo(Sound sound)
+        {
+            if (Sound != null)
+            {
+                Sound.PropertyChanged -= Sound_PropertyChanged;
+            }
+
+            Sound = sound;
+
+            if (Sound != null)
+            {
+                Sound.PropertyChanged += Sound_PropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Stops listening to the sound. Call when the button is discarded (its page was rebuilt or removed), so that the
+        /// sound — which may live on — no longer keeps this button alive or updates it.
+        /// </summary>
+        public void Detach()
+        {
+            if (Sound != null)
+            {
+                Sound.PropertyChanged -= Sound_PropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Reacts to a change in the sound, whoever made it (this button's own setters, an undo, a drag-swap, or — for a
+        /// search result — the real button it mirrors).
+        /// </summary>
+        private void Sound_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            switch (e.PropertyName)
+            {
+                case nameof(Model.Sound.Path):
+                    ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
+                    UpdateContent();
+                    SetUpStyle();
+                    SetUpContextMenu();
+                    break;
+
+                case nameof(Model.Sound.Name):
+                    UpdateContent();
+                    Host.OnAnySoundRenamed();
+                    break;
+
+                case nameof(Model.Sound.Color):
+                    SetUpStyle();
+                    break;
+
+                case nameof(Model.Sound.VolumeOffset):
+                    ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+                    break;
+
+                case nameof(Model.Sound.Loop):
+                    UpdateLoopIcon();
+                    break;
+
+                case nameof(Model.Sound.StopAllSounds):
+                    ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
+                    break;
+
+                case nameof(Model.Sound.LocalHotkey):
+                case nameof(Model.Sound.GlobalHotkey):
+                    ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
+                    break;
+
+                case nameof(Model.Sound.NextSoundId):
+                    ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
+                    break;
+            }
+        }
+
+        private void UpdateContent() => SetContent(Sound.IsEmpty ? Properties.Resources.DragASoundHere : SoundName);
+
+        private void UpdateLoopIcon()
+        {
             if (Loop)
             {
                 ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
@@ -1781,11 +1870,6 @@ namespace SoundBoard
             {
                 ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
             }
-
-            Host.OnAnySoundRenamed();
-
-            SetUpStyle();
-            SetUpContextMenu();
         }
 
         /// <summary>
@@ -2361,17 +2445,16 @@ namespace SoundBoard
         /// </summary>
         public Sound Sound { get; private set; }
 
+        // The data properties below are plain views of the Sound. The visuals react to changes through
+        // Sound.PropertyChanged (see Sound_PropertyChanged), whoever made the change.
+
         /// <summary>
         /// Defines the path of the underlying sound file
         /// </summary>
         public string SoundPath
         {
             get => Sound.Path;
-            private set
-            {
-                Sound.Path = value;
-                ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
-            }
+            private set => Sound.Path = value;
         }
 
         /// <summary>
@@ -2380,11 +2463,7 @@ namespace SoundBoard
         public string SoundName
         {
             get => Sound.Name;
-            private set
-            {
-                Sound.Name = value;
-                Host.OnAnySoundRenamed();
-            }
+            private set => Sound.Name = value;
         }
 
         /// <summary>
@@ -2393,50 +2472,25 @@ namespace SoundBoard
         public Color? Color
         {
             get => Sound.Color?.ToMediaColor();
-            private set
-            {
-                Sound.Color = value?.ToSoundColor();
-                SetUpStyle();
-            }
+            private set => Sound.Color = value?.ToSoundColor();
         }
 
         public int VolumeOffset
         {
             get => Sound.VolumeOffset;
-            private set
-            {
-                Sound.VolumeOffset = value;
-
-                ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
-            }
+            private set => Sound.VolumeOffset = value;
         }
 
         public bool Loop
         {
             get => Sound.Loop;
-            private set
-            {
-                Sound.Loop = value;
-
-                if (value)
-                {
-                    ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
-                }
-                else
-                {
-                    ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
-                }
-            }
+            private set => Sound.Loop = value;
         }
 
         public bool StopAllSounds
         {
             get => Sound.StopAllSounds;
-            set
-            {
-                Sound.StopAllSounds = value;
-                ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
-            }
+            set => Sound.StopAllSounds = value;
         }
 
         public string Id
@@ -2448,21 +2502,13 @@ namespace SoundBoard
         public Hotkey LocalHotkey
         {
             get => Sound.LocalHotkey;
-            set
-            {
-                Sound.LocalHotkey = value;
-                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
-            }
+            set => Sound.LocalHotkey = value;
         }
 
         public Hotkey GlobalHotkey
         {
             get => Sound.GlobalHotkey;
-            set
-            {
-                Sound.GlobalHotkey = value;
-                ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
-            }
+            set => Sound.GlobalHotkey = value;
         }
 
         /// <summary>
