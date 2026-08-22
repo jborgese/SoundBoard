@@ -22,6 +22,9 @@ history and release tags.
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.
+- Build: NuGet dependencies moved from `packages.config` to `PackageReference`
+  (`msbuild /restore`; no `nuget.exe` or `packages\` folder needed), Fody 5.1.1 → 6.9.3 and
+  Costura.Fody 4.0.0 → 6.2.0.
 - Internal refactor: the configuration model lives in `SoundBoard.Model` and is the live
   source of truth for the UI; undo works from in-memory snapshots; the playback engine
   was extracted from `SoundButton`; hotkeys and search operate on the model; the
