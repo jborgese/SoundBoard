@@ -279,26 +279,7 @@ namespace SoundBoard
         /// </summary>
         private void LoadSettingsCompat()
         {
-            // For backwards compatibility, see if the legacy config file exists.
-            if (File.Exists(LegacyConfigFilePath))
-            {
-                Logger.Info("Legacy config found at {0}; migrating to {1}", Path.GetFullPath(LegacyConfigFilePath), ConfigFilePath);
-
-                // Load the settings with the legacy path
-                LoadSettings(LegacyConfigFilePath);
-
-                // Save the settings to the new path
-                SaveSettings(ConfigFilePath);
-
-                // Save the legacy config file in case there is an error
-                if (File.Exists(TempConfigFilePath)) File.Delete(TempConfigFilePath);
-                File.Move(LegacyConfigFilePath, TempConfigFilePath);
-            }
-            else
-            {
-                // The legacy file doesn't exist, so go ahead and load the new one
-                LoadSettings(ConfigFilePath);
-            }
+            ConfigStore.LoadWithLegacyMigration(LegacyConfigFilePath, ConfigFilePath, TempConfigFilePath, LoadSettings, SaveSettings);
         }
 
         private void LoadSettings()

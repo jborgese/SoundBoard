@@ -253,14 +253,31 @@ namespace SoundBoard
         /// <returns></returns>
         public static bool TryGetGuid(this MMDevice mmDevice, out Guid guid)
         {
+            return TryParseDeviceId(mmDevice?.ID, out guid);
+        }
+
+        /// <summary>
+        /// Attempts to extract the endpoint <see cref="Guid"/> from a raw <see cref="MMDevice.ID"/> string such as
+        /// <c>{0.0.0.00000000}.{a1b2c3d4-0000-0000-0000-000000000001}</c>. Returns <see langword="true"/> on success,
+        /// in which case <paramref name="guid"/> holds the parsed value.
+        /// </summary>
+        /// <remarks>
+        /// The parsing logic is kept separate from <see cref="TryGetGuid"/> purely so that it can be unit tested:
+        /// <see cref="MMDevice"/> wraps a COM object and cannot be constructed outside of an enumerator.
+        /// </remarks>
+        /// <param name="deviceId"></param>
+        /// <param name="guid"></param>
+        /// <returns></returns>
+        public static bool TryParseDeviceId(string deviceId, out Guid guid)
+        {
             try
             {
-                return Guid.TryParse(mmDevice.ID.Substring(mmDevice.ID.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length), out guid);
+                return Guid.TryParse(deviceId.Substring(deviceId.IndexOf('{', 1) + 1, Guid.Empty.ToString().Length), out guid);
             }
             catch (Exception ex)
             {
                 // The ID wasn't even shaped like we expect (too short, no brace, null), so there's nothing to parse.
-                Logger.Debug(ex, "Device ID '{0}' is not in the expected format", mmDevice?.ID);
+                Logger.Debug(ex, "Device ID '{0}' is not in the expected format", deviceId);
                 guid = Guid.Empty;
                 return false;
             }
