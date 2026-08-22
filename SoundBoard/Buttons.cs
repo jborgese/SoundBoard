@@ -20,7 +20,6 @@ using MahApps.Metro.SimpleChildWindow;
 using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
-using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media.Animation;
 using Humanizer;
 using NLog;
