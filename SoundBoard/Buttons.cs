@@ -50,7 +50,7 @@ namespace SoundBoard
             Margin = new Thickness(0, 15, 15, 15);
             Padding = new Thickness(0.5, 0, 0, 1.5);
 
-            Style = (Style) FindResource(@"MetroCircleButtonStyle");
+            Style = (Style) FindResource(@"MahApps.Styles.Button.Circle");
         }
 
         /// <summary>
@@ -89,7 +89,7 @@ namespace SoundBoard
         /// </summary>
         protected virtual void SetUpStyle()
         {
-            Style style = new Style(GetType(), (Style)FindResource(@"MetroCircleButtonStyle"));
+            Style style = new Style(GetType(), (Style)FindResource(@"MahApps.Styles.Button.Circle"));
 
             if (Mode == ColorMode.Dark)
             {
@@ -954,14 +954,10 @@ namespace SoundBoard
             Process.Start("explorer.exe", $"/select, \"{SoundPath}\"");
         }
 
-        private static readonly IEnumerable<Color> _defaultPalette = (IEnumerable<Color>)typeof(ColorPickerDialog)
-            .GetField("DefaultPalette", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)?
-            .GetValue(null) ?? Enumerable.Empty<Color>();
-
         private void SetColorMenuItem_Click(object sender, RoutedEventArgs e)
         {
             var palette = Host.GetSoundButtons().Where(sb => sb.Color != null).Select(sb => sb.Color.Value) // Existing colors
-                .Concat(_defaultPalette) // The default palette
+                .Concat(ColorPickerDialog.DefaultPalette) // The default palette
                 .Distinct(); // Remove dupes
 
             ColorPickerDialog colorPickerDialog = new ColorPickerDialog(Color ?? Colors.White, palette)
@@ -2157,7 +2153,7 @@ namespace SoundBoard
         {
             SoundButtonStyle soundButtonStyle = SoundButtonStyle;
 
-            // Create a new style based on the SquareButtonStyle
+            // Create a new style based on the square button style
             Style style = new Style(GetType(), (Style)FindResource(@"MySquareButtonStyle"));
 
             // Add the background color
@@ -2396,8 +2392,8 @@ namespace SoundBoard
 
                         if (backgroundColor.IsWhite() || backgroundColor.IsBlack())
                         {
-                            // If the background is completely black or white, use the hover color from the built in SquareButtonStyle
-                            Style defaultStyle = (Style) FindResource(@"SquareButtonStyle");
+                            // If the background is completely black or white, use the hover color from the built in square button style
+                            Style defaultStyle = (Style) FindResource(@"MahApps.Styles.Button.Square");
                             Trigger mouseOverTrigger = defaultStyle.Triggers.OfType<Trigger>().FirstOrDefault(trigger =>
                                 trigger.Property == IsMouseOverProperty && trigger.Value as bool? == true);
                             Setter backgroundPropertySetter = mouseOverTrigger?.Setters.OfType<Setter>()

@@ -18,11 +18,8 @@ jobs:
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
-      - name: Restore NuGet packages
-        run: nuget restore SoundBoard.sln
-
       - name: Build Release
-        run: msbuild SoundBoard.sln /p:Configuration=Release /m /verbosity:minimal
+        run: msbuild SoundBoard.sln /restore /p:Configuration=Release /m /verbosity:minimal
 
       # vstest.console rather than `dotnet test`: the solution contains a legacy (non-SDK) WPF project that the dotnet CLI cannot build.
       # setup-msbuild only puts MSBuild on PATH, so locate vstest.console via vswhere (preinstalled on the runner image).

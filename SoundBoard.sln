@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundBoard.Model", "SoundBo
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SoundBoard.Tests", "SoundBoard.Tests\SoundBoard.Tests.csproj", "{5D247366-2A67-427D-A519-1148FC089A38}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dsafa.WpfColorPicker", "Dsafa.WpfColorPicker\Dsafa.WpfColorPicker.csproj", "{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HotKeyManagement.WPF", "HotKeyManagement.WPF\HotKeyManagement.WPF.csproj", "{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +33,14 @@ Global
 		{B645DC6F-8876-4CD2-A569-6BCDF2CB2649}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B645DC6F-8876-4CD2-A569-6BCDF2CB2649}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B645DC6F-8876-4CD2-A569-6BCDF2CB2649}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5D247366-2A67-427D-A519-1148FC089A38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5D247366-2A67-427D-A519-1148FC089A38}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5D247366-2A67-427D-A519-1148FC089A38}.Release|Any CPU.ActiveCfg = Release|Any CPU

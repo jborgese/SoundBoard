@@ -404,4 +404,17 @@ Global Hotkey: {1}</value>
   <data name="AudioPassthroughOutputExclusiveError" xml:space="preserve">
     <value>The output audio device is being used exclusively by another application.</value>
   </data>
+  <data name="UpdateFailedTitle" xml:space="preserve">
+    <value>Update failed</value>
+  </data>
+  <data name="UpdateVerificationFailed" xml:space="preserve">
+    <value>The downloaded update could not be verified and has been discarded. SoundBoard has not been changed.
+
+{0}</value>
+  </data>
+  <data name="UpdateApplyFailed" xml:space="preserve">
+    <value>The update could not be applied. SoundBoard has not been changed.
+
+{0}</value>
+  </data>
 </root>

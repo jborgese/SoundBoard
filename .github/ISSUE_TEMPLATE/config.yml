@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Search existing issues first
+    url: https://github.com/micahmo/SoundBoard/issues?q=is%3Aissue
+    about: Your problem may already be reported — adding your details there beats a duplicate.
+  - name: Documentation
+    url: https://github.com/micahmo/SoundBoard#readme
+    about: Features, downloads, building from source, and how the in-app updater works.

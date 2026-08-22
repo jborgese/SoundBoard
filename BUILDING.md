@@ -1,7 +1,7 @@
 # Building SoundBoard
 
 SoundBoard is a WPF application targeting **.NET Framework 4.8**, built from a classic
-(non-SDK) `.csproj` with `packages.config` NuGet restore. It must be built with the
+(non-SDK) `.csproj` that uses `PackageReference` for its NuGet dependencies. It must be built with the
 full-framework MSBuild that ships with Visual Studio — `dotnet build` does **not** work
 (see [Why `dotnet build` fails](#why-dotnet-build-fails)).
 
@@ -13,8 +13,8 @@ full-framework MSBuild that ships with Visual Studio — `dotnet build` does **n
 | Visual Studio | **Visual Studio 2026, 2022, or 2019** (any edition, including Community — CI uses whatever `windows-latest` ships, currently 2026). Visual Studio Build Tools also works for command-line-only builds. |
 | VS workload | **.NET desktop development** |
 | VS components | **.NET Framework 4.8 SDK** and **.NET Framework 4.8 targeting pack** (included in the workload by default). Without the targeting pack the build fails with `MSB3644`. |
-| MSBuild | 16.0 or newer (installed by the above). The pinned Fody 5.1.1 build weaver does not support older MSBuild versions. |
-| NuGet | `nuget.exe` 5.x or newer for command-line restore (verified with 7.9.0), or just let Visual Studio restore. Download: <https://dist.nuget.org/win-x86-commandline/latest/nuget.exe> |
+| MSBuild | 16.0 or newer (installed by the above). Fody 6 requires MSBuild 16+ (VS 2019+). |
+| NuGet | Nothing extra: all projects use `PackageReference`, so `msbuild /restore` (or Visual Studio) restores them. `nuget.exe` is not needed. |
 
 The .NET Framework 4.8 *runtime* (needed to run the app, preinstalled on Windows 10
 1903+ and all Windows 11) is declared in `SoundBoard/App.config` and enforced at
@@ -26,13 +26,15 @@ startup by `Utilities.IsRequiredNetFrameworkInstalled()` (registry release key
 From the repository root:
 
 ```powershell
-nuget restore SoundBoard.sln
+msbuild SoundBoard.sln /t:Restore
 ```
 
-Packages are restored to `packages\` at the repository root (the `.csproj` hint paths
-expect this location). Two additional prebuilt dependencies are checked into
-`SoundBoard\lib\` (`Dsafa.WpfColorPicker.dll`, `HotKeyManagement.WPF.4.dll`) and need
-no restore step.
+(or pass `/restore` to the build command below to restore and build in one go).
+Packages are restored to the global NuGet package cache (`%UserProfile%\.nuget\packages`)
+and the resolved graph is written to each project's `obj\project.assets.json`; there is
+no `packages\` folder any more. There are no prebuilt binaries in the repository: the two
+small third-party libraries the app uses are built from vendored source (see
+[Projects](#projects)).
 
 ## Build
 
@@ -40,28 +42,29 @@ From a *Developer Command Prompt / Developer PowerShell for VS* (or any shell wh
 `msbuild.exe` is on `PATH`):
 
 ```powershell
-msbuild SoundBoard.sln /p:Configuration=Release /m
+msbuild SoundBoard.sln /restore /p:Configuration=Release /m
 ```
 
 Or open `SoundBoard.sln` in Visual Studio and build the `Release` configuration.
 
 **Output:** `SoundBoard\bin\Release\SoundBoard.exe`. Costura.Fody embeds all managed
-dependencies into the executable at build time — including `SoundBoard.Model.dll` from
-the model project below — so this single `.exe` is the complete, distributable
-application.
+dependencies into the executable at build time — including `SoundBoard.Model.dll`,
+`Dsafa.WpfColorPicker.dll` and `HotKeyManagement.WPF.4.dll` from the projects below — so
+this single `.exe` is the complete, distributable application.
 
 ## Projects
 
 | Project | Type | Purpose |
 |---|---|---|
-| `SoundBoard\SoundBoard.csproj` | classic WPF `.csproj`, `packages.config` | The application. |
+| `SoundBoard\SoundBoard.csproj` | classic WPF `.csproj`, `PackageReference` | The application. |
 | `SoundBoard.Model\SoundBoard.Model.csproj` | SDK-style class library, `net48` | UI-free data model (`SoundBoardConfig` → `Page` → `Sound`) and the `soundboard.config` serializer. Deliberately references **no** WPF presentation assemblies (only `WindowsBase` for the `Key` enum and `System.Drawing` for color parsing) so nothing UI-specific can leak into it. |
 | `SoundBoard.Tests\SoundBoard.Tests.csproj` | SDK-style xUnit, `net48` | Unit tests for the model and serializer, including golden-file config round-trips (`SoundBoard.Tests\Fixtures`). |
+| `Dsafa.WpfColorPicker\Dsafa.WpfColorPicker.csproj` | SDK-style WPF class library, `net48` | Vendored **fork** of [dsafa/wpf-color-picker](https://github.com/dsafa/wpf-color-picker) 1.2.0 (MIT) — the colour picker dialog. `NOTICE.md` in that folder lists the changes from upstream. |
+| `HotKeyManagement.WPF\HotKeyManagement.WPF.csproj` | SDK-style WPF class library, `net48` | Vendored copy of [BondTech.HotKeyManagement.WPF.4](https://github.com/bondtech/HotKey-Manager-for-WinForm-and-WPF-Apps) (MIT) — local/global hotkey registration. Unmodified apart from the project file; see its `NOTICE.md`. |
 
-`nuget restore SoundBoard.sln` restores both the `packages.config` project and the
-`PackageReference` projects (NuGet 5+). The two SDK-style projects *can* be built and
-tested with `dotnet build` / `dotnet test SoundBoard.Tests` on their own; the solution as
-a whole cannot (see below).
+`msbuild SoundBoard.sln /t:Restore` restores all five projects. The SDK-style library projects
+*can* be built with `dotnet build` on their own; the solution as a whole cannot, and neither can
+the test project, because it references the app exe (see below).
 
 ## Test
 
@@ -74,8 +77,7 @@ vstest.console.exe SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
 (`vstest.console.exe` ships with Visual Studio under
 `Common7\IDE\CommonExtensions\Microsoft\TestWindow\` and is on `PATH` in a Developer
 shell. It is *not* on `PATH` on GitHub's hosted runners, which is why the CI workflow
-locates it with `vswhere`.) Or run `dotnet test SoundBoard.Tests\SoundBoard.Tests.csproj`, which builds only
-the model and test projects.
+locates it with `vswhere`.)
 
 ## Notes and gotchas
 
@@ -83,9 +85,10 @@ the model and test projects.
   is resolved by Visual Studio's interop tooling during the build. This is installed
   with the .NET desktop development workload; nothing extra to do, but it is one of
   the reasons full MSBuild is required (`MSB3091` if the SDK tools are missing).
-- **Fody / Costura are pinned** (`Fody 5.1.1`, `Costura.Fody 4.0.0`) and imported by
-  explicit path from `packages\` in the `.csproj`. Don't bump them casually — Fody 6
-  changes the weaver contract, and the `.csproj` import paths encode the versions.
+- **Fody / Costura** (`Fody 6.9.3`, `Costura.Fody 6.2.0`) are ordinary
+  `PackageReference`s with `PrivateAssets="all"`; their `.props`/`.targets` are imported
+  automatically by NuGet, so there are no hard-coded package paths in the `.csproj`.
+  `FodyWeavers.xml` (just `<Costura/>`) controls what is woven.
 - **Debug builds are stricter than Release:** the Debug configuration turns warning
   `CS1591` (missing XML doc comment) into an error and generates `SoundBoard.xml`.
   Release does neither, so code that builds in Release may still fail in Debug.
@@ -103,18 +106,17 @@ from Visual Studio or Build Tools.
 [.github/workflows/build.yml](.github/workflows/build.yml) runs on every push and
 pull request: it checks out the repo on `windows-latest` (Windows Server 2025 with
 Visual Studio 2026 preinstalled, as of the June 2026 runner-image migration —
-pin to `windows-2022` instead if you ever need the older VS 2022 image), restores
-with `nuget restore`, builds `Release` with MSBuild, runs the unit tests with
+pin to `windows-2022` instead if you ever need the older VS 2022 image), restores and
+builds `Release` with `msbuild /restore`, runs the unit tests with
 `vstest.console.exe`, and uploads the resulting `SoundBoard.exe` as a workflow artifact.
 Releases are produced by a separate tag-triggered workflow; see
 [Versioning and releases](#versioning-and-releases).
 
 Visual Studio 2026 has an open IDE-integrated NuGet Package Manager bug
 ([NU1109](https://github.com/nuget/home/issues/14653)) around central package
-management version resolution. It's specific to `PackageReference`/central
-transitive pinning and does not apply to this project's `packages.config`
-restore, but if a restore ever misbehaves inside the VS 2026 IDE, fall back to
-the command-line `nuget restore` shown above.
+management version resolution. This project does not use central package management,
+but if a restore ever misbehaves inside the VS 2026 IDE, fall back to the command-line
+`msbuild /t:Restore` shown above.
 
 ## Versioning and releases
 
@@ -183,11 +185,25 @@ the one that published the build.
 `MainWindow` constructs `MyUpdateChecker` with `BuildInfo.UpdateManifestUrl`
 (`https://raw.githubusercontent.com/<owner>/SoundBoard/master/SoundBoard/VersionInfo.xml`).
 The Bluegrams `AppHelpers.WPF` update checker downloads that manifest, compares
-`<Version>` to the running `AssemblyVersion`, downloads `<DownloadLink>`, and - when
-`<FileHash>` is non-empty - recomputes the hash with the algorithm named in the
-`algorithm` attribute and refuses the file on mismatch (the attribute is required: the
-library defaults to MD5 when it is absent). The manifest format is described by
-[SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd).
+`<Version>` to the running `AssemblyVersion` and downloads the `<Download key="portable">`
+entry into `%TEMP%`. `MyUpdateChecker` then enforces a fail-closed policy that is stricter
+than the library's own (which passes an empty hash, skips a missing `<FileHash>` element,
+and defaults the algorithm to MD5): the entry **must** carry
+`<FileHash algorithm="SHA256">` with a 64-hex-digit value, and the download must match it,
+or the file is deleted and an error dialog is shown. Nothing is ever applied unverified.
+
+The verified file is then swapped into place by `SoundBoard/Update/UpdateApplier.cs`
+without any shell: Windows allows a running executable to be *renamed* (not deleted), so
+`SoundBoard.exe` is renamed to `SoundBoard.exe.old` and the download moved into its place
+in-process, after which the app shuts down cleanly (saving settings) and starts the new
+executable. No elevation is needed for a portable exe in a user-writable folder. Only if
+the folder is not writable (e.g. `Program Files`) does it request UAC, and then the
+elevated process is `SoundBoard.exe --apply-update <file> <sha256>` - a mode that can only
+replace its own image, and only with a file matching the given hash. `SoundBoard.exe.old`
+is deleted on the next start. The manifest format is described by
+[SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd) and documented element by element -
+together with the notify modes, the download-entry resolution and the apply step - in
+[docs/update-manifest.md](docs/update-manifest.md).
 
 Because `VersionInfo.xml` on `master` is overwritten by the workflow, never edit it by
 hand; to preview what a tag would produce, run the script locally:

@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:simpleChildWindow="clr-namespace:MahApps.Metro.SimpleChildWindow;assembly=MahApps.Metro.SimpleChildWindow"
-             xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+             xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
              xmlns:soundBoard="clr-namespace:SoundBoard"
              mc:Ignorable="d"
              
@@ -16,7 +16,7 @@
              CloseByEscape="true">
 
     <simpleChildWindow:ChildWindow.OverlayBrush>
-        <SolidColorBrush Opacity="0.7" Color="{StaticResource BlackColor}" />
+        <SolidColorBrush Opacity="0.7" Color="{StaticResource MahApps.Colors.ThemeForeground}" />
     </simpleChildWindow:ChildWindow.OverlayBrush>
 
     <!-- Content -->
@@ -43,22 +43,24 @@
                 <ColumnDefinition Width="100"/>
             </Grid.ColumnDefinitions>
 
-            <xctk:IntegerUpDown x:Name="RowUpDown"
-                                Grid.Column="1"
-                                Minimum="1" 
-                                ValueChanged="RowUpDown_ValueChanged"
-                                DefaultValue="5"
-                                DisplayDefaultValueOnEmptyText="true"
-                                KeyUp="RowUpDown_KeyUp"/>
+            <!-- Default of 5 rows (used when the box is emptied) is applied in code-behind. -->
+            <mah:NumericUpDown x:Name="RowUpDown"
+                               Grid.Column="1"
+                               Minimum="1"
+                               Interval="1"
+                               NumericInputMode="Numbers"
+                               ValueChanged="RowUpDown_ValueChanged"
+                               KeyUp="RowUpDown_KeyUp"/>
             <Label Grid.Column="2" Content="Row(s)"/>
             <Label Grid.Column="4" Content="✖"/>
-            <xctk:IntegerUpDown x:Name="ColumnUpDown"
-                                Grid.Column="6"
-                                Minimum="1" 
-                                ValueChanged="ColumnUpDown_ValueChanged"
-                                DefaultValue="2"
-                                DisplayDefaultValueOnEmptyText="true"
-                                KeyUp="ColumnUpDown_KeyUp"/>
+            <!-- Default of 2 columns (used when the box is emptied) is applied in code-behind. -->
+            <mah:NumericUpDown x:Name="ColumnUpDown"
+                               Grid.Column="6"
+                               Minimum="1"
+                               Interval="1"
+                               NumericInputMode="Numbers"
+                               ValueChanged="ColumnUpDown_ValueChanged"
+                               KeyUp="ColumnUpDown_KeyUp"/>
             <Label Grid.Column="7" Content="Column(s)"/>
         </Grid>
 

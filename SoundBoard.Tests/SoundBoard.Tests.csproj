@@ -22,20 +22,19 @@
     <!--
       The exe is referenced directly for Utilities, LoopStream, ConfigStore and MMDeviceExtensions. Costura strips its
       dependencies from its output folder (they are embedded in the exe), so the ones the tests compile against are
-      re-declared here at the same versions as SoundBoard\packages.config.
+      re-declared here at the same versions as the PackageReferences in SoundBoard\SoundBoard.csproj.
     -->
     <ProjectReference Include="..\SoundBoard\SoundBoard.csproj" />
-    <Reference Include="HotKeyManagement.WPF.4">
-      <HintPath>..\SoundBoard\lib\HotKeyManagement.WPF.4.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\HotKeyManagement.WPF\HotKeyManagement.WPF.csproj" />
     <Reference Include="WindowsBase" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AppHelpers.WPF" Version="0.1.0" />
     <PackageReference Include="MimeMapping" Version="1.0.1.37" />
-    <PackageReference Include="NAudio" Version="1.9.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NLog" Version="5.3.4" />
   </ItemGroup>
 

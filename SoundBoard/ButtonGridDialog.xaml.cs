@@ -1,5 +1,6 @@
 ﻿#region Usings
 
+using System;
 using System.Windows;
 using System.Windows.Forms;
 using System.Windows.Input;
@@ -21,6 +22,9 @@ namespace SoundBoard
         public ButtonGridDialog()
         {
             InitializeComponent();
+
+            RowUpDown.Value = DefaultRowCount;
+            ColumnUpDown.Value = DefaultColumnCount;
         }
 
         /// <summary>
@@ -50,22 +54,36 @@ namespace SoundBoard
         public DialogResult DialogResult;
 
         /// <summary>
-        /// Number of rows
+        /// Number of rows. Falls back to <see cref="DefaultRowCount"/> when the box has been emptied.
         /// </summary>
         public int RowCount
         {
-            get => RowUpDown.Value ?? default;
+            get => ToCount(RowUpDown.Value, DefaultRowCount);
             set => RowUpDown.Value = value;
         }
 
         /// <summary>
-        /// Number of columns
+        /// Number of columns. Falls back to <see cref="DefaultColumnCount"/> when the box has been emptied.
         /// </summary>
         public int ColumnCount
         {
-            get => ColumnUpDown.Value ?? default;
+            get => ToCount(ColumnUpDown.Value, DefaultColumnCount);
             set => ColumnUpDown.Value = value;
         }
+
+        #endregion
+
+        #region Private constants
+
+        /// <summary>
+        /// Value used for the row count when the box is empty.
+        /// </summary>
+        private const int DefaultRowCount = 5;
+
+        /// <summary>
+        /// Value used for the column count when the box is empty.
+        /// </summary>
+        private const int DefaultColumnCount = 2;
 
         #endregion
 
@@ -109,12 +127,12 @@ namespace SoundBoard
             }
         }
 
-        private void RowUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void RowUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
         {
             ShowHideWarningLabel();
         }
 
-        private void ColumnUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        private void ColumnUpDown_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double?> e)
         {
             ShowHideWarningLabel();
         }
@@ -127,10 +145,19 @@ namespace SoundBoard
         {
             if (_validate && WarningLabel is null == false)
             {
-                WarningLabel.Visibility = RowUpDown.Value < _startingRowCount || ColumnUpDown.Value < _startingColumnCount
+                WarningLabel.Visibility = RowCount < _startingRowCount || ColumnCount < _startingColumnCount
                         ? Visibility.Visible
                         : Visibility.Hidden;
             }
+        }
+
+        /// <summary>
+        /// Converts a <see cref="MahApps.Metro.Controls.NumericUpDown"/> value (a nullable double) to a count,
+        /// substituting <paramref name="defaultValue"/> when the box is empty.
+        /// </summary>
+        private static int ToCount(double? value, int defaultValue)
+        {
+            return value is double d ? Math.Max(1, (int)Math.Round(d)) : defaultValue;
         }
 
         private readonly bool _validate = true;

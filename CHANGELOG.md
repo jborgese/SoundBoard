@@ -19,15 +19,45 @@ history and release tags.
 - Tag-driven releases: the version is stamped from the `v*` git tag, `VersionInfo.xml`
   is generated (with a SHA-256 `<FileHash>` so the updater verifies downloads), and the
   GitHub Release is created automatically.
+- A `LICENSE` file (MIT, which the README already claimed), `CONTRIBUTING.md`, GitHub issue
+  and pull request templates, and `docs/update-manifest.md` describing the `VersionInfo.xml`
+  update-manifest format and how the in-app updater consumes it.
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.
+- Build: NuGet dependencies moved from `packages.config` to `PackageReference`
+  (`msbuild /restore`; no `nuget.exe` or `packages\` folder needed), Fody 5.1.1 → 6.9.3 and
+  Costura.Fody 4.0.0 → 6.2.0.
+- Dependencies: System.Reactive 5.0.0 → 6.1.0, MouseKeyHook 5.6.0 → 5.7.1, NAudio 1.9.0 → 2.2.1,
+  MahApps.Metro 1.6.5 → 2.4.11 (with ControlzEx 5.0.2 and MahApps.Metro.SimpleChildWindow 2.2.1).
+  The UI looks the same apart from slightly wider Windows-10-style title bar buttons.
+- The two prebuilt third-party DLLs (`Dsafa.WpfColorPicker.dll`, `HotKeyManagement.WPF.4.dll`)
+  are now built from vendored source projects (MIT; licences and a NOTICE of local changes are
+  included alongside the source).
+- README screenshots are served from `docs/images/` in this repository instead of third-party
+  image hosts, and the README documents how to build and run from source.
+
+### Removed
+- Extended.Wpf.Toolkit (Xceed) dependency: the row/column spinners in the "Change button grid"
+  dialog are now MahApps `NumericUpDown` controls (newer Xceed versions are under a
+  non-commercial license, and 3.x is unmaintained).
 - Internal refactor: the configuration model lives in `SoundBoard.Model` and is the live
   source of truth for the UI; undo works from in-memory snapshots; the playback engine
   was extracted from `SoundButton`; hotkeys and search operate on the model; the
   `MainWindow.Instance` singleton was retired.
 
+### Security
+- The in-app updater now refuses any download that does not match a SHA-256
+  `<FileHash>` in the update manifest (a missing or empty hash is a failure, not a pass).
+- The update is applied in-process by renaming the running exe, instead of through an
+  elevated `cmd.exe` / `powershell.exe` command line built from file paths. UAC is only
+  requested when the exe's folder is not writable, and the elevated mode
+  (`SoundBoard.exe --apply-update <file> <sha256>`) can only replace its own image with a
+  file matching the given hash.
+
 ### Fixed
+- Updating no longer kills the app with `taskkill /f`, so unsaved settings are written
+  before the new version starts.
 - Crash on first launch when no configuration file exists.
 - Progress-bar update loop that never terminated after a sound stopped.
 - Tabs, tab items and menu items leaking through static dictionaries.
