@@ -157,6 +157,7 @@
     <Compile Include="LoopStream.cs" />
     <Compile Include="ConfigStore.cs" />
     <Compile Include="Extensions.cs" />
+    <Compile Include="ISoundBoardHost.cs" />
     <Compile Include="ModelMapping.cs" />
     <Compile Include="ChildWindowBase.cs" />
     <Compile Include="MyMetroTabItem.cs" />

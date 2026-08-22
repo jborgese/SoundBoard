@@ -46,7 +46,7 @@ namespace SoundBoard
         {
             string text = hotkey.ToString();
 
-            return MainWindow.Instance.AllSounds().FirstOrDefault(sound =>
+            return _soundButton.Host.AllSounds().FirstOrDefault(sound =>
                 !ReferenceEquals(sound, _soundButton.Sound)
                 && (sound.LocalHotkey?.ToString() == text || sound.GlobalHotkey?.ToString() == text));
         }

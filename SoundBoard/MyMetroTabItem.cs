@@ -142,7 +142,7 @@ namespace SoundBoard
             set
             {
                 _headerText = value;
-                Header = MainWindow.Instance.IsAnySoundPlayingOnTab(this) ? $"{_headerText}\uD83D\uDD69" : _headerText;
+                Header = IsAnySoundPlaying ? $"{_headerText}\uD83D\uDD69" : _headerText;
 
                 if (Page != null)
                 {
@@ -151,6 +151,11 @@ namespace SoundBoard
             }
         }
         private string _headerText;
+
+        /// <summary>
+        /// True if any sound button on this tab is currently playing.
+        /// </summary>
+        public bool IsAnySoundPlaying => (Content as Grid)?.Children.OfType<SoundButton>().Any(button => button.IsPlaying) == true;
 
         /// <summary>
         /// The model page this tab displays, or null for tabs that are not sound pages (the welcome page).

@@ -59,7 +59,7 @@ namespace SoundBoard
 
                 Dispatcher.Invoke(async () =>
                 {
-                    var res = await SoundBoard.MainWindow.Instance.ShowMessageAsync(SoundBoard.Properties.Resources.Error,
+                    var res = await (MainWindow as MahApps.Metro.Controls.MetroWindow).ShowMessageAsync(SoundBoard.Properties.Resources.Error,
                         string.Join(Environment.NewLine, SoundBoard.Properties.Resources.UnexpectedError, string.Empty, args.Exception.Message),
                         MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
                         {
