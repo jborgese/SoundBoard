@@ -1,0 +1,191 @@
+name: Release
+
+# Pushing a tag of the form vX.Y.Z (or vX.Y.Z-beta1 for a pre-release) is the whole
+# release process. The tag is the single source of truth for the version:
+#
+#   1. Build Release with the assembly version stamped from the tag (Version.targets), and
+#      with BuildInfo.UpdateManifestUrl pointing at THIS repository's master, so the exe
+#      polls exactly the manifest this workflow commits.
+#   2. Run the unit tests.
+#   3. Generate SoundBoard/VersionInfo.xml from the tag: version, download URLs for this
+#      repository, SHA-256 of the built exe in <FileHash>, and release notes pulled from
+#      the matching "## [X.Y.Z]" section of CHANGELOG.md (the job fails if it is missing).
+#   4. Create the GitHub Release with SoundBoard.exe, SoundBoard.exe.sha256 and
+#      VersionInfo.xml attached.
+#   5. For stable releases only, commit the regenerated VersionInfo.xml back to master,
+#      which is where the in-app updater reads it from
+#      (https://raw.githubusercontent.com/<owner>/SoundBoard/master/SoundBoard/VersionInfo.xml).
+#      Pre-releases skip this step so existing installs are never offered a beta.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so the tag <-> master relationship can be checked
+
+      - name: Derive version from tag
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}   # via env, never interpolated into the script
+        run: |
+          $tag = $env:TAG
+          if ($tag -notmatch '^v(?<core>\d+\.\d+(?:\.\d+)?)(?<pre>[-.][0-9A-Za-z.-]+)?$') {
+            throw "Tag '$tag' is not of the form vX.Y[.Z][-prerelease]"
+          }
+          $core = $Matches.core
+          if ($core.Split('.').Count -eq 2) { $core = "$core.0" }
+          $prerelease = $Matches.ContainsKey('pre')
+          "tag=$tag"        >> $env:GITHUB_OUTPUT
+          "version=$core.0" >> $env:GITHUB_OUTPUT
+          "core=$core"      >> $env:GITHUB_OUTPUT
+          "prerelease=$($prerelease.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          Write-Host "Tag $tag -> assembly version $core.0 (prerelease: $prerelease)"
+          # Fail before spending minutes on a build if the release notes are missing.
+          $heading = "^##\s+\[($([regex]::Escape($core))|$([regex]::Escape($tag.TrimStart('v'))))\]"
+          if (-not (Select-String -Path CHANGELOG.md -Pattern $heading -Quiet)) {
+            throw "CHANGELOG.md has no '## [$core]' section. Rename '## [Unreleased]' to '## [$core] - $(Get-Date -Format yyyy-MM-dd)' and re-tag."
+          }
+
+      - name: Require the tag to be on master
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          git fetch origin master --quiet
+          git merge-base --is-ancestor "${{ steps.version.outputs.tag }}" origin/master
+          if ($LASTEXITCODE) {
+            throw "Tag ${{ steps.version.outputs.tag }} is not reachable from origin/master. Releases must be cut from master."
+          }
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        run: nuget restore SoundBoard.sln
+
+      - name: Build Release (stamped from tag)
+        run: >
+          msbuild SoundBoard.sln /p:Configuration=Release /m /verbosity:minimal
+          /p:SoundBoardVersion=${{ steps.version.outputs.version }}
+          /p:SoundBoardInformationalVersion=${{ steps.version.outputs.tag }}
+          /p:SoundBoardRepository=${{ github.repository }}
+
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $vstest = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -find 'Common7\IDE\CommonExtensions\Microsoft\TestWindow\vstest.console.exe' | Select-Object -First 1
+          if (-not $vstest) { throw 'vstest.console.exe not found' }
+          & $vstest SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      - name: Verify the exe carries the tag version
+        shell: pwsh
+        run: |
+          $exe = (Resolve-Path 'SoundBoard\bin\Release\SoundBoard.exe').Path
+          $info = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+          $asm = [System.Reflection.AssemblyName]::GetAssemblyName($exe).Version.ToString()
+          Write-Host "FileVersion=$($info.FileVersion) AssemblyVersion=$asm ProductVersion=$($info.ProductVersion)"
+          if ($info.FileVersion -ne '${{ steps.version.outputs.version }}' -or $asm -ne '${{ steps.version.outputs.version }}') {
+            throw "Built exe is not stamped with ${{ steps.version.outputs.version }}"
+          }
+
+      - name: Generate VersionInfo.xml and release notes
+        id: manifest
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          $result = .\scripts\New-VersionInfo.ps1 `
+            -Tag '${{ steps.version.outputs.tag }}' `
+            -ExePath 'SoundBoard\bin\Release\SoundBoard.exe' `
+            -Repository '${{ github.repository }}' `
+            -ChangelogPath 'CHANGELOG.md' `
+            -OutputPath 'SoundBoard\VersionInfo.xml' `
+            -ReleaseNotesPath 'dist\release-notes.md'
+          $result | Format-List | Out-String | Write-Host
+          Copy-Item 'SoundBoard\bin\Release\SoundBoard.exe' dist\
+          Copy-Item 'SoundBoard\VersionInfo.xml' dist\
+          "$($result.Sha256.ToLower())  SoundBoard.exe" | Set-Content -NoNewline -Encoding ascii dist\SoundBoard.exe.sha256
+          "sha256=$($result.Sha256)" >> $env:GITHUB_OUTPUT
+          Get-Content 'SoundBoard\VersionInfo.xml' | Write-Host
+
+      - name: Validate VersionInfo.xml against AppUpdate.xsd
+        shell: pwsh
+        run: |
+          $settings = New-Object System.Xml.XmlReaderSettings
+          $settings.ValidationType = [System.Xml.ValidationType]::Schema
+          $null = $settings.Schemas.Add($null, (Resolve-Path 'SoundBoard\AppUpdate.xsd').Path)
+          $script:errors = @()
+          $settings.add_ValidationEventHandler({ param($s, $e) $script:errors += $e.Message })
+          $reader = [System.Xml.XmlReader]::Create((Resolve-Path 'SoundBoard\VersionInfo.xml').Path, $settings)
+          try { while ($reader.Read()) {} } finally { $reader.Close() }
+          if ($script:errors) { $script:errors | ForEach-Object { Write-Error $_ }; throw 'VersionInfo.xml does not validate against AppUpdate.xsd' }
+          Write-Host 'VersionInfo.xml is schema-valid.'
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $ghArgs = @(
+            'release', 'create', '${{ steps.version.outputs.tag }}',
+            '--title', 'SoundBoard ${{ steps.version.outputs.tag }}',
+            '--notes-file', 'dist\release-notes.md',
+            '--verify-tag'
+          )
+          if ('${{ steps.version.outputs.prerelease }}' -eq 'true') { $ghArgs += '--prerelease' }
+          $ghArgs += @('dist\SoundBoard.exe', 'dist\SoundBoard.exe.sha256', 'dist\VersionInfo.xml')
+          gh @ghArgs
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
+      # The in-app updater polls VersionInfo.xml on master, so the regenerated manifest must
+      # land there. This runs only after the release (and its download URL) exists, so the
+      # manifest never points at a file that is not yet available.
+      - name: Commit VersionInfo.xml to master
+        if: steps.version.outputs.prerelease == 'false'
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $false
+          Copy-Item 'SoundBoard\VersionInfo.xml' "$env:RUNNER_TEMP\VersionInfo.xml"
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout -- SoundBoard\VersionInfo.xml   # drop the working-copy change so the branch switch is clean
+          git checkout -B master origin/master
+          Copy-Item "$env:RUNNER_TEMP\VersionInfo.xml" 'SoundBoard\VersionInfo.xml'
+          git add SoundBoard\VersionInfo.xml
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host 'VersionInfo.xml on master is already up to date.'
+            exit 0
+          }
+          git commit -m 'Publish VersionInfo.xml for ${{ steps.version.outputs.tag }}' -m 'SoundBoard.exe SHA-256: ${{ steps.manifest.outputs.sha256 }}'
+          $pushed = $false
+          foreach ($attempt in 1..3) {
+            git push origin master
+            if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
+            Write-Host "Push rejected (attempt $attempt); rebasing onto latest master."
+            git pull --rebase origin master
+          }
+          if (-not $pushed) { throw 'Could not push VersionInfo.xml to master' }
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: SoundBoard-${{ steps.version.outputs.tag }}
+          path: dist/
+          if-no-files-found: error

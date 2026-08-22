@@ -135,7 +135,7 @@ namespace SoundBoard
             _globalMouseEvents = Hook.AppEvents();
             _globalMouseEvents.MouseDown += Global_MouseDown;
 
-            _updateChecker = new MyUpdateChecker("https://raw.githubusercontent.com/micahmo/SoundBoard/master/SoundBoard/VersionInfo.xml")
+            _updateChecker = new MyUpdateChecker(BuildInfo.UpdateManifestUrl)
             {
                 Owner = this,
                 DownloadIdentifier = "portable"

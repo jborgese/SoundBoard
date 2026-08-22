@@ -106,6 +106,8 @@ Visual Studio 2026 preinstalled, as of the June 2026 runner-image migration —
 pin to `windows-2022` instead if you ever need the older VS 2022 image), restores
 with `nuget restore`, builds `Release` with MSBuild, runs the unit tests with
 `vstest.console.exe`, and uploads the resulting `SoundBoard.exe` as a workflow artifact.
+Releases are produced by a separate tag-triggered workflow; see
+[Versioning and releases](#versioning-and-releases).
 
 Visual Studio 2026 has an open IDE-integrated NuGet Package Manager bug
 ([NU1109](https://github.com/nuget/home/issues/14653)) around central package
@@ -113,3 +115,84 @@ management version resolution. It's specific to `PackageReference`/central
 transitive pinning and does not apply to this project's `packages.config`
 restore, but if a restore ever misbehaves inside the VS 2026 IDE, fall back to
 the command-line `nuget restore` shown above.
+
+## Versioning and releases
+
+The **git tag is the single source of truth for the version.** Nothing is bumped by
+hand: there are no version attributes in `AssemblyInfo.cs` and `SoundBoard/VersionInfo.xml`
+is generated.
+
+### How the version gets into the build
+
+[SoundBoard/Version.targets](SoundBoard/Version.targets) (imported by `SoundBoard.csproj`)
+generates `obj\<Configuration>\SoundBoardVersion.g.cs` containing `AssemblyVersion`,
+`AssemblyFileVersion` and `AssemblyInformationalVersion` on every build, from the first of:
+
+1. `/p:SoundBoardVersion=1.10.3.0` (plus optional `/p:SoundBoardInformationalVersion=v1.10.3`)
+   on the MSBuild command line - this is what the release workflow passes.
+2. The nearest reachable `v*` tag (`git describe --tags --abbrev=0 --match "v[0-9]*"`).
+   A local build after `v1.10.3` is therefore stamped `1.10.3.0`, the same as the last
+   release, so it never offers itself an update.
+3. `0.0.0.0`, with a build warning, if neither is available (no git on `PATH`, shallow clone
+   without tags, ...).
+
+Tag formats: `v1.10.3` -> `1.10.3.0`; `v1.5` -> `1.5.0.0`; `v1.10.3-beta1` -> `1.10.3.0`
+(the suffix is kept only in `AssemblyInformationalVersion`, shown as "Product version" in
+the file properties dialog).
+
+The same generated file defines `BuildInfo.Repository` and `BuildInfo.UpdateManifestUrl`
+from `/p:SoundBoardRepository=owner/name` (default `micahmo/SoundBoard`). The release
+workflow passes the repository it runs in, so an exe built by a fork polls the fork's own
+manifest and download URLs - the updater can never point at a different repository than
+the one that published the build.
+
+### Cutting a release
+
+1. Make sure every user-visible change is listed under `## [Unreleased]` in
+   [CHANGELOG.md](CHANGELOG.md), then rename that heading to `## [1.10.3] - YYYY-MM-DD`
+   (and start a fresh, empty `## [Unreleased]` above it). The release workflow fails
+   early if the section for the tag is missing, because that section *is* the release
+   notes.
+2. Commit to `master` and tag it:
+
+   ```powershell
+   git tag v1.10.3
+   git push origin master v1.10.3
+   ```
+
+   Use a suffix (`v1.11.0-beta1`) for a pre-release.
+
+3. [.github/workflows/release.yml](.github/workflows/release.yml) then does everything else:
+   - checks the tag is reachable from `master`;
+   - builds `Release` with `/p:SoundBoardVersion` derived from the tag and
+     `/p:SoundBoardRepository` set to the repository running the workflow, and runs the tests;
+   - verifies the built exe really carries that version;
+   - runs [scripts/New-VersionInfo.ps1](scripts/New-VersionInfo.ps1), which writes
+     `SoundBoard/VersionInfo.xml` with the version, the download URLs for this repository,
+     the **SHA-256 of the built exe in `<FileHash algorithm="SHA256">`**, and the changelog
+     section as `<VersionNotes>`; the result is validated against `AppUpdate.xsd`;
+   - creates the GitHub Release (`--prerelease` for suffixed tags) with `SoundBoard.exe`,
+     `SoundBoard.exe.sha256` and `VersionInfo.xml` attached, using the changelog section
+     as the release body;
+   - for stable releases, commits the regenerated `VersionInfo.xml` back to `master`
+     **after** the release exists, so the manifest never points at a missing file.
+     Pre-releases skip this step so existing installs are never offered a beta.
+
+### How the in-app updater consumes this
+
+`MainWindow` constructs `MyUpdateChecker` with `BuildInfo.UpdateManifestUrl`
+(`https://raw.githubusercontent.com/<owner>/SoundBoard/master/SoundBoard/VersionInfo.xml`).
+The Bluegrams `AppHelpers.WPF` update checker downloads that manifest, compares
+`<Version>` to the running `AssemblyVersion`, downloads `<DownloadLink>`, and - when
+`<FileHash>` is non-empty - recomputes the hash with the algorithm named in the
+`algorithm` attribute and refuses the file on mismatch (the attribute is required: the
+library defaults to MD5 when it is absent). The manifest format is described by
+[SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd).
+
+Because `VersionInfo.xml` on `master` is overwritten by the workflow, never edit it by
+hand; to preview what a tag would produce, run the script locally:
+
+```powershell
+.\scripts\New-VersionInfo.ps1 -Tag v1.10.3 -ExePath SoundBoard\bin\Release\SoundBoard.exe `
+    -Repository micahmo/SoundBoard -OutputPath $env:TEMP\VersionInfo.xml -AllowMissingNotes
+```

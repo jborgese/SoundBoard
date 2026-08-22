@@ -274,7 +274,8 @@
     <Resource Include="Images\loop_light.png" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="VersionInfo.xml" />
+    <None Include="VersionInfo.xml" />
+    <None Include="Version.targets" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Images\warning.png" />
@@ -293,6 +294,8 @@
     <Resource Include="Images\right_light.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- Version stamping from the git tag; see Version.targets and BUILDING.md "Versioning and releases". -->
+  <Import Project="Version.targets" />
   <Import Project="..\packages\Fody.5.1.1\build\Fody.targets" Condition="Exists('..\packages\Fody.5.1.1\build\Fody.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

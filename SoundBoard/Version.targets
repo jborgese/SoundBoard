@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Single source of truth for the SoundBoard version: the git tag.
+
+  AssemblyVersion / AssemblyFileVersion / AssemblyInformationalVersion are no longer
+  hand-edited in AssemblyInfo.cs. They are generated into
+  obj\<Configuration>\SoundBoardVersion.g.cs on every build from one of:
+
+    1. /p:SoundBoardVersion=1.2.3.0 (and optionally /p:SoundBoardInformationalVersion=v1.2.3)
+       - what the release workflow passes, derived from the v* tag being built.
+    2. Otherwise, the nearest reachable "v*" git tag (git describe), so a local build of
+       a commit after v1.10.3 is stamped 1.10.3.0 - the same as the last release - and
+       therefore never nags the developer with a self-update prompt.
+    3. Otherwise (no git, no tag) 0.0.0.0 with a build warning.
+
+  Tag formats understood: v1.10.3 -> 1.10.3.0, v1.5 -> 1.5.0.0, v1.5-beta1 -> 1.5.0.0
+  (the pre-release suffix survives only in AssemblyInformationalVersion).
+
+  The same file also generates BuildInfo.Repository / BuildInfo.UpdateManifestUrl from
+  $(SoundBoardRepository) (owner/name). The release workflow passes the repository it runs
+  in, so the exe it ships polls the manifest that the very same workflow commits - the
+  update URL and the download URLs can never disagree. Local builds default to the
+  canonical upstream repository below.
+-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <SoundBoardRepository Condition="'$(SoundBoardRepository)' == ''">micahmo/SoundBoard</SoundBoardRepository>
+    <SoundBoardUpdateManifestUrl Condition="'$(SoundBoardUpdateManifestUrl)' == ''">https://raw.githubusercontent.com/$(SoundBoardRepository)/master/SoundBoard/VersionInfo.xml</SoundBoardUpdateManifestUrl>
+  </PropertyGroup>
+
+  <Target Name="SoundBoardResolveVersion">
+    <Exec Condition="'$(SoundBoardVersion)' == ''"
+          Command="git describe --tags --abbrev=0 --match &quot;v[0-9]*&quot;"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true"
+          IgnoreStandardErrorWarningFormat="true"
+          StandardOutputImportance="low"
+          StandardErrorImportance="low"
+          ContinueOnError="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_SoundBoardGitTag" />
+    </Exec>
+
+    <PropertyGroup>
+      <!-- Only trust the Exec output if it is a single, well-formed tag. -->
+      <_SoundBoardGitTag Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(_SoundBoardGitTag)', '^v\d+\.\d+(\.\d+)?([-.][0-9A-Za-z.-]+)?$'))"></_SoundBoardGitTag>
+
+      <SoundBoardInformationalVersion Condition="'$(SoundBoardInformationalVersion)' == '' And '$(SoundBoardVersion)' == '' And '$(_SoundBoardGitTag)' != ''">$(_SoundBoardGitTag)</SoundBoardInformationalVersion>
+
+      <!-- v1.10.3-beta1 -> 1.10.3 ; v1.5 -> 1.5 -->
+      <_SoundBoardCore Condition="'$(SoundBoardVersion)' == '' And '$(_SoundBoardGitTag)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(_SoundBoardGitTag)', '^v(\d+\.\d+(?:\.\d+)?).*$', '$1'))</_SoundBoardCore>
+      <!-- 1.5 -> 1.5.0 -->
+      <_SoundBoardCore Condition="'$(_SoundBoardCore)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(_SoundBoardCore)', '^(\d+\.\d+)$', '$1.0'))</_SoundBoardCore>
+      <SoundBoardVersion Condition="'$(SoundBoardVersion)' == '' And '$(_SoundBoardCore)' != ''">$(_SoundBoardCore).0</SoundBoardVersion>
+    </PropertyGroup>
+
+    <Warning Condition="'$(SoundBoardVersion)' == ''"
+             Text="Could not determine the SoundBoard version from a v* git tag; stamping 0.0.0.0. Pass /p:SoundBoardVersion=x.y.z.0 to override." />
+
+    <PropertyGroup>
+      <SoundBoardVersion Condition="'$(SoundBoardVersion)' == ''">0.0.0.0</SoundBoardVersion>
+      <SoundBoardInformationalVersion Condition="'$(SoundBoardInformationalVersion)' == ''">$(SoundBoardVersion)</SoundBoardInformationalVersion>
+    </PropertyGroup>
+
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(SoundBoardVersion)', '^\d+\.\d+\.\d+\.\d+$'))"
+           Text="SoundBoardVersion '$(SoundBoardVersion)' must be a four-part numeric version (e.g. 1.10.3.0)." />
+
+    <Error Condition="!$([System.Text.RegularExpressions.Regex]::IsMatch('$(SoundBoardRepository)', '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$'))"
+           Text="SoundBoardRepository '$(SoundBoardRepository)' must be of the form owner/name." />
+
+    <Message Importance="high" Text="SoundBoard version: $(SoundBoardVersion) ($(SoundBoardInformationalVersion)), repository $(SoundBoardRepository)" />
+  </Target>
+
+  <Target Name="SoundBoardGenerateVersionAttributes"
+          BeforeTargets="CoreCompile"
+          DependsOnTargets="SoundBoardResolveVersion">
+    <PropertyGroup>
+      <_SoundBoardVersionFile>$(IntermediateOutputPath)SoundBoardVersion.g.cs</_SoundBoardVersionFile>
+    </PropertyGroup>
+    <ItemGroup>
+      <_SoundBoardVersionLine Include="// &lt;auto-generated /&gt; Generated by Version.targets from the git tag. Do not edit." />
+      <_SoundBoardVersionLine Include="using System.Reflection%3B" />
+      <_SoundBoardVersionLine Include="[assembly: AssemblyVersion(&quot;$(SoundBoardVersion)&quot;)]" />
+      <_SoundBoardVersionLine Include="[assembly: AssemblyFileVersion(&quot;$(SoundBoardVersion)&quot;)]" />
+      <_SoundBoardVersionLine Include="[assembly: AssemblyInformationalVersion(&quot;$(SoundBoardInformationalVersion)&quot;)]" />
+      <_SoundBoardVersionLine Include="namespace SoundBoard" />
+      <_SoundBoardVersionLine Include="{" />
+      <_SoundBoardVersionLine Include="    /// &lt;summary&gt;Values baked in at build time by Version.targets.&lt;/summary&gt;" />
+      <_SoundBoardVersionLine Include="    internal static class BuildInfo" />
+      <_SoundBoardVersionLine Include="    {" />
+      <_SoundBoardVersionLine Include="        /// &lt;summary&gt;GitHub repository (owner/name) that releases and the update manifest are published to.&lt;/summary&gt;" />
+      <_SoundBoardVersionLine Include="        public const string Repository = &quot;$(SoundBoardRepository)&quot;%3B" />
+      <_SoundBoardVersionLine Include="        /// &lt;summary&gt;URL of VersionInfo.xml that the in-app updater polls.&lt;/summary&gt;" />
+      <_SoundBoardVersionLine Include="        public const string UpdateManifestUrl = &quot;$(SoundBoardUpdateManifestUrl)&quot;%3B" />
+      <_SoundBoardVersionLine Include="    }" />
+      <_SoundBoardVersionLine Include="}" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(_SoundBoardVersionFile)" Lines="@(_SoundBoardVersionLine)" Overwrite="true" WriteOnlyWhenDifferent="true" />
+    <ItemGroup>
+      <Compile Include="$(_SoundBoardVersionFile)" />
+      <FileWrites Include="$(_SoundBoardVersionFile)" />
+    </ItemGroup>
+  </Target>
+
+</Project>

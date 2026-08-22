@@ -44,15 +44,6 @@ using System.Windows;
 )]
 
 
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version 
-//      Build Number
-//      Revision
-//
-// You can specify all the values or you can default the Build and Revision Numbers 
-// by using the '*' as shown below:
-// [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.10.3.0")]
-[assembly: AssemblyFileVersion("1.10.3.0")]
+// AssemblyVersion / AssemblyFileVersion / AssemblyInformationalVersion are generated at
+// build time from the git tag by Version.targets (obj\<Configuration>\SoundBoardVersion.g.cs).
+// Do not add them here; to release, push a v* tag (see BUILDING.md).
