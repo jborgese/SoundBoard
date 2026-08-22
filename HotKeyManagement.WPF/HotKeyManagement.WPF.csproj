@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Vendored copy of BondTech.HotKeyManagement.WPF.4 (MIT, see LICENSE.md), from
+    https://github.com/bondtech/HotKey-Manager-for-WinForm-and-WPF-Apps (folder
+    BondTech.HotKeyManagement.WPF.4, last upstream commit 2014). It replaces the prebuilt
+    HotKeyManagement.WPF.4.dll that used to live in SoundBoard\lib. The assembly name and
+    the BondTech.HotKeyManagement.WPF._4 namespace are kept so the consuming code is unchanged.
+    Source is as upstream apart from what is listed in NOTICE.md.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>BondTech.HotKeyManagement.WPF._4</RootNamespace>
+    <AssemblyName>HotKeyManagement.WPF.4</AssemblyName>
+    <LangVersion>7.3</LangVersion>
+    <Version>1.0.0</Version>
+    <Company>Bond Technologies</Company>
+    <Product>BondTech.HotKeyManagement.WPF.4</Product>
+    <Copyright>Copyright © Bond Technologies 2012-2014</Copyright>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Upstream code has no XML doc comments; don't warn about that. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="HotKeyControl.Icon.png" />
+  </ItemGroup>
+
+</Project>

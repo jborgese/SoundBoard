@@ -25,9 +25,7 @@
       re-declared here at the same versions as the PackageReferences in SoundBoard\SoundBoard.csproj.
     -->
     <ProjectReference Include="..\SoundBoard\SoundBoard.csproj" />
-    <Reference Include="HotKeyManagement.WPF.4">
-      <HintPath>..\SoundBoard\lib\HotKeyManagement.WPF.4.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\HotKeyManagement.WPF\HotKeyManagement.WPF.csproj" />
     <Reference Include="WindowsBase" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />

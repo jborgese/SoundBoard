@@ -32,9 +32,9 @@ msbuild SoundBoard.sln /t:Restore
 (or pass `/restore` to the build command below to restore and build in one go).
 Packages are restored to the global NuGet package cache (`%UserProfile%\.nuget\packages`)
 and the resolved graph is written to each project's `obj\project.assets.json`; there is
-no `packages\` folder any more. Two additional prebuilt dependencies are checked into
-`SoundBoard\lib\` (`Dsafa.WpfColorPicker.dll`, `HotKeyManagement.WPF.4.dll`) and need
-no restore step.
+no `packages\` folder any more. There are no prebuilt binaries in the repository: the two
+small third-party libraries the app uses are built from vendored source (see
+[Projects](#projects)).
 
 ## Build
 
@@ -48,9 +48,9 @@ msbuild SoundBoard.sln /restore /p:Configuration=Release /m
 Or open `SoundBoard.sln` in Visual Studio and build the `Release` configuration.
 
 **Output:** `SoundBoard\bin\Release\SoundBoard.exe`. Costura.Fody embeds all managed
-dependencies into the executable at build time — including `SoundBoard.Model.dll` from
-the model project below — so this single `.exe` is the complete, distributable
-application.
+dependencies into the executable at build time — including `SoundBoard.Model.dll`,
+`Dsafa.WpfColorPicker.dll` and `HotKeyManagement.WPF.4.dll` from the projects below — so
+this single `.exe` is the complete, distributable application.
 
 ## Projects
 
@@ -59,10 +59,12 @@ application.
 | `SoundBoard\SoundBoard.csproj` | classic WPF `.csproj`, `PackageReference` | The application. |
 | `SoundBoard.Model\SoundBoard.Model.csproj` | SDK-style class library, `net48` | UI-free data model (`SoundBoardConfig` → `Page` → `Sound`) and the `soundboard.config` serializer. Deliberately references **no** WPF presentation assemblies (only `WindowsBase` for the `Key` enum and `System.Drawing` for color parsing) so nothing UI-specific can leak into it. |
 | `SoundBoard.Tests\SoundBoard.Tests.csproj` | SDK-style xUnit, `net48` | Unit tests for the model and serializer, including golden-file config round-trips (`SoundBoard.Tests\Fixtures`). |
+| `Dsafa.WpfColorPicker\Dsafa.WpfColorPicker.csproj` | SDK-style WPF class library, `net48` | Vendored **fork** of [dsafa/wpf-color-picker](https://github.com/dsafa/wpf-color-picker) 1.2.0 (MIT) — the colour picker dialog. `NOTICE.md` in that folder lists the changes from upstream. |
+| `HotKeyManagement.WPF\HotKeyManagement.WPF.csproj` | SDK-style WPF class library, `net48` | Vendored copy of [BondTech.HotKeyManagement.WPF.4](https://github.com/bondtech/HotKey-Manager-for-WinForm-and-WPF-Apps) (MIT) — local/global hotkey registration. Unmodified apart from the project file; see its `NOTICE.md`. |
 
-`msbuild SoundBoard.sln /t:Restore` restores all three projects. The two SDK-style projects *can* be built and
-tested with `dotnet build` / `dotnet test SoundBoard.Tests` on their own; the solution as
-a whole cannot (see below).
+`msbuild SoundBoard.sln /t:Restore` restores all five projects. The SDK-style library projects
+*can* be built with `dotnet build` on their own; the solution as a whole cannot, and neither can
+the test project, because it references the app exe (see below).
 
 ## Test
 
@@ -75,8 +77,7 @@ vstest.console.exe SoundBoard.Tests\bin\Release\SoundBoard.Tests.dll
 (`vstest.console.exe` ships with Visual Studio under
 `Common7\IDE\CommonExtensions\Microsoft\TestWindow\` and is on `PATH` in a Developer
 shell. It is *not* on `PATH` on GitHub's hosted runners, which is why the CI workflow
-locates it with `vswhere`.) Or run `dotnet test SoundBoard.Tests\SoundBoard.Tests.csproj`, which builds only
-the model and test projects.
+locates it with `vswhere`.)
 
 ## Notes and gotchas
 

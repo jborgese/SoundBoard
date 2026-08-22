@@ -954,14 +954,10 @@ namespace SoundBoard
             Process.Start("explorer.exe", $"/select, \"{SoundPath}\"");
         }
 
-        private static readonly IEnumerable<Color> _defaultPalette = (IEnumerable<Color>)typeof(ColorPickerDialog)
-            .GetField("DefaultPalette", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)?
-            .GetValue(null) ?? Enumerable.Empty<Color>();
-
         private void SetColorMenuItem_Click(object sender, RoutedEventArgs e)
         {
             var palette = Host.GetSoundButtons().Where(sb => sb.Color != null).Select(sb => sb.Color.Value) // Existing colors
-                .Concat(_defaultPalette) // The default palette
+                .Concat(ColorPickerDialog.DefaultPalette) // The default palette
                 .Distinct(); // Remove dupes
 
             ColorPickerDialog colorPickerDialog = new ColorPickerDialog(Color ?? Colors.White, palette)

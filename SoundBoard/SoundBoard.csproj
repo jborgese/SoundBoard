@@ -41,12 +41,6 @@
     <ApplicationIcon>.\icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Dsafa.WpfColorPicker">
-      <HintPath>lib\Dsafa.WpfColorPicker.dll</HintPath>
-    </Reference>
-    <Reference Include="HotKeyManagement.WPF.4">
-      <HintPath>lib\HotKeyManagement.WPF.4.dll</HintPath>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
@@ -183,6 +177,14 @@
     <ProjectReference Include="..\SoundBoard.Model\SoundBoard.Model.csproj">
       <Project>{B645DC6F-8876-4CD2-A569-6BCDF2CB2649}</Project>
       <Name>SoundBoard.Model</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Dsafa.WpfColorPicker\Dsafa.WpfColorPicker.csproj">
+      <Project>{4C1E2B7A-9D35-4F7E-8B2C-0D6A1F3E5C21}</Project>
+      <Name>Dsafa.WpfColorPicker</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\HotKeyManagement.WPF\HotKeyManagement.WPF.csproj">
+      <Project>{A7D3E9F1-2B64-4C8D-9E05-3F1B7C2D8A46}</Project>
+      <Name>HotKeyManagement.WPF</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

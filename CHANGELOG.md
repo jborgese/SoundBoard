@@ -28,6 +28,9 @@ history and release tags.
 - Dependencies: System.Reactive 5.0.0 → 6.1.0, MouseKeyHook 5.6.0 → 5.7.1, NAudio 1.9.0 → 2.2.1,
   MahApps.Metro 1.6.5 → 2.4.11 (with ControlzEx 5.0.2 and MahApps.Metro.SimpleChildWindow 2.2.1).
   The UI looks the same apart from slightly wider Windows-10-style title bar buttons.
+- The two prebuilt third-party DLLs (`Dsafa.WpfColorPicker.dll`, `HotKeyManagement.WPF.4.dll`)
+  are now built from vendored source projects (MIT; licences and a NOTICE of local changes are
+  included alongside the source).
 ### Removed
 - Extended.Wpf.Toolkit (Xceed) dependency: the row/column spinners in the "Change button grid"
   dialog are now MahApps `NumericUpDown` controls (newer Xceed versions are under a
