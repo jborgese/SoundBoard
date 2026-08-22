@@ -58,6 +58,11 @@ namespace SoundBoard
     public class TabPageSoundsUndoState
     {
         /// <summary>
+        /// The tab whose sounds were captured. The restore targets this tab, not whichever tab happens to be selected.
+        /// </summary>
+        internal MyMetroTabItem Tab { get; set; }
+
+        /// <summary>
         /// Copies of every cell on the page. Each copy carries the row and column it belongs to.
         /// </summary>
         public IReadOnlyList<Sound> Sounds { get; set; }

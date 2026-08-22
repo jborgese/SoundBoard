@@ -430,7 +430,14 @@ namespace SoundBoard
                 });
             }
 
-            // If there are no tabs after we load, show the help screen
+            ShowHelpIfNoTabs();
+        }
+
+        /// <summary>
+        /// If there are no tabs (after a load or an undo that restored an empty config), show the help screen
+        /// </summary>
+        private void ShowHelpIfNoTabs()
+        {
             if (Tabs.Items.Count == 0)
             {
                 ButtonAutomationPeer peer = new ButtonAutomationPeer(Help);
@@ -2106,10 +2113,21 @@ namespace SoundBoard
 
             // Work from a copy so the snapshot stays intact, and restore the settings exactly (not additively):
             // undoing an import or clear should put the devices back the way they were.
+            BoardSettings before = GlobalSettings.Current.DeepClone();
             ApplyConfigToUi(undoState.Config.DeepClone(), replaceSettings: true);
+            BoardSettings after = GlobalSettings.Current;
 
-            // The passthrough devices may have changed, so rebuild the passthrough chain to match
-            HandleAudioPassthroughChange();
+            // If the passthrough devices changed, rebuild the passthrough chain to match. (Not unconditionally: tearing
+            // it down and recreating it interrupts live passthrough, so undoing a grid change must not do that.)
+            if (!before.InputDevices.SetEquals(after.InputDevices)
+                || !before.PassthroughOutputDevices.SetEquals(after.PassthroughOutputDevices)
+                || before.AudioPassthroughLatency != after.AudioPassthroughLatency)
+            {
+                HandleAudioPassthroughChange();
+            }
+
+            // An undo that restores a board with no pages (e.g. undoing an import done on a fresh install) shows the welcome page, as a load does
+            ShowHelpIfNoTabs();
 
             SaveSettings();
         }
@@ -2117,26 +2135,30 @@ namespace SoundBoard
         /// <inheritdoc />
         TabPageSoundsUndoState IUndoable<TabPageSoundsUndoState>.SaveState()
         {
-            Page page = (SelectedTab as MyMetroTabItem)?.Page;
+            MyMetroTabItem tab = SelectedTab as MyMetroTabItem;
 
             return new TabPageSoundsUndoState
             {
-                Sounds = page?.Sounds.Select(sound => sound.DeepClone()).ToList() ?? new List<Sound>()
+                Tab = tab,
+                Sounds = tab?.Page?.Sounds.Select(sound => sound.DeepClone()).ToList() ?? new List<Sound>()
             };
         }
 
         /// <inheritdoc />
         public void LoadState(TabPageSoundsUndoState undoState)
         {
-            if (!(SelectedTab is MyMetroTabItem tab && tab.Page is Page page))
+            // Restore onto the tab the sounds came from, and only if it is still here (the user may have switched tabs, or removed it, meanwhile)
+            if (!(undoState.Tab is MyMetroTabItem tab && Tabs.Items.Contains(tab) && tab.Page is Page page))
             {
+                Logger.Warn("Cannot undo: the tab the sounds were cleared from is no longer open");
                 return;
             }
 
-            // Restore by position, so this still works if the grid was resized in between (cells that no longer exist are skipped)
+            // Restore by position, so this still works if the grid was resized in between (cells that no longer exist are skipped).
+            // Cells that are empty in both the snapshot and the page are left alone so their ids are not churned.
             foreach (Sound sound in undoState.Sounds)
             {
-                if (page.IsInRange(sound.Row, sound.Column))
+                if (page.IsInRange(sound.Row, sound.Column) && !(sound.IsEmpty && page[sound.Row, sound.Column].IsEmpty))
                 {
                     FindButton(page[sound.Row, sound.Column])?.LoadState(sound);
                 }

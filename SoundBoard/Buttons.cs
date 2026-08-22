@@ -1351,8 +1351,8 @@ namespace SoundBoard
                     destinationButton.UnregisterGlobalHotkey();
 
                     // Do the swap!
-                    sourceButton.LoadState(destinationButtonState);
-                    destinationButton.LoadState(sourceButtonState);
+                    sourceButton.LoadStateAlreadyUnregistered(destinationButtonState);
+                    destinationButton.LoadStateAlreadyUnregistered(sourceButtonState);
                 }
             }
 
@@ -2731,17 +2731,31 @@ namespace SoundBoard
         /// </summary>
         public void LoadState(Sound undoState)
         {
+            // Registrations are keyed on Id, which is about to change
+            UnregisterLocalHotkey();
+            UnregisterGlobalHotkey();
+
+            LoadStateCore(undoState);
+        }
+
+        /// <summary>
+        /// Like <see cref="LoadState"/> but without first releasing this button's hotkey registrations — for callers that
+        /// have already released them. Needed when two buttons exchange sounds: the second button's current Id is the
+        /// first button's new Id, so unregistering by current Id would remove the registration the first one just made.
+        /// </summary>
+        internal void LoadStateAlreadyUnregistered(Sound undoState) => LoadStateCore(undoState);
+
+        private void LoadStateCore(Sound undoState)
+        {
             if (undoState is null) throw new ArgumentNullException(nameof(undoState));
 
             if (undoState.IsEmpty)
             {
-                SetDefaultText();
+                Sound.Clear();
+                RefreshFromSound();
+                IsSelected = false;
                 return;
             }
-
-            // Registrations are keyed on Id, which is about to change
-            UnregisterLocalHotkey();
-            UnregisterGlobalHotkey();
 
             Sound.CopyDataFrom(undoState);
             RefreshFromSound();
