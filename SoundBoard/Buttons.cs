@@ -262,14 +262,14 @@ namespace SoundBoard
             {
                 ParentButton.Pause();
                 _playing = false;
-                MainWindow.Instance.OnAnySoundStopped(ParentButton);
+                ParentButton.Host.OnAnySoundStopped(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
             else
             {
                 ParentButton.Play();
                 _playing = true;
-                MainWindow.Instance.OnAnySoundStarted(ParentButton);
+                ParentButton.Host.OnAnySoundStarted(ParentButton);
                 Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
         }
@@ -664,7 +664,7 @@ namespace SoundBoard
 
             if (!string.IsNullOrEmpty(ParentButton.NextSound))
             {
-                SoundButton soundButton = MainWindow.Instance.FindButton(MainWindow.Instance.FindSound(ParentButton.NextSound));
+                SoundButton soundButton = ParentButton.Host.FindButton(ParentButton.Host.FindSound(ParentButton.NextSound));
                 if (soundButton?.HasValidSound == true)
                 {
                     Visibility = Visibility.Visible;
@@ -719,10 +719,12 @@ namespace SoundBoard
         /// <summary>
         /// Constructor
         /// </summary>
-        public SoundButton(SoundButtonMode soundButtonMode = SoundButtonMode.Normal, 
-                           MyMetroTabItem parentTab = null, 
+        public SoundButton(ISoundBoardHost host,
+                           SoundButtonMode soundButtonMode = SoundButtonMode.Normal,
+                           MyMetroTabItem parentTab = null,
                            (MetroTabItem SourceTab, SoundButton SourceButton) sourceTabAndButton = default)
         {
+            Host = host ?? throw new ArgumentNullException(nameof(host));
             Mode = soundButtonMode;
             ParentTab = parentTab;
             SourceTabAndButton = sourceTabAndButton;
@@ -764,7 +766,7 @@ namespace SoundBoard
             {
                 if (IsSelected)
                 {
-                    bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+                    bool anyNotLooped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
                     _loopMenuItem.Icon = !anyNotLooped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
                 }
                 else
@@ -779,7 +781,7 @@ namespace SoundBoard
             {
                 if (IsSelected)
                 {
-                    bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+                    bool anyNotStopped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
                     _stopAllSoundsMenuItem.Icon = !anyNotStopped ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
                 }
                 else
@@ -789,7 +791,7 @@ namespace SoundBoard
             }
 
             // Verify that NextSound is valid. Only the real button may repair its sound; a search result shares it.
-            if (Mode == SoundButtonMode.Normal && !string.IsNullOrEmpty(NextSound) && MainWindow.Instance.FindSound(NextSound) is null)
+            if (Mode == SoundButtonMode.Normal && !string.IsNullOrEmpty(NextSound) && Host.FindSound(NextSound) is null)
             {
                 NextSound = default;
             }
@@ -819,9 +821,9 @@ namespace SoundBoard
         private async void RenameMenuItem_Click(object sender, RoutedEventArgs e)
         {
             // Stop handling keypresses in the main window
-            MainWindow.Instance.RemoveHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler);
+            Host.SuspendTypeToSearch();
 
-            string result = await MainWindow.Instance.ShowInputAsync(Properties.Resources.Rename,
+            string result = await Host.ShowInputAsync(Properties.Resources.Rename,
                 Properties.Resources.WhatDoYouWantToCallIt,
                 new MetroDialogSettings {DefaultText = SoundName});
 
@@ -831,36 +833,36 @@ namespace SoundBoard
             }
 
             // Rehandle keypresses in main window
-            MainWindow.Instance.AddHandler(KeyDownEvent, MainWindow.Instance.KeyDownHandler, true);
+            Host.ResumeTypeToSearch();
         }
 
         private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
         {
             if (IsSelected)
             {
-                TabPageSoundsUndoState tabPageSoundsUndoState = (MainWindow.Instance as IUndoable<TabPageSoundsUndoState>).SaveState();
+                TabPageSoundsUndoState tabPageSoundsUndoState = ((IUndoable<TabPageSoundsUndoState>)Host).SaveState();
 
                 // Set up our UndoAction
-                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(tabPageSoundsUndoState); });
+                Host.SetUndoAction(() => { Host.LoadState(tabPageSoundsUndoState); });
 
                 // Create and show a snackbar
                 string message = Properties.Resources.MultipleSoundsClearedFromTab;
-                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50, message);
-                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedTabName));
+                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, Host.SnackbarMessageFont, (int)Width - 50, message);
+                Host.ShowUndoSnackbar(string.Format(message, truncatedTabName));
 
-                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
             }
             else
             {
                 Sound soundUndoState = SaveState();
 
                 // Set up our UndoAction
-                MainWindow.Instance.SetUndoAction(() => { LoadState(soundUndoState); });
+                Host.SetUndoAction(() => { LoadState(soundUndoState); });
 
                 // Create and show a snackbar
                 string message = Properties.Resources.SoundWasCleared;
-                string truncatedSoundName = Utilities.Truncate(SoundName, MainWindow.Instance.SnackbarMessageFont, (int)MainWindow.Instance.Width - 50, message);
-                MainWindow.Instance.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+                string truncatedSoundName = Utilities.Truncate(SoundName, Host.SnackbarMessageFont, (int)Host.WindowWidth - 50, message);
+                Host.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
 
                 ClearButton();
             }
@@ -886,7 +888,7 @@ namespace SoundBoard
         private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
             // First, close the search
-            MainWindow.Instance.CloseSearch();
+            Host.CloseSearch();
 
             // Now find the button for the given sound
 
@@ -953,7 +955,7 @@ namespace SoundBoard
 
         private void SetColorMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            var palette = MainWindow.Instance.GetSoundButtons().Where(sb => sb.Color != null).Select(sb => sb.Color.Value) // Existing colors
+            var palette = Host.GetSoundButtons().Where(sb => sb.Color != null).Select(sb => sb.Color.Value) // Existing colors
                 .Concat(_defaultPalette) // The default palette
                 .Distinct(); // Remove dupes
 
@@ -970,7 +972,7 @@ namespace SoundBoard
             {
                 if (IsSelected)
                 {
-                    MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Color = colorPickerDialog.Color);
+                    Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Color = colorPickerDialog.Color);
                 }
                 else
                 {
@@ -986,7 +988,7 @@ namespace SoundBoard
             // See if this is a multi-selection and if so, whether all selected sounds have the same volume
             int? volume = null;
             bool multiSelectSameVolume = true;
-            foreach (var sb in MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected))
+            foreach (var sb in Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected))
             {
                 if (volume == null)
                 {
@@ -1020,7 +1022,7 @@ namespace SoundBoard
                 {
                     if (IsSelected)
                     {
-                        MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.VolumeOffset = offset);
+                        Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.VolumeOffset = offset);
                     }
                     else
                     {
@@ -1036,12 +1038,12 @@ namespace SoundBoard
         {
             _nextSoundMenuItem.Items.Clear();
 
-            List<MyMetroTabItem> tabs = MainWindow.Instance.Tabs.Items.OfType<MyMetroTabItem>().ToList();
+            List<MyMetroTabItem> tabs = Host.SoundTabs.ToList();
             foreach (MyMetroTabItem metroTabItem in tabs)
             {
                 MenuItem tabMenuItem = new MenuItem { Header = metroTabItem.HeaderText.Truncate(50), IsEnabled = false };
 
-                IEnumerable<SoundButton> soundButtons = MainWindow.Instance.GetSoundButtons(metroTabItem).Where(sb => sb.HasValidSound).ToList();
+                IEnumerable<SoundButton> soundButtons = Host.GetSoundButtons(metroTabItem).Where(sb => sb.HasValidSound).ToList();
                 if (soundButtons.Any())
                 {
                     _nextSoundMenuItem.Items.Add(tabMenuItem);
@@ -1102,9 +1104,9 @@ namespace SoundBoard
         {
             if (IsSelected)
             {
-                bool anyNotLooped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+                bool anyNotLooped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
 
-                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
             }
             else
             {
@@ -1116,9 +1118,9 @@ namespace SoundBoard
         {
             if (IsSelected)
             {
-                bool anyNotStopped = MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
+                bool anyNotStopped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.StopAllSounds);
 
-                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StopAllSounds = anyNotStopped);
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StopAllSounds = anyNotStopped);
             }
             else
             {
@@ -1128,14 +1130,14 @@ namespace SoundBoard
 
         private async void HotkeysMenuItemClick(object sender, RoutedEventArgs e)
         {
-            MainWindow.Instance.IsHotkeyPickerOpen = true;
+            Host.IsHotkeyPickerOpen = true;
             HotkeyDialog hotkeyDialog = new HotkeyDialog(this)
             {
                 LocalHotkey = LocalHotkey,
                 GlobalHotkey = GlobalHotkey
             };
-            await MainWindow.Instance.ShowChildWindowAsync(hotkeyDialog);
-            MainWindow.Instance.IsHotkeyPickerOpen = false;
+            await Host.ShowChildWindowAsync(hotkeyDialog);
+            Host.IsHotkeyPickerOpen = false;
         }
 
         #endregion
@@ -1161,7 +1163,7 @@ namespace SoundBoard
                     // Make sure LastSelected is still in the collection
                     if (LastSelected != null && LastSelected != this && LastSelected.IsSelected)
                     {
-                        var buttons = MainWindow.Instance.GetSoundButtons(ParentTab).ToList();
+                        var buttons = Host.GetSoundButtons(ParentTab).ToList();
                         if (buttons.Contains(LastSelected))
                         {
                             int indexOfThis = buttons.IndexOf(this);
@@ -1207,7 +1209,7 @@ namespace SoundBoard
                     {
                         if (IsSelected)
                         {
-                            MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StartSound());
+                            Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StartSound());
                         }
                         else
                         {
@@ -1254,7 +1256,7 @@ namespace SoundBoard
                 Utilities.PointsArePastThreshold((Point)_mouseDownPosition, Mouse.GetPosition(this)) &&
                 Mode != SoundButtonMode.Search)
             {
-                MainWindow.Instance.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.IsSelected = false);
                 
                 _mouseDownPosition = Mouse.GetPosition(this);
                 DragDrop.DoDragDrop(this, new SoundDragData(this), DragDropEffects.Link);
@@ -1381,7 +1383,7 @@ namespace SoundBoard
             {
                 if (!File.Exists(SoundPath))
                 {
-                    var res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.FileDoesNotExist, SoundPath),
+                    var res = await Host.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.FileDoesNotExist, SoundPath),
                         MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
                         {
                             AffirmativeButtonText = Properties.Resources.Browse,
@@ -1399,7 +1401,7 @@ namespace SoundBoard
                                 Dictionary<SoundButton, string> potentialMatches = new Dictionary<SoundButton, string>();
 
                                 // This is a relinking, so check if there are any other missing sounds that can be relinked from this new directory.
-                                foreach (SoundButton soundButton in MainWindow.Instance.GetSoundButtons())
+                                foreach (SoundButton soundButton in Host.GetSoundButtons())
                                 {
                                     originalSoundFileName = Path.GetFileName(soundButton.SoundPath);
                                     string potentialNewSoundPath = Path.Combine(newDirectory, originalSoundFileName);
@@ -1414,7 +1416,7 @@ namespace SoundBoard
                                 // If we found any matches, tell the user and let them decide
                                 if (potentialMatches.Any())
                                 {
-                                    res = await MainWindow.Instance.ShowMessageAsync(Properties.Resources.FixLinksHeader, string.Format(Properties.Resources.FixLinksMessage, potentialMatches.Count),
+                                    res = await Host.ShowMessageAsync(Properties.Resources.FixLinksHeader, string.Format(Properties.Resources.FixLinksMessage, potentialMatches.Count),
                                         MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
                                         {
                                             AffirmativeButtonText = Properties.Resources.Yes,
@@ -1441,15 +1443,15 @@ namespace SoundBoard
 
                 // Stop any previous playback of this button (the player raises Stopped for it, which settles our visuals)
                 _player.TearDown();
-                MainWindow.Instance.Playback.Unregister(_player);
+                Host.Playback.Unregister(_player);
 
                 if (StopAllSounds)
                 {
-                    MainWindow.Instance.Playback.StopAll();
+                    Host.Playback.StopAll();
                 }
 
                 // Register before starting so that a sound which begins playing can always be silenced, even if Start fails part-way
-                MainWindow.Instance.Playback.Register(_player);
+                Host.Playback.Register(_player);
 
                 // Aaaaand play
                 _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
@@ -1464,7 +1466,7 @@ namespace SoundBoard
 
                 CalculateTextMargin();
 
-                MainWindow.Instance.OnAnySoundStarted(this);
+                Host.OnAnySoundStarted(this);
 
                 // Begin updating progress bar
                 _progressBarCancellationToken?.Cancel();
@@ -1475,7 +1477,7 @@ namespace SoundBoard
             catch (Exception ex)
             {
                 Logger.Error(ex, "Failed to start sound '{0}' ({1}) on device(s) [{2}]", SoundName, SoundPath, string.Join(",", GlobalSettings.GetOutputDeviceGuids()));
-                await MainWindow.Instance.ShowMessageAsync(Properties.Resources.Error,
+                await Host.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
         }
@@ -1675,22 +1677,22 @@ namespace SoundBoard
         /// <summary>
         /// Releases the local hotkey registration made for this button's current sound id, if any. Never throws.
         /// </summary>
-        public void UnregisterLocalHotkey() => MainWindow.Instance.Hotkeys.UnregisterLocal(Sound);
+        public void UnregisterLocalHotkey() => Host.Hotkeys.UnregisterLocal(Sound);
 
         /// <summary>
         /// Releases the global hotkey registration made for this button's current sound id, if any. Never throws.
         /// </summary>
-        public void UnregisterGlobalHotkey() => MainWindow.Instance.Hotkeys.UnregisterGlobal(Sound);
+        public void UnregisterGlobalHotkey() => Host.Hotkeys.UnregisterGlobal(Sound);
 
         /// <summary>
         /// Registers this button's local hotkey, if it has one. Always wrap this in a try/catch.
         /// </summary>
-        public void ReregisterLocalHotkey() => MainWindow.Instance.Hotkeys.RegisterLocal(Sound);
+        public void ReregisterLocalHotkey() => Host.Hotkeys.RegisterLocal(Sound);
 
         /// <summary>
         /// Registers this button's global hotkey, if it has one. Always wrap this in a try/catch.
         /// </summary>
-        public void ReregisterGlobalHotkey() => MainWindow.Instance.Hotkeys.RegisterGlobal(Sound);
+        public void ReregisterGlobalHotkey() => Host.Hotkeys.RegisterGlobal(Sound);
 
         public void CalculateTextMargin()
         {
@@ -1780,7 +1782,7 @@ namespace SoundBoard
                 ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
             }
 
-            MainWindow.Instance.OnAnySoundRenamed();
+            Host.OnAnySoundRenamed();
 
             SetUpStyle();
             SetUpContextMenu();
@@ -2150,11 +2152,11 @@ namespace SoundBoard
 
             CalculateTextMargin();
 
-            MainWindow.Instance.OnAnySoundStopped(this);
+            Host.OnAnySoundStopped(this);
 
             if (finished)
             {
-                MainWindow.Instance.OnSoundFinished(this);
+                Host.OnSoundFinished(this);
             }
         }
 
@@ -2214,8 +2216,8 @@ namespace SoundBoard
                 // This is a multi-file drop!
 
                 // Since this is a big operation, make it undoable
-                ConfigUndoState configUndoState = (MainWindow.Instance as IUndoable<ConfigUndoState>).SaveState();
-                MainWindow.Instance.SetUndoAction(() => { MainWindow.Instance.LoadState(configUndoState); });
+                ConfigUndoState configUndoState = ((IUndoable<ConfigUndoState>)Host).SaveState();
+                Host.SetUndoAction(() => { Host.LoadState(configUndoState); });
 
                 // Set our grid size to exactly match the number
                 int rows = ParentTab.GetRows();
@@ -2241,15 +2243,15 @@ namespace SoundBoard
                 }
 
                 // Get starting index before potentially changing grid, since that recreates all buttons
-                var startingIndex = MainWindow.Instance.GetSoundButtons(ParentTab).ToList().IndexOf(this);
+                var startingIndex = Host.GetSoundButtons(ParentTab).ToList().IndexOf(this);
 
                 if (rows != ParentTab.GetRows() || columns != ParentTab.GetColumns())
                 {
-                    MainWindow.Instance.ChangeButtonGrid(rows, columns);
+                    Host.ChangeButtonGrid(rows, columns);
                 }
 
                 // Start populating the buttons
-                var buttons = MainWindow.Instance.GetSoundButtons(MainWindow.Instance.SelectedTab).ToList();
+                var buttons = Host.GetSoundButtons(Host.SelectedTab).ToList();
                 buttons = buttons.GetRange(startingIndex, buttons.Count - startingIndex).Concat(buttons.GetRange(0, startingIndex)).ToList();
                 for (int i = 0; i < multiFileDrop.Count; ++i)
                 {
@@ -2259,8 +2261,8 @@ namespace SoundBoard
 
                 // Finally, make it undoable
                 string message = Properties.Resources.MultipleSoundsAdded;
-                string truncatedMessage = Utilities.Truncate(message, MainWindow.Instance.SnackbarMessageFont, (int)Width - 50);
-                MainWindow.Instance.ShowUndoSnackbar(truncatedMessage);
+                string truncatedMessage = Utilities.Truncate(message, Host.SnackbarMessageFont, (int)Width - 50);
+                Host.ShowUndoSnackbar(truncatedMessage);
             }
             else
             {
@@ -2348,6 +2350,11 @@ namespace SoundBoard
         public SoundProgressBar SoundProgressBar { get; set; } = new SoundProgressBar();
 
         /// <summary>
+        /// The window hosting this button: model/view lookups, playback, hotkeys, undo and dialogs.
+        /// </summary>
+        public ISoundBoardHost Host { get; }
+
+        /// <summary>
         /// The model cell this button displays and edits. Every data property on this class reads and writes through it.
         /// In <see cref="SoundButtonMode.Normal"/> this is the cell of <see cref="ParentTab"/>'s page at this button's grid
         /// position; in <see cref="SoundButtonMode.Search"/> it is the source button's sound (shared, not copied).
@@ -2376,7 +2383,7 @@ namespace SoundBoard
             private set
             {
                 Sound.Name = value;
-                MainWindow.Instance.OnAnySoundRenamed();
+                Host.OnAnySoundRenamed();
             }
         }
 

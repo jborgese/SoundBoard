@@ -44,7 +44,7 @@ namespace SoundBoard
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public sealed partial class MainWindow : IUndoable<TabPageUndoState>, IUndoable<ConfigUndoState>, IUndoable<TabPageSoundsUndoState>
+    public sealed partial class MainWindow : ISoundBoardHost, IUndoable<TabPageUndoState>
     {
         #region P/Invoke stuff
 
@@ -107,8 +107,6 @@ namespace SoundBoard
         public MainWindow()
         {
             InitializeComponent();
-
-            Instance = this;
 
             // Set up our event handlers
             AddHandler(KeyDownEvent, KeyDownHandler, true);
@@ -602,7 +600,7 @@ namespace SoundBoard
                 {
                     // Sound button, bound to its model cell. This happens before the child buttons are created, so the
                     // child buttons pick up the sound's state through their own constructors, as they always have.
-                    SoundButton soundButton = new SoundButton(parentTab: tab);
+                    SoundButton soundButton = new SoundButton(this, parentTab: tab);
                     soundButton.AttachSound(page[rowIndex, columnIndex]);
 
                     Grid.SetColumn(soundButton, columnIndex);
@@ -1053,7 +1051,7 @@ namespace SoundBoard
                             if (sound.Name.ToLower().Contains(query) && buttonsBySound.TryGetValue(sound, out SoundButton soundButton))
                             {
                                 // The search result displays the source button's sound directly
-                                SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
+                                SoundButton button = new SoundButton(this, SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
 
                                 ResultsPanel.Children.Add(button);
                             }
@@ -1900,14 +1898,65 @@ namespace SoundBoard
         #region Public properties
 
         /// <summary>
-        /// Returns the MainWindow instance
-        /// </summary>
-        public static MainWindow Instance { get; private set; }
-
-        /// <summary>
         /// Event handler for KeyDown event
         /// </summary>
         public RoutedEventHandler KeyDownHandler => RoutedKeyDownHandler;
+
+        // Members that mention internal types are implemented explicitly, since this class is public.
+
+        /// <inheritdoc />
+        IEnumerable<MyMetroTabItem> ISoundBoardHost.SoundTabs => Tabs.Items.OfType<MyMetroTabItem>().Where(tab => tab.Page != null);
+
+        /// <inheritdoc />
+        SoundButton ISoundBoardHost.FindButton(Sound sound) => FindButton(sound);
+
+        /// <inheritdoc />
+        IEnumerable<SoundButton> ISoundBoardHost.GetSoundButtons(MetroTabItem tab) => GetSoundButtons(tab);
+
+        /// <inheritdoc />
+        PlaybackCoordinator ISoundBoardHost.Playback => Playback;
+
+        /// <inheritdoc />
+        HotkeyRegistry ISoundBoardHost.Hotkeys => Hotkeys;
+
+        /// <inheritdoc />
+        void ISoundBoardHost.OnAnySoundStarted(SoundButton soundButton) => OnAnySoundStarted(soundButton);
+
+        /// <inheritdoc />
+        void ISoundBoardHost.OnAnySoundStopped(SoundButton soundButton) => OnAnySoundStopped(soundButton);
+
+        /// <inheritdoc />
+        void ISoundBoardHost.OnSoundFinished(SoundButton soundButton) => OnSoundFinished(soundButton);
+
+        /// <inheritdoc />
+        void ISoundBoardHost.OnAnySoundRenamed() => OnAnySoundRenamed();
+
+        /// <inheritdoc />
+        double ISoundBoardHost.WindowWidth => Width;
+
+        /// <inheritdoc />
+        public void SuspendTypeToSearch() => RemoveHandler(KeyDownEvent, KeyDownHandler);
+
+        /// <inheritdoc />
+        public void ResumeTypeToSearch() => AddHandler(KeyDownEvent, KeyDownHandler, true);
+
+        /// <inheritdoc />
+        void ISoundBoardHost.ShowUndoSnackbar(string message) => ShowUndoSnackbar(message);
+
+        // The dialog helpers are MahApps extension methods on MetroWindow; the explicit implementations forward to them
+        // (an implicit instance method with the same name would hide the extension for every `this.Show...` call in this class).
+
+        /// <inheritdoc />
+        Task<MessageDialogResult> ISoundBoardHost.ShowMessageAsync(string title, string message, MessageDialogStyle style, MetroDialogSettings settings)
+            => DialogManager.ShowMessageAsync(this, title, message, style, settings);
+
+        /// <inheritdoc />
+        Task<string> ISoundBoardHost.ShowInputAsync(string title, string message, MetroDialogSettings settings)
+            => DialogManager.ShowInputAsync(this, title, message, settings);
+
+        /// <inheritdoc />
+        Task ISoundBoardHost.ShowChildWindowAsync(ChildWindow childWindow)
+            => ChildWindowManager.ShowChildWindowAsync(this, childWindow);
 
         /// <summary>
         /// Event handler for KeyUp event
@@ -2019,10 +2068,7 @@ namespace SoundBoard
             }
         }
 
-        internal bool IsAnySoundPlayingOnTab(MyMetroTabItem myMetroTabItem)
-        {
-            return GetSoundButtons(myMetroTabItem).Any(sb => sb.IsPlaying);
-        }
+        internal bool IsAnySoundPlayingOnTab(MyMetroTabItem myMetroTabItem) => myMetroTabItem.IsAnySoundPlaying;
 
         internal void OnAnySoundRenamed()
         {
