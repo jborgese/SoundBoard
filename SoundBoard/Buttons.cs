@@ -21,10 +21,10 @@ using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
 using BondTech.HotKeyManagement.WPF._4;
-using System.Media;
 using System.Windows.Media.Animation;
 using Humanizer;
 using NLog;
+using SoundBoard.Audio;
 using SoundBoard.Model;
 
 #endregion
@@ -728,6 +728,9 @@ namespace SoundBoard
             ParentTab = parentTab;
             SourceTabAndButton = sourceTabAndButton;
 
+            _player = new SoundPlayer();
+            _player.Stopped += PlayerStoppedHandler;
+
             if (soundButtonMode == SoundButtonMode.Normal)
             {
                 // A placeholder until the page content builder attaches the real cell (see AttachSound)
@@ -869,7 +872,7 @@ namespace SoundBoard
             BrowseForSound();
         }
 
-        private void SoundStoppedHandler(object sender, StoppedEventArgs e)
+        private void PlayerStoppedHandler(object sender, SoundStoppedEventArgs e)
         {
             if (e.Exception != null)
             {
@@ -878,10 +881,7 @@ namespace SoundBoard
                 Logger.Warn(e.Exception, "Playback of '{0}' ({1}) stopped with an error", SoundName, SoundPath);
             }
 
-            if (sender is IWavePlayer player)
-            {
-                HandleSoundStopped(player);
-            }
+            HandleSoundStopped(e.Finished);
         }
 
         private void GoToSoundMenuItem_Click(object sender, RoutedEventArgs e)
@@ -1011,7 +1011,7 @@ namespace SoundBoard
                     volumeAdjustmentMenuItem.Icon = ImageHelper.GetImage(ImageHelper.CheckIconPath);
                 }
 
-                if (_players.Any(p => p.PlaybackState == PlaybackState.Playing))
+                if (IsPlaying)
                 {
                     volumeAdjustmentMenuItem.IsEnabled = false;
                 }
@@ -1440,93 +1440,28 @@ namespace SoundBoard
                     return;
                 }
 
-                // Stop any previous sounds
-                _players.ForEach(p => p.PlaybackStopped -= SoundStoppedHandler);
-                _players.ForEach(HandleSoundStopped);
-                Stop();
-                _players.ForEach(p => p.Dispose());
-                MainWindow.Instance.SoundPlayers.RemoveAll(p => _players.Contains(p));
-
-                _players.Clear();
+                // Stop any previous playback of this button (the player raises Stopped for it, which settles our visuals)
+                _player.TearDown();
+                MainWindow.Instance.Playback.Unregister(_player);
 
                 if (StopAllSounds)
                 {
-                    foreach (IWavePlayer player in MainWindow.Instance.SoundPlayers)
-                    {
-                        player.Stop();
-                    }
+                    MainWindow.Instance.Playback.StopAll();
                 }
 
-                // Reinitialize the player
-                bool addedDefaultDevice = false;
-                GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
-                {
-                    if (Utilities.DoesOutAudioDeviceExist(d))
-                    {
-                        _players.Add(new DirectSoundOut(d));
-                    }
-                    else if (!addedDefaultDevice)
-                    {
-                        Logger.Info("Configured output device {0} not found; falling back to the default device", d);
-                        _players.Add(new DirectSoundOut(Guid.Empty));
-                        addedDefaultDevice = true;
-                    }
-                });
+                // Register before starting so that a sound which begins playing can always be silenced, even if Start fails part-way
+                MainWindow.Instance.Playback.Register(_player);
 
-                // Closing a stream that's already been torn down by NAudio can throw; there's nothing to clean up in that case.
-                _waveProviders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous wave provider failed"); } });
-                _waveProviders.Clear();
+                // Aaaaand play
+                _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
 
-                _audioFileReaders.ToList().ForEach(kvp => { try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous audio file reader failed"); } });
-
-                _audioFileReaders.Clear();
-                _players.ForEach(p => _audioFileReaders[p] = new AudioFileReader(SoundPath));
-
-                // Unmute the selected device(s)
-                GlobalSettings.GetOutputDeviceGuids().ForEach(d =>
-                {
-                    Utilities.UnmuteDeviceAudio(d, unmuteDefaultIfGivenNotFound: true);
-                });
-
-                // Handle stop
-                _players.ForEach(p => p.PlaybackStopped += SoundStoppedHandler);
-
-                _stopWatch = Stopwatch.StartNew();
-
-                MainWindow.Instance.SoundPlayers.AddRange(_players);
-
-                // Show the additional buttons
+                // Show the additional buttons (only now: if Start threw, nothing is playing and they must stay hidden)
                 foreach (HideableMenuButtonBase hideableButton in ChildButtons
                     .OfType<HideableMenuButtonBase>()
                     .Where(hideableButton => hideableButton.ShowHideAutomatically))
                 {
                     hideableButton.Show();
                 }
-
-                // Handle looping
-                if (Loop)
-                {
-                    _audioFileReaders.ToList().ForEach(kvp => _waveProviders[kvp.Key] = new LoopStream(kvp.Value));
-                }
-                else
-                {
-                    _audioFileReaders.ToList().ForEach(kvp => _waveProviders[kvp.Key] = kvp.Value);
-                }
-
-                // Set the volume
-                if (VolumeOffset == 0)
-                {
-                    _players.ForEach(p => p.Init(_waveProviders[p]));
-                }
-                else
-                {
-                    float volume = VolumeOffset < 0 ? 1f / (VolumeOffset * VOLUME_OFFSET_MULTIPLIER) : (VolumeOffset * VOLUME_OFFSET_MULTIPLIER);
-
-                    _players.ForEach(p => p.Init(new VolumeSampleProvider(_waveProviders[p].ToSampleProvider()) {Volume = volume}));
-                }
-
-                // Aaaaand play
-                Parallel.ForEach(_players, p => p.Play());
 
                 CalculateTextMargin();
 
@@ -1650,28 +1585,17 @@ namespace SoundBoard
         /// <summary>
         /// Resumes the sound
         /// </summary>
-        public void Play()
-        {
-            Parallel.ForEach(_players, p => p.Play());
-            _stopWatch.Start();
-        }
+        public void Play() => _player.Resume();
 
         /// <summary>
         /// Pauses the sound
         /// </summary>
-        public void Pause()
-        {
-             Parallel.ForEach(_players, p => p.Pause());
-            _stopWatch.Stop();
-        }
+        public void Pause() => _player.Pause();
 
         /// <summary>
         /// Stops the sound
         /// </summary>
-        public void Stop()
-        {
-            Parallel.ForEach(_players.Where(p => p.PlaybackState != PlaybackState.Stopped), p => p.Stop());
-        }
+        public void Stop() => _player.Stop();
 
         /// <summary>
         /// Temporarily highlights the button to draw the user's attention to it
@@ -1933,21 +1857,21 @@ namespace SoundBoard
         {
             bool result = false;
 
-            if (_audioFileReaders.Values.FirstOrDefault() is AudioFileReader audioFileReader)
+            if (_player.Duration is TimeSpan duration)
             {
-                double maxSeconds = audioFileReader.TotalTime.TotalMilliseconds;
-                double curSeconds = _stopWatch.Elapsed.TotalMilliseconds;
+                double maxSeconds = duration.TotalMilliseconds;
+                double curSeconds = _player.Elapsed.TotalMilliseconds;
 
                 SoundProgressBar.Visibility = Visibility.Visible;
                 SoundProgressBar.Maximum = maxSeconds;
                 SoundProgressBar.Value = curSeconds;
 
                 // Hide the progress bar if the sound is done or has been stopped
-                if (curSeconds > maxSeconds || audioFileReader.Position == 0)
+                if (curSeconds > maxSeconds || _player.Position == 0)
                 {
-                    if (Loop && _players.All(p => p.PlaybackState != PlaybackState.Stopped))
+                    if (Loop && !_player.IsAnyOutputStopped)
                     {
-                        _stopWatch = Stopwatch.StartNew();
+                        _player.RestartClock();
                     }
                     else
                     {
@@ -2272,18 +2196,12 @@ namespace SoundBoard
             }
         }
 
-        private void HandleSoundStopped(IWavePlayer player)
+        /// <summary>
+        /// Settles the visuals after one of this button's outputs stopped, and chains to the next sound if it finished on its own.
+        /// </summary>
+        private void HandleSoundStopped(bool finished)
         {
             _progressBarCancellationToken?.Cancel();
-
-            // Indicates that the sound finished playing on its own
-            bool finished = false;
-
-            if (_audioFileReaders.TryGetValue(player, out var audioFileReader) && audioFileReader != null)
-            {
-                finished = audioFileReader.Position >= audioFileReader.Length;
-                audioFileReader.Position = 0;
-            }
 
             // Hide the additional buttons
             foreach (HideableMenuButtonBase hideableButton in ChildButtons
@@ -2297,16 +2215,9 @@ namespace SoundBoard
 
             MainWindow.Instance.OnAnySoundStopped(this);
 
-            if (finished && !string.IsNullOrEmpty(NextSound) 
-                         && MainWindow.Instance.GetSoundButtons().Where(sb => sb.HasValidSound).FirstOrDefault(sb => sb.Id == NextSound) is SoundButton nextSoundButton)
+            if (finished)
             {
-                // If the next sound isn't on the current tab, focus that tab.
-                if (nextSoundButton.ParentTab != MainWindow.Instance.SelectedTab)
-                {
-                    nextSoundButton.ParentTab.Focus();
-                }
-                
-                nextSoundButton.StartSound();
+                MainWindow.Instance.OnSoundFinished(this);
             }
         }
 
@@ -2647,7 +2558,7 @@ namespace SoundBoard
         }
         private bool _isSelected;
 
-        public bool IsPlaying => !_players.All(p => p.PlaybackState != PlaybackState.Playing); // Do not let ReSharper refactor this as !All is different than Any
+        public bool IsPlaying => _player.IsPlaying;
 
         public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
 
@@ -2671,15 +2582,10 @@ namespace SoundBoard
 
         #region Private fields
 
-        #region Players
-
-        private readonly List<IWavePlayer> _players = new List<IWavePlayer>();
-        private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
-        private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
-
-        #endregion
-
-        private Stopwatch _stopWatch;
+        /// <summary>
+        /// The audio engine for this button. Created in the constructor; lives as long as the button.
+        /// </summary>
+        private readonly SoundPlayer _player;
 
         private MenuItem _chooseSoundMenuItem;
         private MenuItem _renameMenuItem;
@@ -2711,7 +2617,6 @@ namespace SoundBoard
 
         private const int ANIMATION_TIMER_INTERVAL = 10; // 10 ms
 
-        private const float VOLUME_OFFSET_MULTIPLIER = 2f;
 
         #endregion
 
