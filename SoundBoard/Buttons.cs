@@ -1582,6 +1582,10 @@ namespace SoundBoard
             SoundName = string.IsNullOrEmpty(soundName)
                 ? Path.GetFileNameWithoutExtension(soundPath).Replace(@"_", "")
                 : soundName.Replace(@"_", "");
+
+            // Re-check the file even if the path did not change (no event then): the user may have dropped the same file
+            // again after fixing it, and expects a stale warning to clear
+            ChildButtons.OfType<SoundWarningIconButton>().FirstOrDefault()?.Update();
         }
 
         /// <summary>
@@ -2555,11 +2559,7 @@ namespace SoundBoard
         public string NextSound
         {
             get => Sound.NextSoundId;
-            set
-            {
-                Sound.NextSoundId = value;
-                ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
-            }
+            set => Sound.NextSoundId = value;
         }
 
         #endregion
