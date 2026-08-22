@@ -535,6 +535,18 @@ Atajo global: {1}</value>
     <value>SoundBoard tiene que reiniciarse para mostrar su interfaz en el idioma configurado en Windows.</value>
     <comment>Shown instead of LanguageChangeRestartMessage when the user picks the system-default entry, which has no language name to insert.</comment>
   </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Tema</value>
+    <comment>Menu that chooses the color theme of the app itself.</comment>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Claro</value>
+    <comment>Theme menu entry for the default, light color theme.</comment>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Oscuro</value>
+    <comment>Theme menu entry for the dark color theme.</comment>
+  </data>
   <data name="UpdateManifestNoFileHash" xml:space="preserve">
     <value>El manifiesto de actualización no incluye un hash de archivo para esta descarga.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>

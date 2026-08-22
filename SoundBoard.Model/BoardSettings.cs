@@ -13,6 +13,7 @@ namespace SoundBoard.Model
         private int _newPageDefaultRows = DefaultNewPageRows;
         private int _newPageDefaultColumns = DefaultNewPageColumns;
         private string _language = string.Empty;
+        private string _theme = string.Empty;
 
         /// <summary>
         /// Default number of rows for a new page.
@@ -88,6 +89,19 @@ namespace SoundBoard.Model
         }
 
         /// <summary>
+        /// Tag of the color theme the user picked (e.g. <c>"Dark"</c>), or the empty string for the default (light).
+        /// Never null.
+        /// </summary>
+        /// <remarks>
+        /// Unlike <see cref="Language"/> this is not tied to a restart; see the app's <c>AppTheme</c> class.
+        /// </remarks>
+        public string Theme
+        {
+            get => _theme;
+            set => SetField(ref _theme, value ?? string.Empty);
+        }
+
+        /// <summary>
         /// Copies the scalar settings and device lists of <paramref name="other"/> into this instance. Device lists are
         /// replaced, not merged.
         /// </summary>
@@ -99,6 +113,7 @@ namespace SoundBoard.Model
             NewPageDefaultRows = other.NewPageDefaultRows;
             NewPageDefaultColumns = other.NewPageDefaultColumns;
             Language = other.Language;
+            Theme = other.Theme;
 
             OutputDevices.Clear();
             OutputDevices.UnionWith(other.OutputDevices);
@@ -125,6 +140,7 @@ namespace SoundBoard.Model
                 NewPageDefaultRows = NewPageDefaultRows,
                 NewPageDefaultColumns = NewPageDefaultColumns,
                 Language = Language,
+                Theme = Theme,
             };
 
             clone.OutputDevices.UnionWith(OutputDevices);

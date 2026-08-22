@@ -535,6 +535,18 @@ Global Hotkey: {1}</value>
     <value>SoundBoard needs to restart before it can show its interface in the language Windows is set to.</value>
     <comment>Shown instead of LanguageChangeRestartMessage when the user picks the system-default entry, which has no language name to insert.</comment>
   </data>
+  <data name="Theme" xml:space="preserve">
+    <value>Theme</value>
+    <comment>Menu that chooses the color theme of the app itself.</comment>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Light</value>
+    <comment>Theme menu entry for the default, light color theme.</comment>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Dark</value>
+    <comment>Theme menu entry for the dark color theme.</comment>
+  </data>
   <data name="UpdateManifestNoFileHash" xml:space="preserve">
     <value>The update manifest does not contain a file hash for this download.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>

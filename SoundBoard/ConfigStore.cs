@@ -67,6 +67,30 @@ namespace SoundBoard
         }
 
         /// <summary>
+        /// Reads just <see cref="BoardSettings.Theme"/> out of the config that the app is about to load, or the empty
+        /// string (the default theme) if there is no config, it cannot be read, or no theme has been chosen.
+        /// </summary>
+        /// <remarks>
+        /// Read early, before <c>MainWindow</c> loads the config properly, so that the app starts in the configured
+        /// theme instead of flashing the default one first. Like <see cref="ReadConfiguredLanguage"/>, this never
+        /// throws and never warns: a config that cannot be parsed here will be reported by the real load a moment later.
+        /// </remarks>
+        public static string ReadConfiguredTheme()
+        {
+            string path = File.Exists(LegacyConfigFilePath) ? LegacyConfigFilePath : ConfigFilePath;
+
+            try
+            {
+                return File.Exists(path) ? ConfigSerializer.Read(path).Settings.Theme : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Could not read the theme setting from {0}; using the default theme", path);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
         /// Reads a config file.
         /// </summary>
         /// <param name="path">File to read.</param>

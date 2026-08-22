@@ -1121,6 +1121,9 @@ namespace SoundBoard
                 languageMenu.SetSeparator(true);
                 PopulateLanguageMenu(languageMenu);
 
+                MenuItem themeMenu = new MenuItem { Header = Properties.Resources.Theme };
+                PopulateThemeMenu(themeMenu);
+
                 MenuItem openLogFolder = new MenuItem {Header = Properties.Resources.OpenLogFolder};
                 openLogFolder.Click += OpenLogFolder_Click;
 
@@ -1141,6 +1144,7 @@ namespace SoundBoard
                 overflowMenu.Items.Add(_audioPassthroughMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
                 overflowMenu.Items.Add(languageMenu);
+                overflowMenu.Items.Add(themeMenu);
                 overflowMenu.Items.Add(openLogFolder);
 
                 overflowMenu.AddSeparators();
@@ -1413,6 +1417,49 @@ namespace SoundBoard
             if (result == MessageDialogResult.Affirmative)
             {
                 await RestartAsync();
+            }
+        }
+
+        private void PopulateThemeMenu(MenuItem themeMenu)
+        {
+            AddThemeMenuItem(themeMenu, Properties.Resources.ThemeLight, string.Empty);
+            AddThemeMenuItem(themeMenu, Properties.Resources.ThemeDark, AppTheme.Dark);
+        }
+
+        private void AddThemeMenuItem(MenuItem themeMenu, string header, string theme)
+        {
+            MenuItem item = new MenuItem
+            {
+                Header = header,
+                Tag = theme,
+                Icon = theme == GlobalSettings.Theme ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
+            };
+
+            item.Click += (_, __) => ThemeMenuItem_Click(themeMenu, theme);
+
+            themeMenu.Items.Add(item);
+        }
+
+        private async void ThemeMenuItem_Click(MenuItem themeMenu, string theme)
+        {
+            if (theme == GlobalSettings.Theme)
+            {
+                return;
+            }
+
+            Logger.Info("Theme setting changed from '{0}' to '{1}'", GlobalSettings.Theme, theme);
+
+            GlobalSettings.Theme = theme;
+            AppTheme.Apply(theme);
+
+            // Persist straight away, exactly like the language setting: this should survive a crash rather than only
+            // the next clean exit.
+            await TrySaveSettingsAsync();
+
+            // Move the check mark, so the menu tells the truth about what is actually applied.
+            foreach (MenuItem item in themeMenu.Items.OfType<MenuItem>())
+            {
+                item.Icon = Equals(item.Tag, theme) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
             }
         }
 

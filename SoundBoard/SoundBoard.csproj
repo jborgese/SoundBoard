@@ -86,6 +86,7 @@
     </ApplicationDefinition>
     <Compile Include="Audio\PlaybackCoordinator.cs" />
     <Compile Include="Audio\SoundPlayer.cs" />
+    <Compile Include="AppTheme.cs" />
     <Compile Include="Buttons.cs" />
     <Compile Include="GlobalSettings.cs" />
     <Compile Include="HotkeyDialog.xaml.cs">

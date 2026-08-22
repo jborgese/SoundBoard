@@ -38,6 +38,11 @@ namespace SoundBoard
             // MainWindow to load the config properly.
             Localization.Apply(ConfigStore.ReadConfiguredLanguage());
 
+            // Applied before MainWindow is created (also via base.OnStartup below) so the window never flashes the
+            // default theme before switching to the configured one. Unlike the language, this setting can also be
+            // changed live later; see AppTheme.
+            AppTheme.Apply(ConfigStore.ReadConfiguredTheme());
+
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
                 Logger.Fatal(args.ExceptionObject as Exception, "Unhandled exception in AppDomain (IsTerminating={0}): {1}",

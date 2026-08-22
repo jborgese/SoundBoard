@@ -35,9 +35,10 @@ namespace SoundBoard.Model
     /// element name); <c>row</c>/<c>column</c> attributes take precedence over that index; device lists are comma-joined GUIDs in a
     /// single attribute; an empty output-device set is written as <see cref="Guid.Empty"/>; every attribute that predates
     /// <c>schemaVersion</c> is always written.
-    /// <c>schemaVersion</c> and <c>Language</c> are the only additions. <c>Language</c> is written only when the user has
-    /// actually chosen one, so a file written by a user who never touched the language setting is byte-identical to what
-    /// earlier releases wrote. Older readers ignore both, as they ignore any unknown attribute.
+    /// <c>schemaVersion</c>, <c>Language</c> and <c>Theme</c> are the only additions. Both <c>Language</c> and
+    /// <c>Theme</c> are written only when the user has actually chosen a non-default value, so a file written by a user
+    /// who never touched either setting is byte-identical to what earlier releases wrote. Older readers ignore all
+    /// three, as they ignore any unknown attribute.
     /// </para>
     /// </remarks>
     public static class ConfigSerializer
@@ -57,6 +58,7 @@ namespace SoundBoard.Model
         private const string NewPageDefaultRowsAttribute = "NewPageDefaultRows";
         private const string NewPageDefaultColumnsAttribute = "NewPageDefaultColumns";
         private const string LanguageAttribute = "Language";
+        private const string ThemeAttribute = "Theme";
 
         private static readonly Regex ButtonElementRegex = new Regex($"^{ButtonElementPrefix}(\\d+)$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
@@ -84,7 +86,7 @@ namespace SoundBoard.Model
         /// <param name="warn">Optional sink for non-fatal problems (e.g. a sound outside its page's grid was dropped).</param>
         /// <param name="defaults">
         /// Optional values to use for <see cref="BoardSettings.AudioPassthroughLatency"/>, <see cref="BoardSettings.NewPageDefaultRows"/>,
-        /// <see cref="BoardSettings.NewPageDefaultColumns"/> and <see cref="BoardSettings.Language"/> when the file does not specify them. Pass the currently active
+        /// <see cref="BoardSettings.NewPageDefaultColumns"/>, <see cref="BoardSettings.Language"/> and <see cref="BoardSettings.Theme"/> when the file does not specify them. Pass the currently active
         /// settings when loading a file on top of a running app (import, undo) so that an old file which predates those settings
         /// leaves them alone — which is what the app has always done. Device lists are never taken from here.
         /// </param>
@@ -105,6 +107,7 @@ namespace SoundBoard.Model
                 config.Settings.NewPageDefaultRows = defaults.NewPageDefaultRows;
                 config.Settings.NewPageDefaultColumns = defaults.NewPageDefaultColumns;
                 config.Settings.Language = defaults.Language;
+                config.Settings.Theme = defaults.Theme;
             }
 
             XmlElement root = xmlDocument.DocumentElement;
@@ -173,6 +176,13 @@ namespace SoundBoard.Model
             if (node.Attributes?[LanguageAttribute]?.Value is string language)
             {
                 settings.Language = language.Trim();
+            }
+
+            // Absent (the case for every file written before this setting existed, and for anyone who never changed
+            // it) means the default (light) theme, which is what the empty string stands for.
+            if (node.Attributes?[ThemeAttribute]?.Value is string theme)
+            {
+                settings.Theme = theme.Trim();
             }
         }
 

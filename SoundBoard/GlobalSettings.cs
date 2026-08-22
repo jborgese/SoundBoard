@@ -119,6 +119,16 @@ namespace SoundBoard
         }
 
         /// <summary>
+        /// Tag of the color theme the user picked (e.g. "Dark"), or the empty string for the default (light). Takes
+        /// effect immediately; see <see cref="AppTheme"/>.
+        /// </summary>
+        public static string Theme
+        {
+            get => Current.Theme;
+            set => Current.Theme = value;
+        }
+
+        /// <summary>
         /// The latency to use when chaining input to outputs
         /// </summary>
         public static int AudioPassthroughLatency
