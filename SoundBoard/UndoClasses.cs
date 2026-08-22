@@ -1,21 +1,22 @@
-﻿using SoundBoard.Model;
+using System.Collections.Generic;
+using SoundBoard.Model;
 
 namespace SoundBoard
 {
     #region IUndoable interface
 
     /// <summary>
-    /// Defines a class which can save and load its state via an object which derives from <see cref="UndoStateBase"/>
+    /// Defines a class which can save and load its state via a snapshot object
     /// </summary>
-    public interface IUndoable<T> where T : UndoStateBase
+    public interface IUndoable<T>
     {
         /// <summary>
-        /// Save the current state of the object
+        /// Save the current state of the object. The result is an independent copy that later changes cannot affect.
         /// </summary>
         T SaveState();
 
         /// <summary>
-        /// Load a given object state
+        /// Load a given object state. The snapshot is not consumed; it may be loaded again.
         /// </summary>
         void LoadState(T undoState);
     }
@@ -25,102 +26,41 @@ namespace SoundBoard
     #region UndoState classes
 
     /// <summary>
-    /// Defines the base class from which all object state classes should derive
+    /// Defines the undo save state for a removed tab page
     /// </summary>
-    public abstract class UndoStateBase { }
-
-    /// <summary>
-    /// Defines the undo save state for SoundButtons
-    /// </summary>
-    public class SoundButtonUndoState : UndoStateBase
+    public class TabPageUndoState
     {
         /// <summary>
-        /// SoundPath
+        /// Copy of the removed page, or null if the removed tab was not a sound page (the welcome page)
         /// </summary>
-        public string SoundPath { get; set; }
+        public Page Page { get; set; }
 
         /// <summary>
-        /// SoundName
-        /// </summary>
-        public string SoundName { get; set; }
-
-        /// <summary>
-        /// Color
-        /// </summary>
-        public System.Windows.Media.Color? Color { get; set; }
-
-        /// <summary>
-        /// VolumeOffset
-        /// </summary>
-        public int VolumeOffset { get; set; }
-
-        /// <summary>
-        /// Loop
-        /// </summary>
-        public bool Loop { get; set; }
-
-        /// <summary>
-        /// StopAllSounds
-        /// </summary>
-        public bool StopAllSounds { get; set; }
-
-        /// <summary>
-        /// NextSound
-        /// </summary>
-        public string NextSound { get; set; }
-
-        /// <summary>
-        /// Id
-        /// </summary>
-        public string Id { get; set; }
-
-        /// <summary>
-        /// LocalHotkey
-        /// </summary>
-        public Hotkey LocalHotkey { get; set; }
-
-        /// <summary>
-        /// GlobalHotkey
-        /// </summary>
-        public Hotkey GlobalHotkey { get; set; }
-    }
-
-    /// <summary>
-    /// Defines the undo save state for TabPages
-    /// </summary>
-    public class TabPageUndoState : UndoStateBase
-    {
-        /// <summary>
-        /// MetroTabItem
-        /// </summary>
-        public MahApps.Metro.Controls.MetroTabItem MetroTabItem { get; set; }
-
-        /// <summary>
-        /// Index
+        /// Index the tab had in the tab control
         /// </summary>
         public int Index { get; set; }
     }
 
     /// <summary>
-    /// Defines the undo save state for Configurations
+    /// Defines the undo save state for the whole configuration (settings and every page)
     /// </summary>
-    public class ConfigUndoState : UndoStateBase
+    public class ConfigUndoState
     {
         /// <summary>
-        /// The path of the saved config file
+        /// Copy of the configuration
         /// </summary>
-        public string SavedConfigStatePath { get; set; }
+        public SoundBoardConfig Config { get; set; }
     }
 
     /// <summary>
-    /// Defines the undo save state for a list of sounds on a page
+    /// Defines the undo save state for the sounds on a page
     /// </summary>
-    public class TabPageSoundsUndoState : UndoStateBase
+    public class TabPageSoundsUndoState
     {
         /// <summary>
-        /// The <see cref="SoundButtonUndoState"/>s for each <see cref="SoundButton"/> on the page.
+        /// Copies of every cell on the page. Each copy carries the row and column it belongs to.
         /// </summary>
-        public System.Collections.Generic.ICollection<(SoundButtonUndoState SoundButtonUndoState, int ButtonIndex)> SoundButtonUndoStates { get; set; }
+        public IReadOnlyList<Sound> Sounds { get; set; }
     }
 
     #endregion

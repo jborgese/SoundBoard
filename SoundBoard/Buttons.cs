@@ -711,7 +711,7 @@ namespace SoundBoard
     /// <summary>
     /// Defines a Button which plays a Sound
     /// </summary>
-    internal sealed class SoundButton : Button, IUndoable<SoundButtonUndoState>
+    internal sealed class SoundButton : Button, IUndoable<Sound>
     {
         private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
@@ -850,10 +850,10 @@ namespace SoundBoard
             }
             else
             {
-                SoundButtonUndoState soundButtonUndoState = SaveState();
+                Sound soundUndoState = SaveState();
 
                 // Set up our UndoAction
-                MainWindow.Instance.SetUndoAction(() => { LoadState(soundButtonUndoState); });
+                MainWindow.Instance.SetUndoAction(() => { LoadState(soundUndoState); });
 
                 // Create and show a snackbar
                 string message = Properties.Resources.SoundWasCleared;
@@ -1334,14 +1334,21 @@ namespace SoundBoard
                 {
                     // Set up some placeholders for our source and destination (so we don't lose anything)
                     SoundButton sourceButton = soundDragData.Source;
-                    SoundButtonUndoState sourceButtonState = sourceButton.SaveState();
+                    Sound sourceButtonState = sourceButton.SaveState();
 
                     SoundButton destinationButton = this;
-                    SoundButtonUndoState destinationButtonState = destinationButton.SaveState();
+                    Sound destinationButtonState = destinationButton.SaveState();
 
                     // Make sure neither of the buttons is currently playing anything
                     sourceButton.Stop();
                     destinationButton.Stop();
+
+                    // Release both buttons' hotkeys before either takes the other's Id, so that neither registration
+                    // is briefly claimed twice (registrations are keyed on Id)
+                    sourceButton.UnregisterLocalHotkey();
+                    sourceButton.UnregisterGlobalHotkey();
+                    destinationButton.UnregisterLocalHotkey();
+                    destinationButton.UnregisterGlobalHotkey();
 
                     // Do the swap!
                     sourceButton.LoadState(destinationButtonState);
@@ -2710,66 +2717,53 @@ namespace SoundBoard
 
         #region IUndoable members
 
-        public SoundButtonUndoState SaveState()
+        /// <summary>
+        /// Returns an independent copy of this button's sound.
+        /// </summary>
+        public Sound SaveState()
         {
-            return new SoundButtonUndoState
-            {
-                SoundPath = SoundPath,
-                SoundName = SoundName,
-                Color = Color,
-                VolumeOffset = VolumeOffset,
-                Loop = Loop,
-                StopAllSounds = StopAllSounds,
-                NextSound = NextSound,
-                Id = Id,
-                LocalHotkey = LocalHotkey,
-                GlobalHotkey = GlobalHotkey
-            };
+            return Sound.DeepClone();
         }
 
-        public void LoadState(SoundButtonUndoState undoState)
+        /// <summary>
+        /// Makes this button hold a copy of <paramref name="undoState"/> (keeping its own grid position), registering any
+        /// hotkeys it carries. An empty state clears the button.
+        /// </summary>
+        public void LoadState(Sound undoState)
         {
-            if (string.IsNullOrEmpty(undoState.SoundPath) == false)
-            {
-                if (!string.IsNullOrEmpty(undoState.Id))
-                {
-                    Id = undoState.Id;
-                }
+            if (undoState is null) throw new ArgumentNullException(nameof(undoState));
 
-                SetFile(undoState.SoundPath);
-                SetContent(SoundName = undoState.SoundName);
-                Color = undoState.Color;
-                VolumeOffset = undoState.VolumeOffset;
-                Loop = undoState.Loop;
-                StopAllSounds = undoState.StopAllSounds;
-                NextSound = undoState.NextSound;
-
-                LocalHotkey = undoState.LocalHotkey;
-                GlobalHotkey = undoState.GlobalHotkey;
-
-                // Swallow registration failures here: this runs during drag/drop swaps, undo, and config load, none of
-                // which can show a dialog. The hotkey stays assigned (and saved) so the next launch reports it properly.
-                try
-                {
-                    ReregisterLocalHotkey();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' while loading button state", LocalHotkey, SoundName);
-                }
-
-                try
-                {
-                    ReregisterGlobalHotkey();
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' while loading button state", GlobalHotkey, SoundName);
-                }
-            }
-            else
+            if (undoState.IsEmpty)
             {
                 SetDefaultText();
+                return;
+            }
+
+            // Registrations are keyed on Id, which is about to change
+            UnregisterLocalHotkey();
+            UnregisterGlobalHotkey();
+
+            Sound.CopyDataFrom(undoState);
+            RefreshFromSound();
+
+            // Swallow registration failures here: this runs during drag/drop swaps, undo, and config load, none of
+            // which can show a dialog. The hotkey stays assigned (and saved) so the next launch reports it properly.
+            try
+            {
+                ReregisterLocalHotkey();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' while loading button state", LocalHotkey, SoundName);
+            }
+
+            try
+            {
+                ReregisterGlobalHotkey();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' while loading button state", GlobalHotkey, SoundName);
             }
         }
 

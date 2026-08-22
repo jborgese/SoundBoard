@@ -69,6 +69,21 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void CopyDataFrom_KeepsPosition()
+        {
+            Sound source = Filled();
+            var target = new Sound { Row = 7, Column = 8 };
+
+            target.CopyDataFrom(source);
+
+            Assert.Equal(source.Id, target.Id);
+            Assert.Equal(source.Path, target.Path);
+            Assert.Equal(source.GlobalHotkey, target.GlobalHotkey);
+            Assert.Equal(7, target.Row);
+            Assert.Equal(8, target.Column);
+        }
+
+        [Fact]
         public void Id_NeverNullOrEmpty()
         {
             var sound = new Sound();
