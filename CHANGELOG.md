@@ -26,6 +26,10 @@ history and release tags.
   (`msbuild /restore`; no `nuget.exe` or `packages\` folder needed), Fody 5.1.1 → 6.9.3 and
   Costura.Fody 4.0.0 → 6.2.0.
 - Dependencies: System.Reactive 5.0.0 → 6.1.0, MouseKeyHook 5.6.0 → 5.7.1.
+### Removed
+- Extended.Wpf.Toolkit (Xceed) dependency: the row/column spinners in the "Change button grid"
+  dialog are now MahApps `NumericUpDown` controls (newer Xceed versions are under a
+  non-commercial license, and 3.x is unmaintained).
 - Internal refactor: the configuration model lives in `SoundBoard.Model` and is the live
   source of truth for the UI; undo works from in-memory snapshots; the playback engine
   was extracted from `SoundButton`; hotkeys and search operate on the model; the
