@@ -152,6 +152,7 @@
     </Compile>
     <Compile Include="Log.cs" />
     <Compile Include="LoopStream.cs" />
+    <Compile Include="ConfigStore.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="ModelMapping.cs" />
     <Compile Include="ChildWindowBase.cs" />

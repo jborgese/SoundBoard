@@ -165,6 +165,17 @@ namespace SoundBoard.Model
         /// </summary>
         public void CopyFrom(Sound other)
         {
+            CopyDataFrom(other);
+            Row = other.Row;
+            Column = other.Column;
+        }
+
+        /// <summary>
+        /// Copies every property of <paramref name="other"/> except its position (<see cref="Row"/>/<see cref="Column"/>) into
+        /// this instance — i.e. makes this cell hold the same sound, where it already is.
+        /// </summary>
+        public void CopyDataFrom(Sound other)
+        {
             if (other is null) throw new ArgumentNullException(nameof(other));
 
             Id = other.Id;
@@ -177,8 +188,6 @@ namespace SoundBoard.Model
             NextSoundId = other.NextSoundId;
             LocalHotkey = other.LocalHotkey;
             GlobalHotkey = other.GlobalHotkey;
-            Row = other.Row;
-            Column = other.Column;
         }
 
         /// <summary>

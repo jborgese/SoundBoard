@@ -369,7 +369,7 @@ namespace SoundBoard
                     NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns,
                 };
 
-                SoundBoardConfig config = ConfigSerializer.Read(configFilePath, warning => Logger.Warn("{0}: {1}", configFilePath, warning), currentSettings);
+                SoundBoardConfig config = ConfigStore.Load(configFilePath, currentSettings);
 
                 if (config.SchemaVersion != SoundBoardConfig.CurrentSchemaVersion)
                 {
@@ -430,7 +430,14 @@ namespace SoundBoard
                 });
             }
 
-            // If there are no tabs after we load, show the help screen
+            ShowHelpIfNoTabs();
+        }
+
+        /// <summary>
+        /// If there are no tabs (after a load or an undo that restored an empty config), show the help screen
+        /// </summary>
+        private void ShowHelpIfNoTabs()
+        {
             if (Tabs.Items.Count == 0)
             {
                 ButtonAutomationPeer peer = new ButtonAutomationPeer(Help);
@@ -499,15 +506,28 @@ namespace SoundBoard
         /// Device settings are applied additively (they are never cleared first), which is how every previous release behaved
         /// when loading or importing a config on top of the current one.
         /// </remarks>
-        private void ApplyConfigToUi(SoundBoardConfig config)
+        /// <param name="config">The config to apply. Its pages become the tabs' live pages.</param>
+        /// <param name="replaceSettings">
+        /// True to make the live settings exactly match the config's (used when restoring an undo snapshot);
+        /// false to merge device lists additively, as loading and importing have always done.
+        /// </param>
+        private void ApplyConfigToUi(SoundBoardConfig config, bool replaceSettings = false)
         {
             BoardSettings settings = config.Settings;
-            GlobalSettings.Current.OutputDevices.UnionWith(settings.OutputDevices);
-            GlobalSettings.Current.InputDevices.UnionWith(settings.InputDevices);
-            GlobalSettings.Current.PassthroughOutputDevices.UnionWith(settings.PassthroughOutputDevices);
-            GlobalSettings.Current.AudioPassthroughLatency = settings.AudioPassthroughLatency;
-            GlobalSettings.Current.NewPageDefaultRows = settings.NewPageDefaultRows;
-            GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
+
+            if (replaceSettings)
+            {
+                GlobalSettings.Current.CopyFrom(settings);
+            }
+            else
+            {
+                GlobalSettings.Current.OutputDevices.UnionWith(settings.OutputDevices);
+                GlobalSettings.Current.InputDevices.UnionWith(settings.InputDevices);
+                GlobalSettings.Current.PassthroughOutputDevices.UnionWith(settings.PassthroughOutputDevices);
+                GlobalSettings.Current.AudioPassthroughLatency = settings.AudioPassthroughLatency;
+                GlobalSettings.Current.NewPageDefaultRows = settings.NewPageDefaultRows;
+                GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
+            }
 
             // Remove default tabs
             Tabs.Items.Clear();
@@ -808,25 +828,7 @@ namespace SoundBoard
 
         private void SaveSettingsCore(string configFilePath)
         {
-            // Ensure that the directory for the given config file exists
-            try
-            {
-                // ReSharper disable once AssignNullToNotNullAttribute
-                Directory.CreateDirectory(Path.GetDirectoryName(configFilePath));
-            }
-            catch (Exception ex)
-            {
-                // Ignored: if the directory really couldn't be created, opening the FileStream below will fail with a better error.
-                Logger.Warn(ex, "Could not create config directory for {0}", configFilePath);
-            }
-
-            // If a config file already exists, create a backup in case any part of the saving fails
-            if (File.Exists(configFilePath))
-            {
-                File.Copy(configFilePath, $"{configFilePath}-{GetDateTimeString()}.bak", true);
-            }
-
-            ConfigSerializer.Write(BuildConfigFromUi(), configFilePath);
+            ConfigStore.Save(configFilePath, BuildConfigFromUi());
         }
 
         /// <summary>
@@ -870,31 +872,7 @@ namespace SoundBoard
             }
         }
 
-        private string GetDateTimeString() => DateTime.Now.ToString(@"s").Replace(@":", @".");
-
-        private void CleanupBackups()
-        {
-            // This runs on a background task with nothing awaiting it, so any exception here would otherwise be lost.
-            try
-            {
-                // Check if there are any backup config files
-                string directory = Path.GetDirectoryName(ConfigFilePath);
-                if (Directory.Exists(directory))
-                {
-                    var files = Directory.GetFiles(directory, "*.bak").OrderByDescending(File.GetCreationTime).ToList();
-                    if (files.Count > MAX_BACKUP_FILES)
-                    {
-                        // Delete all but the newest five
-                        files.Skip(MAX_BACKUP_FILES).ToList().ForEach(File.Delete);
-                        Logger.Debug("Deleted {0} old config backup(s)", files.Count - MAX_BACKUP_FILES);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex, "Failed to clean up old config backups");
-            }
-        }
+        private void CleanupBackups() => ConfigStore.CleanupBackups(ConfigFilePath);
 
         #endregion
 
@@ -1274,7 +1252,7 @@ namespace SoundBoard
             // Prompt the user to browse for where the file should be saved.
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
-                FileName = $@"SoundBoardConfiguration-{GetDateTimeString()}",
+                FileName = $@"SoundBoardConfiguration-{ConfigStore.DateTimeStamp()}",
                 Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
             };
 
@@ -1365,8 +1343,9 @@ namespace SoundBoard
                 string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
                 ShowUndoSnackbar(truncatedMessage);
 
-                // Clear the config from the UI by removing all the tabs
+                // Clear the config from the UI by removing all the tabs, and persist that so the file matches
                 Tabs.Items.Clear();
+                SaveSettings();
             }
             catch (Exception ex)
             {
@@ -2079,8 +2058,6 @@ namespace SoundBoard
 
         private const string WELCOME_PAGE_TAG = nameof(WELCOME_PAGE_TAG);
 
-        private const int MAX_BACKUP_FILES = 5;
-
         #endregion
 
         #region IUndoable members
@@ -2088,49 +2065,40 @@ namespace SoundBoard
         /// <inheritdoc />
         public TabPageUndoState SaveState()
         {
-            return new TabPageUndoState {MetroTabItem = SelectedTab, Index = Tabs.SelectedIndex};
+            return new TabPageUndoState
+            {
+                Page = (SelectedTab as MyMetroTabItem)?.Page?.DeepClone(),
+                Index = Tabs.SelectedIndex
+            };
         }
 
         /// <inheritdoc />
         public void LoadState(TabPageUndoState undoState)
         {
-            Tabs.Items.Insert(undoState.Index, undoState.MetroTabItem);
-            Tabs.SelectedIndex = undoState.Index;
+            MyMetroTabItem tab = new MyMetroTabItem();
 
-            if (Tabs.SelectedItem is MetroTabItem metroTabItem)
+            if (undoState.Page is Page page)
             {
-                foreach (SoundButton soundButton in GetSoundButtons(metroTabItem))
-                {
-                    try
-                    {
-                        soundButton.ReregisterLocalHotkey();
-                    }
-                    catch (Exception ex)
-                    {
-                        // Swallow. Unlike the load path, the user isn't told; the hotkey just silently stops working.
-                        Logger.Warn(ex, "Failed to re-register local hotkey {0} for sound '{1}' after undoing tab removal", soundButton.LocalHotkey, soundButton.SoundName);
-                    }
-
-                    try
-                    {
-                        soundButton.ReregisterGlobalHotkey();
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Warn(ex, "Failed to re-register global hotkey {0} for sound '{1}' after undoing tab removal", soundButton.GlobalHotkey, soundButton.SoundName);
-                    }
-                }
+                // Work from a copy so the snapshot stays intact. Building the content registers the sounds' hotkeys.
+                tab.Page = page.DeepClone();
+                CreatePageContent(tab);
             }
-        }
+            else
+            {
+                CreateHelpContent(tab);
+            }
 
+            int index = Math.Max(0, Math.Min(undoState.Index, Tabs.Items.Count));
+            Tabs.Items.Insert(index, tab);
+            Tabs.SelectedIndex = index;
+
+            CreateTabContextMenus();
+        }
 
         /// <inheritdoc />
         ConfigUndoState IUndoable<ConfigUndoState>.SaveState()
         {
-            if (File.Exists(TempConfigFilePath)) File.Delete(TempConfigFilePath);
-            SaveSettings();
-            File.Move(ConfigFilePath, TempConfigFilePath);
-            return new ConfigUndoState {SavedConfigStatePath = TempConfigFilePath};
+            return new ConfigUndoState { Config = BuildConfigFromUi().DeepClone() };
         }
 
         /// <inheritdoc />
@@ -2143,33 +2111,57 @@ namespace SoundBoard
                 soundButton.UnregisterGlobalHotkey();
             }
 
-            LoadSettings(undoState.SavedConfigStatePath);
+            // Work from a copy so the snapshot stays intact, and restore the settings exactly (not additively):
+            // undoing an import or clear should put the devices back the way they were.
+            BoardSettings before = GlobalSettings.Current.DeepClone();
+            ApplyConfigToUi(undoState.Config.DeepClone(), replaceSettings: true);
+            BoardSettings after = GlobalSettings.Current;
+
+            // If the passthrough devices changed, rebuild the passthrough chain to match. (Not unconditionally: tearing
+            // it down and recreating it interrupts live passthrough, so undoing a grid change must not do that.)
+            if (!before.InputDevices.SetEquals(after.InputDevices)
+                || !before.PassthroughOutputDevices.SetEquals(after.PassthroughOutputDevices)
+                || before.AudioPassthroughLatency != after.AudioPassthroughLatency)
+            {
+                HandleAudioPassthroughChange();
+            }
+
+            // An undo that restores a board with no pages (e.g. undoing an import done on a fresh install) shows the welcome page, as a load does
+            ShowHelpIfNoTabs();
+
             SaveSettings();
         }
 
         /// <inheritdoc />
         TabPageSoundsUndoState IUndoable<TabPageSoundsUndoState>.SaveState()
         {
-            var soundButtonUndoStates = new List<(SoundButtonUndoState, int)>();
+            MyMetroTabItem tab = SelectedTab as MyMetroTabItem;
 
-            int index = 0;
-            foreach (SoundButton soundButton in GetSoundButtons(SelectedTab))
+            return new TabPageSoundsUndoState
             {
-                soundButtonUndoStates.Add((soundButton.SaveState(), index));
-                ++index;
-            }
-
-            return new TabPageSoundsUndoState {SoundButtonUndoStates = soundButtonUndoStates};
+                Tab = tab,
+                Sounds = tab?.Page?.Sounds.Select(sound => sound.DeepClone()).ToList() ?? new List<Sound>()
+            };
         }
 
         /// <inheritdoc />
         public void LoadState(TabPageSoundsUndoState undoState)
         {
-            IList<SoundButton> soundButtons = GetSoundButtons(SelectedTab).ToList();
-
-            foreach (var soundButtonUndoState in undoState.SoundButtonUndoStates)
+            // Restore onto the tab the sounds came from, and only if it is still here (the user may have switched tabs, or removed it, meanwhile)
+            if (!(undoState.Tab is MyMetroTabItem tab && Tabs.Items.Contains(tab) && tab.Page is Page page))
             {
-                soundButtons[soundButtonUndoState.ButtonIndex].LoadState(soundButtonUndoState.SoundButtonUndoState);
+                Logger.Warn("Cannot undo: the tab the sounds were cleared from is no longer open");
+                return;
+            }
+
+            // Restore by position, so this still works if the grid was resized in between (cells that no longer exist are skipped).
+            // Cells that are empty in both the snapshot and the page are left alone so their ids are not churned.
+            foreach (Sound sound in undoState.Sounds)
+            {
+                if (page.IsInRange(sound.Row, sound.Column) && !(sound.IsEmpty && page[sound.Row, sound.Column].IsEmpty))
+                {
+                    FindButton(page[sound.Row, sound.Column])?.LoadState(sound);
+                }
             }
         }
 
