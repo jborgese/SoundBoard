@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Resources;
 using System.Text.RegularExpressions;
@@ -11,8 +12,8 @@ namespace SoundBoard.Tests
 {
     /// <summary>
     /// Guards the translations against the mistakes that only show up on a user's machine: a language offered in the
-    /// menu with no resources behind it, a string nobody translated, and a translation whose <c>{0}</c> placeholders
-    /// no longer match the code that fills them in.
+    /// menu with no resources behind it, a language built into the exe that the menu never offers, a string nobody
+    /// translated, and a translation whose <c>{0}</c> placeholders no longer match the code that fills them in.
     /// </summary>
     /// <remarks>
     /// These read the compiled resources rather than the <c>.resx</c> files, so they also cover the build: a
@@ -95,6 +96,57 @@ namespace SoundBoard.Tests
             Assert.True(translated != null && translated.Count > 0,
                 $"No resources were found for '{tag}'. Either Properties\\Resources.{tag}.resx is missing from " +
                 "SoundBoard.csproj, or the satellite assembly was not built.");
+        }
+
+        [Fact]
+        public void TheLanguagesBuiltAndTheLanguagesOfferedAreTheSameSet()
+        {
+            // The other checks in this class are driven by Localization.Available, so they can only ever see a
+            // language that has been registered in TranslatedLanguageTags. That leaves the opposite mistake invisible:
+            // a translation that is compiled and shipped but never registered produces no failing test, because it
+            // produces no test at all. This one is driven by the build output instead, which makes it the only check
+            // here that can fail for a language nobody declared.
+            //
+            // Stated as an invariant rather than a guard against one slip: the satellite assemblies are the truth,
+            // TranslatedLanguageTags is the claim, and the two must agree. Both directions of disagreement are real
+            // mistakes and both are silent without this - a tag added without its .resx, and a tag removed while its
+            // .resx and <EmbeddedResource> entry stay behind, still shipping a language the app no longer offers.
+            string satellite = typeof(Localization).Assembly.GetName().Name + ".resources.dll";
+            string outputDirectory = AppDomain.CurrentDomain.BaseDirectory;
+
+            // Satellites live in a directory named for their culture, but most of the culture directories here belong
+            // to somebody else: xUnit, MahApps, AppHelpers.WPF and TaskScheduler between them ship fourteen, and only
+            // one of those (es) holds ours. There is also a Fixtures directory, which is not a culture at all. So the
+            // filter has to be on the satellite's file name; matching on "a directory exists" would report every one
+            // of those as an unregistered language. Do not simplify this to *.resources.dll.
+            string[] built = Directory.GetDirectories(outputDirectory)
+                .Where(directory => File.Exists(Path.Combine(directory, satellite)))
+                .Select(Path.GetFileName)
+                .ToArray();
+
+            string[] offered = Localization.Available
+                .Select(language => language.Tag)
+                .Where(tag => tag.Length > 0 && tag != "en")
+                .ToArray();
+
+            // The whole directory name is the culture, never a parsed piece of it: pt-BR, zh-Hans and zh-Hant are all
+            // real culture directories in this very folder, so anything that assumed a two-letter tag would break on
+            // the first regional translation. Compared case-insensitively because the case a directory name is given
+            // need not match the case someone typed into TranslatedLanguageTags (Costura, for one, lowercases zh-CN
+            // when it embeds it), and a casing difference here would be reported as a missing language.
+            string[] unregistered = built.Except(offered, StringComparer.OrdinalIgnoreCase).OrderBy(t => t).ToArray();
+            string[] unbuilt = offered.Except(built, StringComparer.OrdinalIgnoreCase).OrderBy(t => t).ToArray();
+
+            Assert.True(unregistered.Length == 0,
+                $"Built into the exe but never offered: {string.Join(", ", unregistered)}. The .resx compiled into a " +
+                "satellite assembly, but the tag is not in TranslatedLanguageTags in Localization.cs, so the Language " +
+                "menu never shows it and nothing else in this class enumerates it. Add the tag, or delete the .resx " +
+                "and its <EmbeddedResource> entry in SoundBoard.csproj.");
+
+            Assert.True(unbuilt.Length == 0,
+                $"Offered in the menu but not built: {string.Join(", ", unbuilt)}. TranslatedLanguageTags names it, but " +
+                $"no {satellite} was produced for it - Properties\\Resources.<tag>.resx is probably missing from " +
+                "SoundBoard.csproj.");
         }
 
         [Theory]
