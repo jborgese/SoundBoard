@@ -1,0 +1,64 @@
+name: Bug report
+description: Something in SoundBoard does not work the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please search the [existing issues](https://github.com/micahmo/SoundBoard/issues)
+        first — adding your details to an open issue is more useful than a duplicate.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+      placeholder: |
+        1. Dragged an MP3 onto an empty button
+        2. Clicked the button
+        3. Expected it to play; nothing happened and the button stayed grey
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: SoundBoard version
+      description: Shown in the **about** dialog in the title bar.
+      placeholder: "1.10.2"
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: audio-setup
+    attributes:
+      label: Audio setup
+      description: >
+        For anything playback-related: which output device(s) were selected (one or several),
+        whether audio passthrough was on and from which input, and the hardware involved
+        (USB interface, virtual cable, Bluetooth, ...). Audio bugs are usually device-dependent.
+      placeholder: "Output: Speakers (Realtek) + VoiceMeeter Input. Passthrough off."
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log
+      description: >
+        From `%AppData%\SoundBoard\soundboard.log` — the **···** menu has an *Open log folder* item.
+        Paste the part around the failure. Please remove anything sensitive; the log contains
+        the file paths of your sounds. This is rendered as a code block, so no backticks needed.
+      render: text
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Screenshots, a sample file, a workaround you found — anything that helps reproduce it.

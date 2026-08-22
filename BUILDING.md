@@ -189,7 +189,9 @@ The Bluegrams `AppHelpers.WPF` update checker downloads that manifest, compares
 `<FileHash>` is non-empty - recomputes the hash with the algorithm named in the
 `algorithm` attribute and refuses the file on mismatch (the attribute is required: the
 library defaults to MD5 when it is absent). The manifest format is described by
-[SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd).
+[SoundBoard/AppUpdate.xsd](SoundBoard/AppUpdate.xsd) and documented element by element -
+together with the notify modes, the download-entry fallback and the swap-in-place step - in
+[docs/update-manifest.md](docs/update-manifest.md).
 
 Because `VersionInfo.xml` on `master` is overwritten by the workflow, never edit it by
 hand; to preview what a tag would produce, run the script locally:

@@ -19,6 +19,9 @@ history and release tags.
 - Tag-driven releases: the version is stamped from the `v*` git tag, `VersionInfo.xml`
   is generated (with a SHA-256 `<FileHash>` so the updater verifies downloads), and the
   GitHub Release is created automatically.
+- A `LICENSE` file (MIT, which the README already claimed), `CONTRIBUTING.md`, GitHub issue
+  and pull request templates, and `docs/update-manifest.md` describing the `VersionInfo.xml`
+  update-manifest format and how the in-app updater consumes it.
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.
@@ -31,6 +34,9 @@ history and release tags.
 - The two prebuilt third-party DLLs (`Dsafa.WpfColorPicker.dll`, `HotKeyManagement.WPF.4.dll`)
   are now built from vendored source projects (MIT; licences and a NOTICE of local changes are
   included alongside the source).
+- README screenshots are served from `docs/images/` in this repository instead of third-party
+  image hosts, and the README documents how to build and run from source.
+
 ### Removed
 - Extended.Wpf.Toolkit (Xceed) dependency: the row/column spinners in the "Change button grid"
   dialog are now MahApps `NumericUpDown` controls (newer Xceed versions are under a
