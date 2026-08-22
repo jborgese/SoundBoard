@@ -132,6 +132,12 @@ the `{local:Loc Key}` markup extension that XAML uses.
    translation is missing a string, has one the neutral resources no longer define, uses
    a different set of placeholders, or never made it into the build at all.
 
+> **The Spanish translation has not been reviewed by a native speaker.** It is here to prove
+> the mechanism end to end — that a translation reaches the running app, survives the
+> single-file packing, and is caught by the tests when it drifts. Treat `Resources.es.resx`
+> as a worked example of the *shape* of a translation, not as vetted Spanish, and have a
+> speaker of the language check any translation before relying on it.
+
 ### Why the `.csproj` has an `EmbedOwnSatelliteAssemblies` target
 
 Costura only embeds what MSBuild hands the weaver in `@(ReferenceCopyLocalPaths)`, and
