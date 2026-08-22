@@ -101,6 +101,74 @@ is not supported on the .NET Core version of MSBuild`), and classic WPF `.csproj
 projects are generally not supported by the SDK toolchain. Always use `msbuild.exe`
 from Visual Studio or Build Tools.
 
+## Localization
+
+All user-facing text comes from `SoundBoard/Properties/Resources.resx` (the neutral
+resource set, in English). Each additional language is a sibling
+`Properties/Resources.<tag>.resx`, which MSBuild compiles into a satellite assembly
+(`bin\Release\<tag>\SoundBoard.resources.dll`). The app picks the language up at
+startup, from the `Language` attribute of `<GlobalSettings>` in `soundboard.config`;
+an absent or empty value means "follow the operating system", and the **•••** menu's
+**Language** submenu writes it. Changing it takes effect on the next start, so the menu
+offers to restart. `SoundBoard/Localization.cs` holds the list of shipped languages and
+the `{local:Loc Key}` markup extension that XAML uses.
+
+### Adding a language
+
+1. Copy `SoundBoard/Properties/Resources.resx` to `Properties/Resources.<tag>.resx`
+   (`<tag>` is an IETF language tag: `de`, `pt-BR`, …) and translate every `<value>`.
+   Keep the `<comment>` notes — they say what each `{0}` is. A translation **may**
+   reorder placeholders (`"{1} … {0}"`); it **must not** add or drop one.
+2. Add it to `SoundBoard.csproj` next to the other `Resources.*.resx` entries:
+   ```xml
+   <EmbeddedResource Include="Properties\Resources.de.resx">
+     <DependentUpon>Resources.resx</DependentUpon>
+     <SubType>Designer</SubType>
+   </EmbeddedResource>
+   ```
+3. Add the tag to `TranslatedLanguageTags` in `SoundBoard/Localization.cs` so it appears
+   in the menu.
+4. Build and run the tests. `SoundBoard.Tests/LocalizationTests.cs` fails if the
+   translation is missing a string, has one the neutral resources no longer define, uses
+   a different set of placeholders, or never made it into the build at all.
+
+### Why the `.csproj` has an `EmbedOwnSatelliteAssemblies` target
+
+Costura only embeds what MSBuild hands the weaver in `@(ReferenceCopyLocalPaths)`, and
+Fody weaves during `CoreCompile` — before `CreateSatelliteAssemblies` has built *this*
+project's own `SoundBoard.resources.dll`. Left alone, the single-file `SoundBoard.exe`
+would contain the English strings and nothing else, while the translations sat in
+`bin\Release\<tag>\` next to it. (Satellites belonging to *referenced packages*, such as
+MahApps, are embedded normally — they are already copy-local by the time Fody runs, which
+is what makes the omission easy to miss.)
+
+Two things in `SoundBoard.csproj` fix it, both immediately above the `Version.targets`
+import:
+
+- `EmbedOwnSatelliteAssemblies`, hooked in through Fody's own `$(FodyDependsOnTargets)`,
+  builds the satellites early and adds them to `@(ReferenceCopyLocalPaths)` (as full
+  paths — Fody rejects relative ones). Costura then embeds each as
+  `costura.<tag>.soundboard.resources.dll.compressed`, and its runtime assembly resolver
+  serves it to `ResourceManager` on demand.
+- `@(CustomAdditionalCompileInputs)` lists the translation `.resx` files, because nothing
+  else makes editing one invalidate `CoreCompile`. Without it, an incremental build after
+  a translation-only change leaves the *previous* translation embedded in the exe while
+  the loose satellite on disk is up to date — which looks like the translation working
+  everywhere except in the file you ship.
+
+To check the packing by hand, copy **only** `SoundBoard.exe` to an empty folder and ask
+its `ResourceManager` for a string in that culture:
+
+```powershell
+$asm = [Reflection.Assembly]::LoadFrom("$pwd\SoundBoard.exe")
+[Runtime.CompilerServices.RuntimeHelpers]::RunModuleConstructor($asm.ManifestModule.ModuleHandle)
+$rm = New-Object Resources.ResourceManager('SoundBoard.Properties.Resources', $asm)
+$rm.GetString('AddPageButton', [Globalization.CultureInfo]::GetCultureInfo('es'))   # -> añadir página
+```
+
+`RunModuleConstructor` is what installs Costura's assembly resolver; without it the
+lookup falls back to English and the check passes for the wrong reason.
+
 ## Continuous integration
 
 [.github/workflows/build.yml](.github/workflows/build.yml) runs on every push and

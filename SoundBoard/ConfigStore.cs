@@ -20,6 +20,53 @@ namespace SoundBoard
         public const int MaxBackupFiles = 5;
 
         /// <summary>
+        /// Name of this application's folder under %AppData%.
+        /// </summary>
+        public const string ApplicationName = @"SoundBoard";
+
+        /// <summary>
+        /// Where the config lives (since 1.3).
+        /// </summary>
+        public static string ConfigFilePath =>
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
+
+        /// <summary>
+        /// Where a pre-1.3 config lives: next to the executable. See <see cref="LoadWithLegacyMigration"/>.
+        /// </summary>
+        public static string LegacyConfigFilePath => @"soundboard.config";
+
+        /// <summary>
+        /// Where the previous config is parked, both by the legacy migration and when a config fails to load.
+        /// </summary>
+        public static string TempConfigFilePath => ConfigFilePath + @".temp";
+
+        /// <summary>
+        /// Reads just <see cref="BoardSettings.Language"/> out of the config that the app is about to load, or the
+        /// empty string if there is no config, it cannot be read, or no language has been chosen.
+        /// </summary>
+        /// <remarks>
+        /// The UI culture has to be in place before any XAML is parsed, which is long before <c>MainWindow</c> loads
+        /// the config properly, so the file is read twice on startup. This one never throws and never warns: a config
+        /// that cannot be parsed here will be reported (and backed up) by the real load a moment later, and until then
+        /// the OS language is a perfectly good answer.
+        /// </remarks>
+        public static string ReadConfiguredLanguage()
+        {
+            // A pre-1.3 config next to the exe has not been migrated yet at this point, so it is what will be loaded.
+            string path = File.Exists(LegacyConfigFilePath) ? LegacyConfigFilePath : ConfigFilePath;
+
+            try
+            {
+                return File.Exists(path) ? ConfigSerializer.Read(path).Settings.Language : string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, "Could not read the language setting from {0}; using the OS language", path);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
         /// Reads a config file.
         /// </summary>
         /// <param name="path">File to read.</param>

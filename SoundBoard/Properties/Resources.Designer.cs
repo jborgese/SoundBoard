@@ -61,11 +61,29 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to about.
+        /// </summary>
+        internal static string AboutButton {
+            get {
+                return ResourceManager.GetString("AboutButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to About Sound Board.
         /// </summary>
         internal static string AboutSoundBoard {
             get {
                 return ResourceManager.GetString("AboutSoundBoard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to add page.
+        /// </summary>
+        internal static string AddPageButton {
+            get {
+                return ResourceManager.GetString("AddPageButton", resourceCulture);
             }
         }
         
@@ -79,11 +97,29 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to All files.
+        /// </summary>
+        internal static string AllFiles {
+            get {
+                return ResourceManager.GetString("AllFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to All sounds cleared from &apos;{0}&apos;..
         /// </summary>
         internal static string AllSoundsClearedFromTab {
             get {
                 return ResourceManager.GetString("AllSoundsClearedFromTab", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sound Board.
+        /// </summary>
+        internal static string AppTitle {
+            get {
+                return ResourceManager.GetString("AppTitle", resourceCulture);
             }
         }
         
@@ -133,6 +169,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Warning! Removing row(s) or column(s) could result in losing sounds!.
+        /// </summary>
+        internal static string ButtonGridShrinkWarning {
+            get {
+                return ResourceManager.GetString("ButtonGridShrinkWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Button layout was changed..
         /// </summary>
         internal static string ButtonLayoutWasChanged {
@@ -142,11 +187,29 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Cancel.
+        /// </summary>
+        internal static string Cancel {
+            get {
+                return ResourceManager.GetString("Cancel", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Change button grid....
         /// </summary>
         internal static string ChangeButtonGrid {
             get {
                 return ResourceManager.GetString("ChangeButtonGrid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Change Button Grid.
+        /// </summary>
+        internal static string ChangeButtonGridTitle {
+            get {
+                return ResourceManager.GetString("ChangeButtonGridTitle", resourceCulture);
             }
         }
         
@@ -210,6 +273,15 @@ namespace SoundBoard.Properties {
         internal static string Close {
             get {
                 return ResourceManager.GetString("Close", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Column(s).
+        /// </summary>
+        internal static string Columns {
+            get {
+                return ResourceManager.GetString("Columns", resourceCulture);
             }
         }
         
@@ -331,6 +403,114 @@ namespace SoundBoard.Properties {
         }
 
         /// <summary>
+        ///   Looks up a localized string similar to {0} ({1}).
+        /// </summary>
+        internal static string FileFilterDescription {
+            get {
+                return ResourceManager.GetString("FileFilterDescription", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Global Hotkey.
+        /// </summary>
+        internal static string GlobalHotkey {
+            get {
+                return ResourceManager.GetString("GlobalHotkey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This shortcut will work from anywhere on the system. Press Escape to clear..
+        /// </summary>
+        internal static string GlobalHotkeyToolTip {
+            get {
+                return ResourceManager.GetString("GlobalHotkeyToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to help.
+        /// </summary>
+        internal static string HelpButton {
+            get {
+                return ResourceManager.GetString("HelpButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} ({1}).
+        /// </summary>
+        internal static string HotkeyAndSoundName {
+            get {
+                return ResourceManager.GetString("HotkeyAndSoundName", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &lt; not set &gt;.
+        /// </summary>
+        internal static string HotkeyNotSet {
+            get {
+                return ResourceManager.GetString("HotkeyNotSet", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Language.
+        /// </summary>
+        internal static string Language {
+            get {
+                return ResourceManager.GetString("Language", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SoundBoard needs to restart before it can show its interface in {0}..
+        /// </summary>
+        internal static string LanguageChangeRestartMessage {
+            get {
+                return ResourceManager.GetString("LanguageChangeRestartMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SoundBoard needs to restart before it can show its interface in the language Windows is set to..
+        /// </summary>
+        internal static string LanguageChangeRestartMessageSystemDefault {
+            get {
+                return ResourceManager.GetString("LanguageChangeRestartMessageSystemDefault", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Same as Windows.
+        /// </summary>
+        internal static string LanguageSystemDefault {
+            get {
+                return ResourceManager.GetString("LanguageSystemDefault", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Local Hotkey.
+        /// </summary>
+        internal static string LocalHotkey {
+            get {
+                return ResourceManager.GetString("LocalHotkey", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to This shortcut will only work when the app is focused. Press Escape to clear..
+        /// </summary>
+        internal static string LocalHotkeyToolTip {
+            get {
+                return ResourceManager.GetString("LocalHotkeyToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Open log folder.
         /// </summary>
         internal static string OpenLogFolder {
@@ -433,7 +613,7 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Local and global hotkey cannot be identical. .
+        ///   Looks up a localized string similar to Local and global hotkey cannot be identical..
         /// </summary>
         internal static string IdenticalHotkeyWarning {
             get {
@@ -469,7 +649,7 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Local hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;. .
+        ///   Looks up a localized string similar to Local hotkey &apos;{0}&apos; already in use by sound &apos;{1}&apos;..
         /// </summary>
         internal static string LocalHotkeyInUse {
             get {
@@ -622,11 +802,92 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to remove page.
+        /// </summary>
+        internal static string RemovePageButton {
+            get {
+                return ResourceManager.GetString("RemovePageButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Rename.
         /// </summary>
         internal static string Rename {
             get {
                 return ResourceManager.GetString("Rename", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to rename page.
+        /// </summary>
+        internal static string RenamePageButton {
+            get {
+                return ResourceManager.GetString("RenamePageButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SoundBoard could not restart itself. Close it and start it again to finish changing the language..
+        /// </summary>
+        internal static string RestartFailed {
+            get {
+                return ResourceManager.GetString("RestartFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Later.
+        /// </summary>
+        internal static string RestartLater {
+            get {
+                return ResourceManager.GetString("RestartLater", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Restart now.
+        /// </summary>
+        internal static string RestartNow {
+            get {
+                return ResourceManager.GetString("RestartNow", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Row(s).
+        /// </summary>
+        internal static string Rows {
+            get {
+                return ResourceManager.GetString("Rows", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to ADMIN.
+        /// </summary>
+        internal static string RunningAsAdmin {
+            get {
+                return ResourceManager.GetString("RunningAsAdmin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SoundBoard is running as an administrator. Dragging and dropping sounds may not work..
+        /// </summary>
+        internal static string RunningAsAdminToolTip {
+            get {
+                return ResourceManager.GetString("RunningAsAdminToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Search.
+        /// </summary>
+        internal static string SearchHeader {
+            get {
+                return ResourceManager.GetString("SearchHeader", resourceCulture);
             }
         }
         
@@ -645,6 +906,24 @@ namespace SoundBoard.Properties {
         internal static string SetHotkeys {
             get {
                 return ResourceManager.GetString("SetHotkeys", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to silence.
+        /// </summary>
+        internal static string SilenceButton {
+            get {
+                return ResourceManager.GetString("SilenceButton", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop all sounds.
+        /// </summary>
+        internal static string SilenceButtonToolTip {
+            get {
+                return ResourceManager.GetString("SilenceButtonToolTip", resourceCulture);
             }
         }
         
@@ -811,6 +1090,15 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to UNDO.
+        /// </summary>
+        internal static string Undo {
+            get {
+                return ResourceManager.GetString("Undo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to There was an unexpected error..
         /// </summary>
         internal static string UnexpectedError {
@@ -825,6 +1113,123 @@ namespace SoundBoard.Properties {
         internal static string UNKNOWN {
             get {
                 return ResourceManager.GetString("UNKNOWN", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not replace the executable: {0}.
+        /// </summary>
+        internal static string UpdateCouldNotReplaceExecutable {
+            get {
+                return ResourceManager.GetString("UpdateCouldNotReplaceExecutable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The elevated updater failed (exit code {0}); see the log for details..
+        /// </summary>
+        internal static string UpdateElevatedHelperFailed {
+            get {
+                return ResourceManager.GetString("UpdateElevatedHelperFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not start the elevated updater..
+        /// </summary>
+        internal static string UpdateElevatedHelperNotStarted {
+            get {
+                return ResourceManager.GetString("UpdateElevatedHelperNotStarted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Could not start the elevated updater: {0}.
+        /// </summary>
+        internal static string UpdateElevatedHelperStartFailed {
+            get {
+                return ResourceManager.GetString("UpdateElevatedHelperStartFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The update was cancelled at the elevation prompt..
+        /// </summary>
+        internal static string UpdateElevationCancelled {
+            get {
+                return ResourceManager.GetString("UpdateElevationCancelled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The downloaded update no longer matches its expected hash..
+        /// </summary>
+        internal static string UpdateHashChangedBeforeApply {
+            get {
+                return ResourceManager.GetString("UpdateHashChangedBeforeApply", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The downloaded file does not match the SHA-256 hash in the update manifest..
+        /// </summary>
+        internal static string UpdateHashMismatch {
+            get {
+                return ResourceManager.GetString("UpdateHashMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The update manifest contains an empty file hash for this download..
+        /// </summary>
+        internal static string UpdateManifestEmptyFileHash {
+            get {
+                return ResourceManager.GetString("UpdateManifestEmptyFileHash", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The update manifest contains a malformed SHA-256 hash..
+        /// </summary>
+        internal static string UpdateManifestMalformedHash {
+            get {
+                return ResourceManager.GetString("UpdateManifestMalformedHash", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The update manifest does not contain a file hash for this download..
+        /// </summary>
+        internal static string UpdateManifestNoFileHash {
+            get {
+                return ResourceManager.GetString("UpdateManifestNoFileHash", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The update manifest uses hash algorithm &apos;{0}&apos;; only {1} is accepted..
+        /// </summary>
+        internal static string UpdateManifestWrongHashAlgorithm {
+            get {
+                return ResourceManager.GetString("UpdateManifestWrongHashAlgorithm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No update manifest is available to verify the download against..
+        /// </summary>
+        internal static string UpdateNoManifest {
+            get {
+                return ResourceManager.GetString("UpdateNoManifest", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The executable was replaced but does not match the expected hash..
+        /// </summary>
+        internal static string UpdateReplacedExecutableHashMismatch {
+            get {
+                return ResourceManager.GetString("UpdateReplacedExecutableHashMismatch", resourceCulture);
             }
         }
         

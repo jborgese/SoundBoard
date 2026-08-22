@@ -4,6 +4,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                 xmlns:soundboard="clr-namespace:SoundBoard"
                  x:Name="UserControl"
                  d:DesignHeight="300"
                  d:DesignWidth="300"
@@ -15,7 +16,7 @@
              IsReadOnlyCaretVisible="False"
              IsUndoEnabled="False"
              PreviewKeyDown="HotkeyTextBox_PreviewKeyDown"
-             Text="{Binding Hotkey, ElementName=UserControl, Mode=OneWay, TargetNullValue=&lt; not set &gt;}">
+             Text="{Binding Hotkey, ElementName=UserControl, Mode=OneWay, TargetNullValue={soundboard:Loc HotkeyNotSet}}">
         <TextBox.ContextMenu>
             <ContextMenu Visibility="Collapsed" />
         </TextBox.ContextMenu>

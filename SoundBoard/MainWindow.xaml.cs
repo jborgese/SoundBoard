@@ -9,7 +9,9 @@ using System.Reflection;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Reactive.Linq;
 using MahApps.Metro.Controls;
@@ -233,7 +235,7 @@ namespace SoundBoard
 
             if (badHotkeys.Any())
             {
-                await this.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.HotkeyRegistrationFailedOnLoad, string.Join(Environment.NewLine, badHotkeys.Select(tup => $"{tup.Item2} ({tup.Item1})"))),
+                await this.ShowMessageAsync(Properties.Resources.Error, string.Format(Properties.Resources.HotkeyRegistrationFailedOnLoad, string.Join(Environment.NewLine, badHotkeys.Select(tup => string.Format(Properties.Resources.HotkeyAndSoundName, tup.Item2, tup.Item1)))),
                     MessageDialogStyle.Affirmative, new MetroDialogSettings
                     {
                         AffirmativeButtonText = Properties.Resources.OK
@@ -318,6 +320,7 @@ namespace SoundBoard
                     AudioPassthroughLatency = GlobalSettings.AudioPassthroughLatency,
                     NewPageDefaultRows = GlobalSettings.NewPageDefaultRows,
                     NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns,
+                    Language = GlobalSettings.Language,
                 };
 
                 SoundBoardConfig config = ConfigStore.Load(configFilePath, currentSettings);
@@ -478,6 +481,7 @@ namespace SoundBoard
                 GlobalSettings.Current.AudioPassthroughLatency = settings.AudioPassthroughLatency;
                 GlobalSettings.Current.NewPageDefaultRows = settings.NewPageDefaultRows;
                 GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
+                GlobalSettings.Current.Language = settings.Language;
             }
 
             // Remove the existing tabs; their buttons are discarded, so stop them listening to sounds that may live on
@@ -689,7 +693,7 @@ namespace SoundBoard
 
             TextBlock text = new TextBlock
             {
-                Text = Properties.Resources.WelcomeToSoundBoard.ToUpper(),
+                Text = Properties.Resources.WelcomeToSoundBoard.ToUpper(CultureInfo.CurrentUICulture),
                 Padding = new Thickness(5),
                 FontSize = 25,
                 TextWrapping = TextWrapping.Wrap
@@ -707,7 +711,7 @@ namespace SoundBoard
 
             text = new TextBlock
             {
-                Text = Properties.Resources.HowDoesItWork.ToUpper(),
+                Text = Properties.Resources.HowDoesItWork.ToUpper(CultureInfo.CurrentUICulture),
                 Padding = new Thickness(5),
                 FontSize = 20,
                 FontWeight = FontWeights.Bold,
@@ -1113,6 +1117,10 @@ namespace SoundBoard
                 _outputDeviceMenu.SubmenuOpened += OutputDeviceMenuOpened;
                 _outputDeviceMenu.SetSeparator(true);
 
+                MenuItem languageMenu = new MenuItem { Header = Properties.Resources.Language };
+                languageMenu.SetSeparator(true);
+                PopulateLanguageMenu(languageMenu);
+
                 MenuItem openLogFolder = new MenuItem {Header = Properties.Resources.OpenLogFolder};
                 openLogFolder.Click += OpenLogFolder_Click;
 
@@ -1132,6 +1140,7 @@ namespace SoundBoard
                 overflowMenu.Items.Add(_newPageDefaultMenu);
                 overflowMenu.Items.Add(_audioPassthroughMenu);
                 overflowMenu.Items.Add(_outputDeviceMenu);
+                overflowMenu.Items.Add(languageMenu);
                 overflowMenu.Items.Add(openLogFolder);
 
                 overflowMenu.AddSeparators();
@@ -1213,7 +1222,7 @@ namespace SoundBoard
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
                 FileName = $@"SoundBoardConfiguration-{ConfigStore.DateTimeStamp()}",
-                Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
+                Filter = ConfigFileFilter
             };
 
             if (saveFileDialog.ShowDialog() == true)
@@ -1237,7 +1246,7 @@ namespace SoundBoard
             // Prompt the user to browse for a config file
             OpenFileDialog openFileDialog = new OpenFileDialog
             {
-                Filter = Properties.Resources.ConfigurationFiles + @" (*.config)|*.config"
+                Filter = ConfigFileFilter
             };
 
             if (openFileDialog.ShowDialog() == true)
@@ -1339,6 +1348,119 @@ namespace SoundBoard
                 await this.ShowMessageAsync(Properties.Resources.Error,
                     Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Fills the Language submenu: one item per language this build ships, plus "same as Windows", with a check
+        /// next to whichever one is in effect. The list never changes while the app is running, so unlike the audio
+        /// device menus this is built once rather than on every open.
+        /// </summary>
+        private void PopulateLanguageMenu(MenuItem languageMenu)
+        {
+            foreach (UiLanguage language in Localization.Available)
+            {
+                UiLanguage captured = language;
+
+                MenuItem item = new MenuItem
+                {
+                    Header = language.DisplayName,
+                    Tag = language.Tag,
+                    Icon = language.Tag == Localization.Current.Tag ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null
+                };
+
+                item.Click += (_, __) => LanguageMenuItem_Click(languageMenu, captured);
+
+                languageMenu.Items.Add(item);
+            }
+        }
+
+        private async void LanguageMenuItem_Click(MenuItem languageMenu, UiLanguage language)
+        {
+            if (language.Tag == GlobalSettings.Language)
+            {
+                return;
+            }
+
+            Logger.Info("Language setting changed from '{0}' to '{1}'", GlobalSettings.Language, language.Tag);
+
+            GlobalSettings.Language = language.Tag;
+
+            // Persist straight away: if the user says yes to the restart below we are about to exit, and if they say
+            // no this is still a global setting that should survive a crash, exactly like the output device is.
+            // Awaited so that a failure is reported before the restart prompt rather than on top of it.
+            await TrySaveSettingsAsync();
+
+            // Move the check mark, so the menu tells the truth about what has been chosen even before the restart.
+            foreach (MenuItem item in languageMenu.Items.OfType<MenuItem>())
+            {
+                item.Icon = Equals(item.Tag, language.Tag) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
+            }
+
+            // Everything the language touches (the window's own chrome, cached context menus, the welcome page, every
+            // tooltip built with string.Format) is created once and kept, so re-reading the resources now would leave
+            // the window half translated. Restarting is the honest way to apply it. See Localization.
+            string message = language.Tag.Length == 0
+                ? Properties.Resources.LanguageChangeRestartMessageSystemDefault
+                : string.Format(Properties.Resources.LanguageChangeRestartMessage, language.DisplayName);
+
+            var result = await this.ShowMessageAsync(Properties.Resources.Language, message,
+                MessageDialogStyle.AffirmativeAndNegative, new MetroDialogSettings
+                {
+                    AffirmativeButtonText = Properties.Resources.RestartNow,
+                    NegativeButtonText = Properties.Resources.RestartLater
+                });
+
+            if (result == MessageDialogResult.Affirmative)
+            {
+                await RestartAsync();
+            }
+        }
+
+        /// <summary>
+        /// Saves the config, reporting a failure the way the other settings menus do rather than throwing out of an
+        /// event handler.
+        /// </summary>
+        private async Task TrySaveSettingsAsync()
+        {
+            try
+            {
+                SaveSettings();
+            }
+            catch (Exception ex)
+            {
+                await this.ShowMessageAsync(Properties.Resources.Error,
+                    Properties.Resources.ThereWasAProblem + Environment.NewLine + Environment.NewLine + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Starts a second copy of this executable and closes this one.
+        /// </summary>
+        /// <remarks>
+        /// This one closes through the normal <see cref="Window.Close"/> path, so the config is written and the global
+        /// hotkeys are released exactly as on any other exit. The two processes do overlap briefly, and the new one
+        /// may lose the race for a global hotkey; it says so on startup as it always does, and the fix is the same as
+        /// it has always been -- start SoundBoard again.
+        /// </remarks>
+        private async Task RestartAsync()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = Assembly.GetEntryAssembly()?.Location ?? Process.GetCurrentProcess().MainModule?.FileName,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Could not restart to apply the language change");
+
+                await this.ShowMessageAsync(Properties.Resources.Error, Properties.Resources.RestartFailed);
+                return;
+            }
+
+            Close();
         }
 
         private async void NewPageDefault_Click(object sender, RoutedEventArgs e)
@@ -2077,19 +2199,26 @@ namespace SoundBoard
 
         #region Private properties
 
-        private string ConfigFilePath => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
+        private static string ConfigFilePath => ConfigStore.ConfigFilePath;
 
-        private string TempConfigFilePath => ConfigFilePath + @".temp";
+        private static string TempConfigFilePath => ConfigStore.TempConfigFilePath;
 
-        private string LegacyConfigFilePath => @"soundboard.config";
+        private static string LegacyConfigFilePath => ConfigStore.LegacyConfigFilePath;
 
-        private string ApplicationName => @"SoundBoard";
+        /// <summary>
+        /// Filter for the import/export file dialogs. The <c>|</c>-separated shape is Win32's, so only the description
+        /// is localized; the pattern is repeated because Windows shows the first half and matches on the second.
+        /// </summary>
+        private static string ConfigFileFilter =>
+            $@"{string.Format(Properties.Resources.FileFilterDescription, Properties.Resources.ConfigurationFiles, ConfigFilePattern)}|{ConfigFilePattern}";
 
         #endregion
 
         #region Consts
 
         private const int TWO_MINUTES_IN_MILLISECONDS = 120000;
+
+        private const string ConfigFilePattern = @"*.config";
 
         private const string WELCOME_PAGE_TAG = nameof(WELCOME_PAGE_TAG);
 

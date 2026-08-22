@@ -1493,7 +1493,7 @@ namespace SoundBoard
             {
                 // Set file type filters
                 FileName = initialFileName,
-                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|All files|*.*",
+                Filter = $@"{Properties.Resources.AudioVideoFiles}|{Utilities.SupportedAudioFileTypes}|{Properties.Resources.AllFiles}|*.*",
                 Multiselect = true
             };
 

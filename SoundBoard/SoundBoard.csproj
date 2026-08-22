@@ -100,6 +100,7 @@
     <Compile Include="ConfigStore.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="ISoundBoardHost.cs" />
+    <Compile Include="Localization.cs" />
     <Compile Include="ModelMapping.cs" />
     <Compile Include="ChildWindowBase.cs" />
     <Compile Include="MyMetroTabItem.cs" />
@@ -162,6 +163,10 @@
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.es.resx">
+      <DependentUpon>Resources.resx</DependentUpon>
       <SubType>Designer</SubType>
     </EmbeddedResource>
     <None Include="AppUpdate.xsd">
@@ -246,6 +251,31 @@
     <Resource Include="Images\right_light.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!--
+    Costura only embeds files MSBuild hands it in @(ReferenceCopyLocalPaths), and Fody weaves at compile time, long
+    before CreateSatelliteAssemblies has built this project's own es\SoundBoard.resources.dll. Without this, the
+    single-file exe would silently contain only the neutral (English) strings. Pulling the satellites forward via
+    Fody's own $(FodyDependsOnTargets) hook and adding them to @(ReferenceCopyLocalPaths) makes Costura embed them as
+    costura.<culture>.soundboard.resources.dll.compressed, which its runtime assembly resolver then serves to
+    ResourceManager. See BUILDING.md "Localization".
+  -->
+  <PropertyGroup>
+    <FodyDependsOnTargets>$(FodyDependsOnTargets);EmbedOwnSatelliteAssemblies</FodyDependsOnTargets>
+  </PropertyGroup>
+  <ItemGroup>
+    <!--
+      A translation feeds only the satellite assembly, never the compiler, so editing one would leave CoreCompile (and
+      with it Fody, and with it the embedded copy of the satellite) up to date: the exe would keep shipping the previous
+      translation until something else forced a rebuild. Declaring the translations as compile inputs is the same trick
+      Fody uses for FodyWeavers.xml.
+    -->
+    <CustomAdditionalCompileInputs Include="Properties\Resources.*.resx" />
+  </ItemGroup>
+  <Target Name="EmbedOwnSatelliteAssemblies" DependsOnTargets="CreateSatelliteAssemblies">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths Include="@(IntermediateSatelliteAssembliesWithTargetPath->'%(FullPath)')" />
+    </ItemGroup>
+  </Target>
   <!-- Version stamping from the git tag; see Version.targets and BUILDING.md "Versioning and releases". -->
   <Import Project="Version.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

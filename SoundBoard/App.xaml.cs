@@ -33,6 +33,11 @@ namespace SoundBoard
 
             UpdateApplier.CleanupBackup();
 
+            // The UI language has to be in place before the first piece of XAML is parsed, which base.OnStartup below
+            // triggers via StartupUri. That is why it is read straight off the config file here instead of waiting for
+            // MainWindow to load the config properly.
+            Localization.Apply(ConfigStore.ReadConfiguredLanguage());
+
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {
                 Logger.Fatal(args.ExceptionObject as Exception, "Unhandled exception in AppDomain (IsTerminating={0}): {1}",

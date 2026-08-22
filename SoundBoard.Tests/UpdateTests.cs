@@ -13,12 +13,22 @@ namespace SoundBoard.Tests
         // SHA-256 of the empty string.
         private const string EmptySha256 = "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855";
 
+        // The rejection reasons are shown to the user, so they come from the resources and change with the UI
+        // language. Comparing against the resource keeps these tests about the policy rather than about English.
+        private static class Res
+        {
+            internal static string UpdateManifestNoFileHash => SoundBoard.Properties.Resources.UpdateManifestNoFileHash;
+            internal static string UpdateManifestEmptyFileHash => SoundBoard.Properties.Resources.UpdateManifestEmptyFileHash;
+            internal static string UpdateManifestWrongHashAlgorithm => SoundBoard.Properties.Resources.UpdateManifestWrongHashAlgorithm;
+            internal static string UpdateManifestMalformedHash => SoundBoard.Properties.Resources.UpdateManifestMalformedHash;
+        }
+
         [Fact]
         public void AbsentFileHash_IsFailure()
         {
             Assert.False(UpdateVerifier.TryGetExpectedHash(null, out string hash, out string reason));
             Assert.Null(hash);
-            Assert.Contains("does not contain", reason);
+            Assert.Equal(Res.UpdateManifestNoFileHash, reason);
         }
 
         [Theory]
@@ -30,7 +40,7 @@ namespace SoundBoard.Tests
             FileHash fileHash = new FileHash { Hash = value, HashAlgorithm = "SHA256" };
 
             Assert.False(UpdateVerifier.TryGetExpectedHash(fileHash, out _, out string reason));
-            Assert.Contains("empty", reason);
+            Assert.Equal(Res.UpdateManifestEmptyFileHash, reason);
         }
 
         [Theory]
@@ -43,7 +53,8 @@ namespace SoundBoard.Tests
             FileHash fileHash = new FileHash { Hash = EmptySha256, HashAlgorithm = algorithm };
 
             Assert.False(UpdateVerifier.TryGetExpectedHash(fileHash, out _, out string reason));
-            Assert.Contains("SHA256", reason);
+            Assert.Equal(string.Format(Res.UpdateManifestWrongHashAlgorithm, fileHash.HashAlgorithm, UpdateVerifier.RequiredAlgorithm), reason);
+            Assert.Contains(UpdateVerifier.RequiredAlgorithm, reason);
         }
 
         [Fact]
@@ -65,7 +76,7 @@ namespace SoundBoard.Tests
             FileHash fileHash = new FileHash { Hash = value, HashAlgorithm = "SHA256" };
 
             Assert.False(UpdateVerifier.TryGetExpectedHash(fileHash, out _, out string reason));
-            Assert.Contains("malformed", reason);
+            Assert.Equal(Res.UpdateManifestMalformedHash, reason);
         }
 
         [Theory]

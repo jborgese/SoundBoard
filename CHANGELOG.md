@@ -22,9 +22,26 @@ history and release tags.
 - A `LICENSE` file (MIT, which the README already claimed), `CONTRIBUTING.md`, GitHub issue
   and pull request templates, and `docs/update-manifest.md` describing the `VersionInfo.xml`
   update-manifest format and how the in-app updater consumes it.
+- Support for more than one interface language, and a **Language** submenu under **•••** to
+  choose one. The choice is saved as `Language` in `soundboard.config` alongside the other
+  global settings; the default, and the "Same as Windows" entry, follow the operating
+  system. Changing it applies on the next start, which the app offers to do for you.
+- A Spanish translation. Translations are compiled into satellite assemblies that are
+  embedded in the single-file `SoundBoard.exe` along with everything else, so nothing extra
+  ships next to it. See [Localization](BUILDING.md#localization) for how to add a language,
+  and `SoundBoard.Tests/LocalizationTests.cs` for the checks that keep translations honest
+  (no missing strings, no stale ones, and the same `{0}` placeholders as the English).
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.
+- The last of the user-facing text that was still hard-coded — the title bar buttons, the
+  **ADMIN** badge, the search flyout, the snackbar's **UNDO**, the "Set Hotkeys" and
+  "Change Button Grid" dialogs, the "All files" entry in the sound browser, and the reasons
+  the updater gives for rejecting a download — now comes from the resource file like
+  everything else.
+- The "hotkey already in use" warnings are now whole sentences joined at display time,
+  instead of fragments concatenated in a fixed order with trailing spaces baked into the
+  resource strings.
 - Build: NuGet dependencies moved from `packages.config` to `PackageReference`
   (`msbuild /restore`; no `nuget.exe` or `packages\` folder needed), Fody 5.1.1 → 6.9.3 and
   Costura.Fody 4.0.0 → 6.2.0.

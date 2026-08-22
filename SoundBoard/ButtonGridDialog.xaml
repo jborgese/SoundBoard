@@ -8,7 +8,7 @@
              xmlns:soundBoard="clr-namespace:SoundBoard"
              mc:Ignorable="d"
              
-             Title="Change Button Grid"
+             Title="{soundBoard:Loc ChangeButtonGridTitle}"
              IsModal="true"
              Padding="100"
              ShowCloseButton="true"
@@ -51,7 +51,7 @@
                                NumericInputMode="Numbers"
                                ValueChanged="RowUpDown_ValueChanged"
                                KeyUp="RowUpDown_KeyUp"/>
-            <Label Grid.Column="2" Content="Row(s)"/>
+            <Label Grid.Column="2" Content="{soundBoard:Loc Rows}"/>
             <Label Grid.Column="4" Content="✖"/>
             <!-- Default of 2 columns (used when the box is emptied) is applied in code-behind. -->
             <mah:NumericUpDown x:Name="ColumnUpDown"
@@ -61,12 +61,12 @@
                                NumericInputMode="Numbers"
                                ValueChanged="ColumnUpDown_ValueChanged"
                                KeyUp="ColumnUpDown_KeyUp"/>
-            <Label Grid.Column="7" Content="Column(s)"/>
+            <Label Grid.Column="7" Content="{soundBoard:Loc Columns}"/>
         </Grid>
 
         <Label x:Name="WarningLabel" 
                HorizontalAlignment="Center"
-               Grid.Row="4" Content="Warning! Removing row(s) or column(s) could result in losing sounds!" 
+               Grid.Row="4" Content="{soundBoard:Loc ButtonGridShrinkWarning}" 
                Foreground="Red" 
                FontWeight="Medium"
                Visibility="Hidden"/>
@@ -79,8 +79,8 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="1" Content="OK" Style="{StaticResource MyAccentedSquareButtonStyle}" Width="80" Height="35" Click="OKButton_Click"/>
-            <Button Grid.Column="3" Content="Cancel" Style="{StaticResource MySquareButtonStyle}" Width="80" Height="35" Click="CancelButton_Click"/>
+            <Button Grid.Column="1" Content="{soundBoard:Loc OK}" Style="{StaticResource MyAccentedSquareButtonStyle}" Width="80" Height="35" Click="OKButton_Click"/>
+            <Button Grid.Column="3" Content="{soundBoard:Loc Cancel}" Style="{StaticResource MySquareButtonStyle}" Width="80" Height="35" Click="CancelButton_Click"/>
         </Grid>
     </Grid>
 </soundBoard:ChildWindowBase>

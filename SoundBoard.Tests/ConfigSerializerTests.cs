@@ -210,9 +210,49 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void Language_RoundTrips()
+        {
+            SoundBoardConfig config = Read("<tabs><GlobalSettings Language=\"es\" /><tab><name>x</name></tab></tabs>");
+            Assert.Equal("es", config.Settings.Language);
+
+            Assert.Contains(" Language=\"es\"", Write(config));
+        }
+
+        [Fact]
+        public void Language_IsNotWrittenWhenNoneHasBeenChosen()
+        {
+            // Absent means "follow the OS". Writing it out anyway would rewrite the GlobalSettings line of every
+            // existing user's config for no reason; see EmptyConfig_WritesOnlyGlobalSettings.
+            Assert.DoesNotContain("Language=", Write(new SoundBoardConfig()));
+
+            var config = new SoundBoardConfig();
+            config.Settings.Language = "es";
+            config.Settings.Language = string.Empty;
+            Assert.DoesNotContain("Language=", Write(config));
+        }
+
+        [Fact]
+        public void Language_MissingFromTheFile_MeansFollowTheOperatingSystem()
+        {
+            Assert.Equal(string.Empty, Read(ReadFixture("current-1.10.2.config")).Settings.Language);
+            Assert.Equal(string.Empty, Read(ReadFixture("legacy-minimal.config")).Settings.Language);
+        }
+
+        [Fact]
+        public void Language_IsKeptEvenWhenThisBuildHasNoSuchTranslation()
+        {
+            // The reader must not second-guess the tag: a config shared with a machine (or a build) that does have the
+            // translation has to keep working, and the app falls back to the OS language in the meantime.
+            SoundBoardConfig config = Read("<tabs><GlobalSettings Language=\"qps-ploc\" /></tabs>");
+
+            Assert.Equal("qps-ploc", config.Settings.Language);
+            Assert.Contains(" Language=\"qps-ploc\"", Write(config));
+        }
+
+        [Fact]
         public void Defaults_FillSettingsTheFileDoesNotSpecify_ButNeverOverrideIt()
         {
-            var defaults = new BoardSettings { AudioPassthroughLatency = 50, NewPageDefaultRows = 4, NewPageDefaultColumns = 3 };
+            var defaults = new BoardSettings { AudioPassthroughLatency = 50, NewPageDefaultRows = 4, NewPageDefaultColumns = 3, Language = "es" };
             defaults.OutputDevices.Add(Guid.NewGuid());
 
             // No GlobalSettings at all, and a tab with no rows/columns: everything comes from the defaults
@@ -220,6 +260,7 @@ namespace SoundBoard.Tests
             Assert.Equal(50, legacy.Settings.AudioPassthroughLatency);
             Assert.Equal(4, legacy.Settings.NewPageDefaultRows);
             Assert.Equal(3, legacy.Settings.NewPageDefaultColumns);
+            Assert.Equal("es", legacy.Settings.Language);
             Assert.Empty(legacy.Settings.OutputDevices); // device lists are not inherited
             Assert.Equal(4, legacy.Pages[0].Rows);
             Assert.Equal(3, legacy.Pages[0].Columns);

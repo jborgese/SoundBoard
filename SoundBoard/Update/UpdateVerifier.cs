@@ -30,26 +30,26 @@ namespace SoundBoard.Update
         /// </summary>
         /// <param name="fileHash">The <c>&lt;FileHash&gt;</c> element of the chosen download entry, or null if absent.</param>
         /// <param name="expectedHash">On success, the upper-case hex hash.</param>
-        /// <param name="failureReason">On failure, a human-readable reason suitable for the log and the error dialog.</param>
+        /// <param name="failureReason">On failure, a reason suitable for the log and the error dialog, in the UI language.</param>
         public static bool TryGetExpectedHash(FileHash fileHash, out string expectedHash, out string failureReason)
         {
             expectedHash = null;
 
             if (fileHash == null)
             {
-                failureReason = "The update manifest does not contain a file hash for this download.";
+                failureReason = Properties.Resources.UpdateManifestNoFileHash;
                 return false;
             }
 
             if (string.IsNullOrWhiteSpace(fileHash.Hash))
             {
-                failureReason = "The update manifest contains an empty file hash for this download.";
+                failureReason = Properties.Resources.UpdateManifestEmptyFileHash;
                 return false;
             }
 
             if (!string.Equals(fileHash.HashAlgorithm, RequiredAlgorithm, StringComparison.OrdinalIgnoreCase))
             {
-                failureReason = $"The update manifest uses hash algorithm '{fileHash.HashAlgorithm}'; only {RequiredAlgorithm} is accepted.";
+                failureReason = string.Format(Properties.Resources.UpdateManifestWrongHashAlgorithm, fileHash.HashAlgorithm, RequiredAlgorithm);
                 return false;
             }
 
@@ -57,7 +57,7 @@ namespace SoundBoard.Update
 
             if (hash.Length != Sha256HexLength || !hash.All(IsHexDigit))
             {
-                failureReason = "The update manifest contains a malformed SHA-256 hash.";
+                failureReason = Properties.Resources.UpdateManifestMalformedHash;
                 return false;
             }
 

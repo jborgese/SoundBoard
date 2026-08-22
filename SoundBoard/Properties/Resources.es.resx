@@ -118,302 +118,302 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Rename" xml:space="preserve">
-    <value>Rename</value>
+    <value>Cambiar nombre</value>
   </data>
   <data name="Remove" xml:space="preserve">
-    <value>Remove</value>
+    <value>Quitar</value>
   </data>
   <data name="WelcomeToSoundBoard" xml:space="preserve">
-    <value>Welcome to Sound Board!</value>
+    <value>¡Te damos la bienvenida a Sound Board!</value>
   </data>
   <data name="SoundBoardDescription" xml:space="preserve">
-    <value>...an app where you can create and run your own custom sound board full of your favorite bytes, effects, and clips.</value>
+    <value>...una aplicación con la que puedes crear y usar tu propio panel de sonidos, lleno de tus fragmentos, efectos y clips favoritos.</value>
   </data>
   <data name="HowDoesItWork" xml:space="preserve">
-    <value>How does it work?</value>
+    <value>¿Cómo funciona?</value>
   </data>
   <data name="SoundBoardExplanation1" xml:space="preserve">
-    <value>Sound Board is split into pages, so you can group your favorite sounds together. To get started, add your first sound page by clicking "add page" above!</value>
+    <value>Sound Board se divide en páginas, para que puedas agrupar tus sonidos favoritos. Para empezar, añade tu primera página de sonidos pulsando «añadir página» arriba.</value>
   </data>
   <data name="SoundBoardExplanation2" xml:space="preserve">
-    <value>To load a sound, just drag an audio file onto a button or click the three little dots to browse. Then click the button with the sound name on it to play it!</value>
+    <value>Para cargar un sonido, arrastra un archivo de audio hasta un botón o pulsa los tres puntitos para buscarlo. Después pulsa el botón con el nombre del sonido para reproducirlo.</value>
   </data>
   <data name="SoundBoardExplanation3" xml:space="preserve">
-    <value>To find a sound in a hurry, just start typing its name and an instant search bar will appear!</value>
+    <value>Para encontrar un sonido deprisa, empieza a escribir su nombre y aparecerá al instante una barra de búsqueda.</value>
   </data>
   <data name="SoundBoardExplanation4" xml:space="preserve">
-    <value>Pages and sounds are saved, so when you're done, just close the app, and it'll pick up right where you left off next time!</value>
+    <value>Las páginas y los sonidos se guardan, así que cuando termines solo tienes que cerrar la aplicación: la próxima vez seguirá justo donde la dejaste.</value>
   </data>
   <data name="SoundBoardExplanation5" xml:space="preserve">
-    <value>Add, remove pages, or rename pages at any time by clicking buttons at the top. Feel free to remove this page when you're ready to go! Bring it back any time by clicking "help".</value>
+    <value>Puedes añadir, quitar o renombrar páginas cuando quieras con los botones de arriba. Quita esta página cuando ya no la necesites; puedes recuperarla en cualquier momento pulsando «ayuda».</value>
   </data>
   <data name="Welcome" xml:space="preserve">
-    <value>Welcome</value>
+    <value>Bienvenida</value>
   </data>
   <data name="AboutSoundBoard" xml:space="preserve">
-    <value>About Sound Board</value>
+    <value>Acerca de Sound Board</value>
   </data>
   <data name="CreatedByMicahMorrison" xml:space="preserve">
-    <value>Created by Micah Morrison</value>
+    <value>Creado por Micah Morrison</value>
   </data>
   <data name="VersionNumber" xml:space="preserve">
-    <value>Version {0}</value>
+    <value>Versión {0}</value>
     <comment>{0} is a version number</comment>
   </data>
   <data name="NewPage" xml:space="preserve">
-    <value>New Page</value>
+    <value>Página nueva</value>
   </data>
   <data name="WhatDoYouWantToCallIt" xml:space="preserve">
-    <value>What do you want to call it?</value>
+    <value>¿Cómo quieres llamarla?</value>
   </data>
   <data name="ConfirmDeletePage" xml:space="preserve">
-    <value>Are you sure you want to delete this page?</value>
+    <value>¿Seguro que quieres eliminar esta página?</value>
   </data>
   <data name="ChooseSound" xml:space="preserve">
-    <value>Choose sound</value>
+    <value>Elegir sonido</value>
   </data>
   <data name="UhOh" xml:space="preserve">
-    <value>Uh oh!</value>
+    <value>¡Vaya!</value>
   </data>
   <data name="FileDoesNotExist" xml:space="preserve">
-    <value>File '{0}' doesn't seem to exist.</value>
+    <value>Parece que el archivo «{0}» no existe.</value>
     <comment>{0} is the name of a file</comment>
   </data>
   <data name="ThereWasAProblem" xml:space="preserve">
-    <value>There was a problem!</value>
+    <value>¡Ha habido un problema!</value>
   </data>
   <data name="AudioVideoFiles" xml:space="preserve">
-    <value>Audio and Video Files</value>
+    <value>Archivos de audio y vídeo</value>
   </data>
   <data name="DragASoundHere" xml:space="preserve">
-    <value>Drag a sound here...</value>
+    <value>Arrastra un sonido aquí...</value>
   </data>
   <data name="ImportConfiguration" xml:space="preserve">
-    <value>Import configuration</value>
+    <value>Importar configuración</value>
   </data>
   <data name="ExportConfiguration" xml:space="preserve">
-    <value>Export configuration</value>
+    <value>Exportar configuración</value>
   </data>
   <data name="ConfigurationFiles" xml:space="preserve">
-    <value>Configuration Files</value>
+    <value>Archivos de configuración</value>
   </data>
   <data name="ClearConfiguration" xml:space="preserve">
-    <value>Clear configuration</value>
+    <value>Borrar configuración</value>
   </data>
   <data name="OpenLogFolder" xml:space="preserve">
-    <value>Open log folder</value>
+    <value>Abrir la carpeta del registro</value>
   </data>
   <data name="Clear" xml:space="preserve">
-    <value>Clear</value>
+    <value>Vaciar</value>
   </data>
   <data name="GoToSound" xml:space="preserve">
-    <value>Go to sound</value>
+    <value>Ir al sonido</value>
   </data>
   <data name="Source" xml:space="preserve">
-    <value>Source</value>
+    <value>Origen</value>
   </data>
   <data name="SoundWasCleared" xml:space="preserve">
-    <value>Sound '{0}' was cleared.</value>
+    <value>Se ha vaciado el sonido «{0}».</value>
     <comment>{0} is the name of a sound</comment>
   </data>
   <data name="TabWasRemoved" xml:space="preserve">
-    <value>Page '{0}' was removed.</value>
+    <value>Se ha quitado la página «{0}».</value>
     <comment>{0} is the name of a tab</comment>
   </data>
   <data name="ConfigurationWasImported" xml:space="preserve">
-    <value>Configuration was imported.</value>
+    <value>Se ha importado la configuración.</value>
   </data>
   <data name="ConfigurationWasCleared" xml:space="preserve">
-    <value>Configuration was cleared.</value>
+    <value>Se ha borrado la configuración.</value>
   </data>
   <data name="ClearAllSounds" xml:space="preserve">
-    <value>Clear all sounds</value>
+    <value>Vaciar todos los sonidos</value>
   </data>
   <data name="AllSoundsClearedFromTab" xml:space="preserve">
-    <value>All sounds cleared from '{0}'.</value>
+    <value>Se han vaciado todos los sonidos de «{0}».</value>
     <comment>{0} is the name of a tab page</comment>
   </data>
   <data name="MultipleSoundsClearedFromTab" xml:space="preserve">
-    <value>Selected sound(s) were cleared from '{0}'.</value>
+    <value>Se han vaciado los sonidos seleccionados de «{0}».</value>
     <comment>{0} is the name of a tab page</comment>
   </data>
   <data name="SetColor" xml:space="preserve">
-    <value>Set color</value>
+    <value>Elegir color</value>
   </data>
   <data name="AdjustVolume" xml:space="preserve">
-    <value>Adjust volume</value>
+    <value>Ajustar volumen</value>
   </data>
   <data name="Loop" xml:space="preserve">
-    <value>Loop</value>
+    <value>Repetir</value>
   </data>
   <data name="SoundSetToLoop" xml:space="preserve">
-    <value>This sound is set to loop</value>
+    <value>Este sonido está configurado para repetirse</value>
   </data>
   <data name="VolumeOfSoundIsOffset" xml:space="preserve">
-    <value>The volume of this sound is offset by {0}</value>
+    <value>El volumen de este sonido está desplazado {0}</value>
     <comment>{0} is an offset (like -2 or +1)</comment>
   </data>
   <data name="ButtonLayoutWasChanged" xml:space="preserve">
-    <value>Button layout was changed.</value>
+    <value>Se ha cambiado la disposición de los botones.</value>
   </data>
   <data name="ChangeButtonGrid" xml:space="preserve">
-    <value>Change button grid...</value>
+    <value>Cambiar la cuadrícula de botones...</value>
   </data>
   <data name="TargetFrameworkNotInstalled" xml:space="preserve">
-    <value>The required .NET Framework Version ({0}) is not currently installed.</value>
+    <value>La versión de .NET Framework necesaria ({0}) no está instalada.</value>
   </data>
   <data name="NetFrameworkError" xml:space="preserve">
-    <value>.NET Framework Error</value>
+    <value>Error de .NET Framework</value>
   </data>
   <data name="CheckForUpdates" xml:space="preserve">
-    <value>Check for updates</value>
+    <value>Buscar actualizaciones</value>
   </data>
   <data name="OK" xml:space="preserve">
-    <value>OK</value>
+    <value>Aceptar</value>
   </data>
   <data name="InputDevice" xml:space="preserve">
-    <value>Input device</value>
+    <value>Dispositivo de entrada</value>
   </data>
   <data name="AudioPassthrough" xml:space="preserve">
-    <value>Audio passthrough</value>
+    <value>Retransmisión de audio</value>
   </data>
   <data name="SoundOutputDevice" xml:space="preserve">
-  <value>Sound output device</value>
-</data>
+    <value>Dispositivo de salida de sonido</value>
+  </data>
   <data name="OutputDevice" xml:space="preserve">
-    <value>Output device</value>
+    <value>Dispositivo de salida</value>
   </data>
   <data name="DefaultDevice" xml:space="preserve">
-    <value>Default (Current: {0})</value>
+    <value>Predeterminado (actual: {0})</value>
     <comment>{0} is the name of the device</comment>
   </data>
   <data name="SingleSpecifier" xml:space="preserve">
     <value>{0}</value>
   </data>
   <data name="Close" xml:space="preserve">
-	  <value>Close</value>
+    <value>Cerrar</value>
   </data>
   <data name="Error" xml:space="preserve">
-	  <value>Error</value>
+    <value>Error</value>
   </data>
   <data name="UnexpectedError" xml:space="preserve">
-	  <value>There was an unexpected error.</value>
+    <value>Se ha producido un error inesperado.</value>
   </data>
   <data name="CopyDetails" xml:space="preserve">
-	  <value>Copy details</value>
+    <value>Copiar detalles</value>
   </data>
   <data name="Warning" xml:space="preserve">
-	  <value>Warning</value>
+    <value>Aviso</value>
   </data>
   <data name="LargeButtonCountWarning" xml:space="preserve">
-	  <value>A large button grid could cause the application to become slow or unresponsive. Are you sure you want to continue?</value>
+    <value>Una cuadrícula de botones muy grande puede hacer que la aplicación vaya lenta o deje de responder. ¿Seguro que quieres continuar?</value>
   </data>
   <data name="NoAudioTrackWarning" xml:space="preserve">
-	  <value>Warning: The file '{0}' does not appear to have an audio track. It may not play correctly.</value>
+    <value>Aviso: el archivo «{0}» no parece tener pista de audio. Puede que no se reproduzca correctamente.</value>
   </data>
   <data name="FileNotFoundWarning" xml:space="preserve">
-	  <value>Warning: The file '{0}' could not be found.</value>
+    <value>Aviso: no se ha encontrado el archivo «{0}».</value>
   </data>
   <data name="Browse" xml:space="preserve">
-	  <value>Browse</value>
+    <value>Examinar</value>
   </data>
   <data name="Yes" xml:space="preserve">
-	  <value>Yes</value>
+    <value>Sí</value>
   </data>
   <data name="No" xml:space="preserve">
-	  <value>No</value>
+    <value>No</value>
   </data>
   <data name="FixLinksHeader" xml:space="preserve">
-	  <value>Fix broken links</value>
+    <value>Reparar enlaces rotos</value>
   </data>
   <data name="FixLinksMessage" xml:space="preserve">
-	  <value>{0} additional missing sounds were found in the selected directory. Relink them?</value>
+    <value>Se han encontrado {0} sonidos que faltaban en la carpeta seleccionada. ¿Quieres volver a enlazarlos?</value>
   </data>
   <data name="HotkeyIndicatorToolTip" xml:space="preserve">
-    <value>Local Hotkey: {0}
-Global Hotkey: {1}</value>
+    <value>Atajo local: {0}
+Atajo global: {1}</value>
   </data>
   <data name="None" xml:space="preserve">
-    <value>none</value>
+    <value>ninguno</value>
   </data>
   <data name="SetHotkeys" xml:space="preserve">
-    <value>Set Hotkeys</value>
+    <value>Configurar atajos</value>
   </data>
   <data name="IdenticalHotkeyWarning" xml:space="preserve">
-    <value>Local and global hotkey cannot be identical.</value>
+    <value>El atajo local y el global no pueden ser iguales.</value>
   </data>
   <data name="LocalHotkeyInUse" xml:space="preserve">
-    <value>Local hotkey '{0}' already in use by sound '{1}'.</value>
+    <value>El sonido «{1}» ya usa el atajo local «{0}».</value>
   </data>
   <data name="GlobalHotkeyInuse" xml:space="preserve">
-    <value>Global hotkey '{0}' already in use by sound '{1}'.</value>
+    <value>El sonido «{1}» ya usa el atajo global «{0}».</value>
   </data>
   <data name="HotkeyRegistrationFailed" xml:space="preserve">
-    <value>The hotkey '{0}' could not be registered. It may be in use by another application or it may be reserved by Windows.</value>
+    <value>No se ha podido registrar el atajo «{0}». Puede que lo esté usando otra aplicación o que esté reservado por Windows.</value>
   </data>
   <data name="HotkeyRegistrationFailedOnLoad" xml:space="preserve">
-    <value>The following hotkeys could not be registered. They may be in use by other applications.
+    <value>No se han podido registrar los siguientes atajos. Puede que los estén usando otras aplicaciones.
 
 {0}</value>
   </data>
   <data name="MultipleSoundsAdded" xml:space="preserve">
-    <value>Multiple sounds were added.</value>
+    <value>Se han añadido varios sonidos.</value>
   </data>
   <data name="StopAllSounds" xml:space="preserve">
-    <value>Stop other sounds</value>
+    <value>Detener los demás sonidos</value>
   </data>
   <data name="StopAllSoundsToolTip" xml:space="preserve">
-    <value>When this sound is played, all others will be stopped.</value>
+    <value>Al reproducir este sonido se detendrán todos los demás.</value>
   </data>
   <data name="ConfigLoadError" xml:space="preserve">
-    <value>There was an error loading the SoundBoard configuration. A backup has been made at '{0}'</value>
+    <value>Se ha producido un error al cargar la configuración de SoundBoard. Se ha guardado una copia de seguridad en «{0}»</value>
   </data>
   <data name="ConfigLoadErrorNoBackup" xml:space="preserve">
-    <value>There was an error loading the SoundBoard configuration.</value>
+    <value>Se ha producido un error al cargar la configuración de SoundBoard.</value>
   </data>
   <data name="NextSound" xml:space="preserve">
-    <value>Next sound</value>
+    <value>Sonido siguiente</value>
   </data>
   <data name="StopAllSoundsIcon" xml:space="preserve">
-    <value>This sound will stop all other sounds</value>
+    <value>Este sonido detendrá todos los demás</value>
   </data>
   <data name="NextSoundTab" xml:space="preserve">
-    <value>Next sound: {0} - {1}</value>
+    <value>Sonido siguiente: {0} - {1}</value>
   </data>
   <data name="NextSoundName" xml:space="preserve">
-    <value>Next sound: {0}</value>
+    <value>Sonido siguiente: {0}</value>
   </data>
   <data name="NewPageDefaultGrid" xml:space="preserve">
-    <value>Default button grid</value>
+    <value>Cuadrícula de botones predeterminada</value>
   </data>
   <data name="NewPageDefaultGridToolTip" xml:space="preserve">
-    <value>Set the button grid that will be used for new pages</value>
+    <value>Elige la cuadrícula de botones que se usará en las páginas nuevas</value>
   </data>
   <data name="ChangeDefaultButtonGrid" xml:space="preserve">
-    <value>Change Default Button Grid</value>
+    <value>Cambiar la cuadrícula de botones predeterminada</value>
   </data>
   <data name="UNKNOWN" xml:space="preserve">
-    <value>UNKNOWN</value>
+    <value>DESCONOCIDO</value>
   </data>
   <data name="AudioPassthroughError" xml:space="preserve">
-    <value>There was an error opening the input ({0}) or output ({1}) audio device for audio passthrough.</value>
+    <value>Se ha producido un error al abrir el dispositivo de audio de entrada ({0}) o de salida ({1}) para la retransmisión de audio.</value>
   </data>
   <data name="ComErrorCode" xml:space="preserve">
-    <value>Error code: 0x{0:X}</value>
+    <value>Código de error: 0x{0:X}</value>
   </data>
   <data name="AudioPassthroughOutputExclusiveError" xml:space="preserve">
-    <value>The output audio device is being used exclusively by another application.</value>
+    <value>Otra aplicación está usando el dispositivo de audio de salida en modo exclusivo.</value>
   </data>
   <data name="UpdateFailedTitle" xml:space="preserve">
-    <value>Update failed</value>
+    <value>Error al actualizar</value>
   </data>
   <data name="UpdateVerificationFailed" xml:space="preserve">
-    <value>The downloaded update could not be verified and has been discarded. SoundBoard has not been changed.
+    <value>No se ha podido verificar la actualización descargada y se ha descartado. SoundBoard no ha cambiado.
 
 {0}</value>
   </data>
   <data name="UpdateApplyFailed" xml:space="preserve">
-    <value>The update could not be applied. SoundBoard has not been changed.
+    <value>No se ha podido aplicar la actualización. SoundBoard no ha cambiado.
 
 {0}</value>
   </data>
@@ -422,38 +422,38 @@ Global Hotkey: {1}</value>
     <comment>Main window title bar.</comment>
   </data>
   <data name="SearchHeader" xml:space="preserve">
-    <value>Search</value>
+    <value>Buscar</value>
     <comment>Header of the instant-search flyout.</comment>
   </data>
   <data name="Undo" xml:space="preserve">
-    <value>UNDO</value>
+    <value>DESHACER</value>
     <comment>Snackbar button that reverses the action just described. Shown in upper case.</comment>
   </data>
   <data name="SilenceButton" xml:space="preserve">
-    <value>silence</value>
+    <value>silenciar</value>
     <comment>Title bar button that stops every playing sound. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="SilenceButtonToolTip" xml:space="preserve">
-    <value>Stop all sounds</value>
+    <value>Detener todos los sonidos</value>
   </data>
   <data name="RenamePageButton" xml:space="preserve">
-    <value>rename page</value>
+    <value>renombrar página</value>
     <comment>Title bar button. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="RemovePageButton" xml:space="preserve">
-    <value>remove page</value>
+    <value>quitar página</value>
     <comment>Title bar button. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="AddPageButton" xml:space="preserve">
-    <value>add page</value>
+    <value>añadir página</value>
     <comment>Title bar button. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="HelpButton" xml:space="preserve">
-    <value>help</value>
+    <value>ayuda</value>
     <comment>Title bar button. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="AboutButton" xml:space="preserve">
-    <value>about</value>
+    <value>acerca de</value>
     <comment>Title bar button. Lower case to match the other title bar buttons.</comment>
   </data>
   <data name="RunningAsAdmin" xml:space="preserve">
@@ -461,44 +461,44 @@ Global Hotkey: {1}</value>
     <comment>Badge shown in the title bar when the app is elevated. Keep it short; the badge does not grow.</comment>
   </data>
   <data name="RunningAsAdminToolTip" xml:space="preserve">
-    <value>SoundBoard is running as an administrator. Dragging and dropping sounds may not work.</value>
+    <value>SoundBoard se está ejecutando como administrador. Puede que arrastrar y soltar sonidos no funcione.</value>
   </data>
   <data name="ChangeButtonGridTitle" xml:space="preserve">
-    <value>Change Button Grid</value>
+    <value>Cambiar la cuadrícula de botones</value>
     <comment>Title of the dialog that resizes a page's button grid.</comment>
   </data>
   <data name="Rows" xml:space="preserve">
-    <value>Row(s)</value>
+    <value>Fila(s)</value>
     <comment>Label after the row count box. Use whatever form covers both one and several rows in your language.</comment>
   </data>
   <data name="Columns" xml:space="preserve">
-    <value>Column(s)</value>
+    <value>Columna(s)</value>
     <comment>Label after the column count box. Use whatever form covers both one and several columns in your language.</comment>
   </data>
   <data name="ButtonGridShrinkWarning" xml:space="preserve">
-    <value>Warning! Removing row(s) or column(s) could result in losing sounds!</value>
+    <value>¡Atención! Si quitas filas o columnas puedes perder sonidos.</value>
   </data>
   <data name="Cancel" xml:space="preserve">
-    <value>Cancel</value>
+    <value>Cancelar</value>
   </data>
   <data name="LocalHotkey" xml:space="preserve">
-    <value>Local Hotkey</value>
+    <value>Atajo local</value>
   </data>
   <data name="LocalHotkeyToolTip" xml:space="preserve">
-    <value>This shortcut will only work when the app is focused. Press Escape to clear.</value>
+    <value>Este atajo solo funciona cuando la aplicación está en primer plano. Pulsa Escape para borrarlo.</value>
   </data>
   <data name="GlobalHotkey" xml:space="preserve">
-    <value>Global Hotkey</value>
+    <value>Atajo global</value>
   </data>
   <data name="GlobalHotkeyToolTip" xml:space="preserve">
-    <value>This shortcut will work from anywhere on the system. Press Escape to clear.</value>
+    <value>Este atajo funciona desde cualquier parte del sistema. Pulsa Escape para borrarlo.</value>
   </data>
   <data name="HotkeyNotSet" xml:space="preserve">
-    <value>&lt; not set &gt;</value>
+    <value>&lt; sin asignar &gt;</value>
     <comment>Placeholder in an empty hotkey box.</comment>
   </data>
   <data name="AllFiles" xml:space="preserve">
-    <value>All files</value>
+    <value>Todos los archivos</value>
     <comment>Name of the "any file at all" entry in a file browser's type list.</comment>
   </data>
   <data name="FileFilterDescription" xml:space="preserve">
@@ -506,84 +506,84 @@ Global Hotkey: {1}</value>
     <comment>How a file type is named in a file browser's type list. {0} is the kind of file, {1} the matching patterns.</comment>
   </data>
   <data name="Language" xml:space="preserve">
-    <value>Language</value>
+    <value>Idioma</value>
     <comment>Menu that chooses the language of the app itself.</comment>
   </data>
   <data name="LanguageSystemDefault" xml:space="preserve">
-    <value>Same as Windows</value>
+    <value>El mismo que Windows</value>
     <comment>Language menu entry that follows the operating system's language instead of pinning one.</comment>
   </data>
   <data name="LanguageChangeRestartMessage" xml:space="preserve">
-    <value>SoundBoard needs to restart before it can show its interface in {0}.</value>
+    <value>SoundBoard tiene que reiniciarse para mostrar su interfaz en {0}.</value>
     <comment>{0} is the name of the chosen language, in that language.</comment>
   </data>
   <data name="RestartNow" xml:space="preserve">
-    <value>Restart now</value>
+    <value>Reiniciar ahora</value>
   </data>
   <data name="RestartLater" xml:space="preserve">
-    <value>Later</value>
+    <value>Más tarde</value>
     <comment>Declines the offer to restart now. The change still takes effect the next time the app starts.</comment>
   </data>
   <data name="RestartFailed" xml:space="preserve">
-    <value>SoundBoard could not restart itself. Close it and start it again to finish changing the language.</value>
+    <value>SoundBoard no ha podido reiniciarse. Ciérralo y vuelve a abrirlo para terminar de cambiar el idioma.</value>
   </data>
   <data name="HotkeyAndSoundName" xml:space="preserve">
     <value>{0} ({1})</value>
     <comment>One line of the list of hotkeys that could not be registered. {0} is the hotkey, {1} the name of the sound it belongs to.</comment>
   </data>
   <data name="LanguageChangeRestartMessageSystemDefault" xml:space="preserve">
-    <value>SoundBoard needs to restart before it can show its interface in the language Windows is set to.</value>
+    <value>SoundBoard tiene que reiniciarse para mostrar su interfaz en el idioma configurado en Windows.</value>
     <comment>Shown instead of LanguageChangeRestartMessage when the user picks the system-default entry, which has no language name to insert.</comment>
   </data>
   <data name="UpdateManifestNoFileHash" xml:space="preserve">
-    <value>The update manifest does not contain a file hash for this download.</value>
+    <value>El manifiesto de actualización no incluye un hash de archivo para esta descarga.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>
   </data>
   <data name="UpdateManifestEmptyFileHash" xml:space="preserve">
-    <value>The update manifest contains an empty file hash for this download.</value>
+    <value>El manifiesto de actualización incluye un hash de archivo vacío para esta descarga.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>
   </data>
   <data name="UpdateManifestWrongHashAlgorithm" xml:space="preserve">
-    <value>The update manifest uses hash algorithm '{0}'; only {1} is accepted.</value>
+    <value>El manifiesto de actualización usa el algoritmo de hash «{0}»; solo se acepta {1}.</value>
     <comment>{0} is the algorithm the manifest asked for, {1} the only one accepted (SHA256). Neither is translated.</comment>
   </data>
   <data name="UpdateManifestMalformedHash" xml:space="preserve">
-    <value>The update manifest contains a malformed SHA-256 hash.</value>
+    <value>El manifiesto de actualización incluye un hash SHA-256 mal formado.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>
   </data>
   <data name="UpdateNoManifest" xml:space="preserve">
-    <value>No update manifest is available to verify the download against.</value>
+    <value>No hay ningún manifiesto de actualización con el que verificar la descarga.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>
   </data>
   <data name="UpdateHashMismatch" xml:space="preserve">
-    <value>The downloaded file does not match the SHA-256 hash in the update manifest.</value>
+    <value>El archivo descargado no coincide con el hash SHA-256 del manifiesto de actualización.</value>
     <comment>One of the reasons an update can be rejected; shown inside UpdateVerificationFailed.</comment>
   </data>
   <data name="UpdateHashChangedBeforeApply" xml:space="preserve">
-    <value>The downloaded update no longer matches its expected hash.</value>
+    <value>La actualización descargada ya no coincide con el hash esperado.</value>
     <comment>The download passed verification but changed again before it could be applied.</comment>
   </data>
   <data name="UpdateCouldNotReplaceExecutable" xml:space="preserve">
-    <value>Could not replace the executable: {0}</value>
+    <value>No se ha podido reemplazar el ejecutable: {0}</value>
     <comment>{0} is the underlying error, which comes from Windows and is not translated here.</comment>
   </data>
   <data name="UpdateReplacedExecutableHashMismatch" xml:space="preserve">
-    <value>The executable was replaced but does not match the expected hash.</value>
+    <value>Se ha reemplazado el ejecutable, pero no coincide con el hash esperado.</value>
   </data>
   <data name="UpdateElevationCancelled" xml:space="preserve">
-    <value>The update was cancelled at the elevation prompt.</value>
+    <value>La actualización se ha cancelado en el aviso de elevación.</value>
     <comment>The user chose No on the Windows administrator prompt.</comment>
   </data>
   <data name="UpdateElevatedHelperStartFailed" xml:space="preserve">
-    <value>Could not start the elevated updater: {0}</value>
+    <value>No se ha podido iniciar el actualizador con permisos de administrador: {0}</value>
     <comment>{0} is the underlying error, which comes from Windows and is not translated here.</comment>
   </data>
   <data name="UpdateElevatedHelperNotStarted" xml:space="preserve">
-    <value>Could not start the elevated updater.</value>
+    <value>No se ha podido iniciar el actualizador con permisos de administrador.</value>
     <comment>Same as UpdateElevatedHelperStartFailed but with no underlying error to report.</comment>
   </data>
   <data name="UpdateElevatedHelperFailed" xml:space="preserve">
-    <value>The elevated updater failed (exit code {0}); see the log for details.</value>
+    <value>El actualizador con permisos de administrador ha fallado (código de salida {0}); consulta el registro para ver los detalles.</value>
     <comment>{0} is the process exit code.</comment>
   </data>
 </root>

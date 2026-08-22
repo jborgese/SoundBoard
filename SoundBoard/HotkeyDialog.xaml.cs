@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Forms;
@@ -53,15 +54,18 @@ namespace SoundBoard
 
         private void OKButton_Click(object sender, RoutedEventArgs e)
         {
-            WarningLabel.Visibility = Visibility.Hidden;
-            WarningLabel.Text = string.Empty;
+            ClearWarning();
+
+            // Up to three of these can be wrong at once. Each is a whole sentence of its own in the resources and they
+            // are joined here, rather than concatenated into one resource, so that no translation has to carry a
+            // trailing space or make assumptions about what follows it.
+            List<string> warnings = new List<string>();
 
             // Both hotkeys are set, and are identical
             if (LocalHotkey != null && GlobalHotkey != null &&
                 LocalHotkey.ToString() == GlobalHotkey.ToString())
             {
-                WarningLabel.Text += Properties.Resources.IdenticalHotkeyWarning;
-                WarningLabel.Visibility = Visibility.Visible;
+                warnings.Add(Properties.Resources.IdenticalHotkeyWarning);
             }
 
             // See if the local hotkey is used anywhere else
@@ -69,8 +73,7 @@ namespace SoundBoard
             {
                 if (FindOtherSoundUsing(LocalHotkey) is Sound other)
                 {
-                    WarningLabel.Text += string.Format(Properties.Resources.LocalHotkeyInUse, LocalHotkey, other.Name);
-                    WarningLabel.Visibility = Visibility.Visible;
+                    warnings.Add(string.Format(Properties.Resources.LocalHotkeyInUse, LocalHotkey, other.Name));
                 }
             }
 
@@ -78,13 +81,13 @@ namespace SoundBoard
             {
                 if (FindOtherSoundUsing(GlobalHotkey) is Sound other)
                 {
-                    WarningLabel.Text += string.Format(Properties.Resources.GlobalHotkeyInuse, GlobalHotkey, other.Name);
-                    WarningLabel.Visibility = Visibility.Visible;
+                    warnings.Add(string.Format(Properties.Resources.GlobalHotkeyInuse, GlobalHotkey, other.Name));
                 }
             }
 
-            if (WarningLabel.Visibility == Visibility.Visible)
+            if (warnings.Count > 0)
             {
+                ShowWarning(string.Join(@" ", warnings));
                 return;
             }
 
@@ -107,8 +110,7 @@ namespace SoundBoard
             {
                 Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}'", LocalHotkey, _soundButton.SoundName);
                 _soundButton.LocalHotkey = null;
-                WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, LocalHotkey);
-                WarningLabel.Visibility = Visibility.Visible;
+                ShowWarning(string.Format(Properties.Resources.HotkeyRegistrationFailed, LocalHotkey));
             }
 
             try
@@ -129,8 +131,7 @@ namespace SoundBoard
             {
                 Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}'", GlobalHotkey, _soundButton.SoundName);
                 _soundButton.GlobalHotkey = null;
-                WarningLabel.Text = string.Format(Properties.Resources.HotkeyRegistrationFailed, GlobalHotkey);
-                WarningLabel.Visibility = Visibility.Visible;
+                ShowWarning(string.Format(Properties.Resources.HotkeyRegistrationFailed, GlobalHotkey));
             }
 
             if (WarningLabel.Visibility == Visibility.Visible)
@@ -140,6 +141,18 @@ namespace SoundBoard
 
             DialogResult = DialogResult.OK;
             Close();
+        }
+
+        private void ClearWarning()
+        {
+            WarningLabel.Visibility = Visibility.Hidden;
+            WarningLabel.Text = string.Empty;
+        }
+
+        private void ShowWarning(string text)
+        {
+            WarningLabel.Text = text;
+            WarningLabel.Visibility = Visibility.Visible;
         }
 
         private void CancelButton_Click(object sender, RoutedEventArgs e)

@@ -109,6 +109,16 @@ namespace SoundBoard
         }
 
         /// <summary>
+        /// IETF language tag of the UI language, or the empty string to follow the operating system.
+        /// Only read at startup; see <see cref="Localization"/>.
+        /// </summary>
+        public static string Language
+        {
+            get => Current.Language;
+            set => Current.Language = value;
+        }
+
+        /// <summary>
         /// The latency to use when chaining input to outputs
         /// </summary>
         public static int AudioPassthroughLatency

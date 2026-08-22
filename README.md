@@ -11,6 +11,7 @@ SoundBoard is an elegant, easy-to-use application to save and play your favorite
 * Set sounds to loop, adjust their volume, trigger other sounds, or stop all other sounds
 * Activate sounds via hotkey
 * Instantly search and playback sounds by typing their name
+* Use the app in your own language (English and Spanish so far)
 
 ## Downloads
 
@@ -76,6 +77,15 @@ You may assign local and global hotkeys to sounds. Pressing a local hotkey will 
 * Using standard Windows shortcuts may also produce unintended behavior (e.g., Tab or Win).
 
 ![Hotkey editor](docs/images/hotkeys.png)
+
+##### Choose the language of the interface
+
+SoundBoard follows the language Windows is set to, and **•••** → **Language** pins a different one.
+English and Spanish ship today; the setting is saved with the rest of your configuration and applies
+when the app restarts (it offers to do that for you).
+
+Adding a language is a matter of translating one file — see
+[Localization](BUILDING.md#localization) in BUILDING.md. Translations are very welcome.
 
 ## Building from source
 

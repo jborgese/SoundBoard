@@ -66,7 +66,7 @@ namespace SoundBoard
 
             if (_pendingUpdate == null)
             {
-                failureReason = "No update manifest is available to verify the download against.";
+                failureReason = Properties.Resources.UpdateNoManifest;
             }
             else
             {
@@ -76,7 +76,7 @@ namespace SoundBoard
 
             if (failureReason == null && !UpdateVerifier.FileMatches(file, expectedHash))
             {
-                failureReason = "The downloaded file does not match the SHA-256 hash in the update manifest.";
+                failureReason = Properties.Resources.UpdateHashMismatch;
             }
 
             if (failureReason != null)

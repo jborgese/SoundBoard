@@ -8,7 +8,7 @@
                             mc:Ignorable="d" 
                             d:DesignHeight="450" d:DesignWidth="800"
                             
-                            Title="Set Hotkeys"
+                            Title="{soundboard:Loc SetHotkeys}"
                             IsModal="true"
                             Padding="100"
                             ShowCloseButton="true"
@@ -41,11 +41,11 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Label Grid.Column="0" Grid.Row="0" Content="Local Hotkey" ToolTip="This shortcut will only work when the app is focused. Press Escape to clear."/>
-                <soundboard:HotkeyEditorControl x:Name="LocalHotkeyControl" Grid.Column="2" Grid.Row="0" ToolTip="This shortcut will only work when the app is focused. Press Escape to clear."/>
+                <Label Grid.Column="0" Grid.Row="0" Content="{soundboard:Loc LocalHotkey}" ToolTip="{soundboard:Loc LocalHotkeyToolTip}"/>
+                <soundboard:HotkeyEditorControl x:Name="LocalHotkeyControl" Grid.Column="2" Grid.Row="0" ToolTip="{soundboard:Loc LocalHotkeyToolTip}"/>
 
-                <Label Grid.Column="0" Grid.Row="2" Content="Global Hotkey" ToolTip="This shortcut will work from anywhere on the system. Press Escape to clear."/>
-                <soundboard:HotkeyEditorControl x:Name="GlobalHotkeyControl" Grid.Column="2" Grid.Row="2"  ToolTip="This shortcut will work from anywhere on the system. Press Escape to clear."/>
+                <Label Grid.Column="0" Grid.Row="2" Content="{soundboard:Loc GlobalHotkey}" ToolTip="{soundboard:Loc GlobalHotkeyToolTip}"/>
+                <soundboard:HotkeyEditorControl x:Name="GlobalHotkeyControl" Grid.Column="2" Grid.Row="2"  ToolTip="{soundboard:Loc GlobalHotkeyToolTip}"/>
 
                 <TextBlock Grid.Row="4" Grid.ColumnSpan="3" x:Name="WarningLabel" 
                        MaxWidth="300"
@@ -63,8 +63,8 @@
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <Button Grid.Column="1" Content="OK" Style="{StaticResource MyAccentedSquareButtonStyle}" Width="80" Height="35" Click="OKButton_Click"/>
-                <Button Grid.Column="3" Content="Cancel" Style="{StaticResource MySquareButtonStyle}" Width="80" Height="35" Click="CancelButton_Click"/>
+                <Button Grid.Column="1" Content="{soundboard:Loc OK}" Style="{StaticResource MyAccentedSquareButtonStyle}" Width="80" Height="35" Click="OKButton_Click"/>
+                <Button Grid.Column="3" Content="{soundboard:Loc Cancel}" Style="{StaticResource MySquareButtonStyle}" Width="80" Height="35" Click="CancelButton_Click"/>
             </Grid>
         </Grid>
     </Grid>

@@ -12,6 +12,7 @@ namespace SoundBoard.Model
         private int _audioPassthroughLatency = DefaultAudioPassthroughLatency;
         private int _newPageDefaultRows = DefaultNewPageRows;
         private int _newPageDefaultColumns = DefaultNewPageColumns;
+        private string _language = string.Empty;
 
         /// <summary>
         /// Default number of rows for a new page.
@@ -72,6 +73,21 @@ namespace SoundBoard.Model
         }
 
         /// <summary>
+        /// IETF language tag of the UI language the user picked (e.g. <c>"es"</c>), or the empty string to follow the
+        /// operating system. Never null.
+        /// </summary>
+        /// <remarks>
+        /// This is stored as a string rather than a <see cref="System.Globalization.CultureInfo"/> so that a config
+        /// naming a culture this build does not ship (or that the machine does not have) round-trips untouched instead
+        /// of being silently dropped. The UI resolves it at startup; see the app's <c>Localization</c> class.
+        /// </remarks>
+        public string Language
+        {
+            get => _language;
+            set => SetField(ref _language, value ?? string.Empty);
+        }
+
+        /// <summary>
         /// Copies the scalar settings and device lists of <paramref name="other"/> into this instance. Device lists are
         /// replaced, not merged.
         /// </summary>
@@ -82,6 +98,7 @@ namespace SoundBoard.Model
             AudioPassthroughLatency = other.AudioPassthroughLatency;
             NewPageDefaultRows = other.NewPageDefaultRows;
             NewPageDefaultColumns = other.NewPageDefaultColumns;
+            Language = other.Language;
 
             OutputDevices.Clear();
             OutputDevices.UnionWith(other.OutputDevices);
@@ -107,6 +124,7 @@ namespace SoundBoard.Model
                 AudioPassthroughLatency = AudioPassthroughLatency,
                 NewPageDefaultRows = NewPageDefaultRows,
                 NewPageDefaultColumns = NewPageDefaultColumns,
+                Language = Language,
             };
 
             clone.OutputDevices.UnionWith(OutputDevices);

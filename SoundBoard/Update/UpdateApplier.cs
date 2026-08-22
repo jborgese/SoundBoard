@@ -72,7 +72,7 @@ namespace SoundBoard.Update
             // download and this point, so this closes the window for it to have been replaced.
             if (!UpdateVerifier.FileMatches(downloadedFile, expectedHash))
             {
-                throw new UpdateApplyException("The downloaded update no longer matches its expected hash.");
+                throw new UpdateApplyException(Properties.Resources.UpdateHashChangedBeforeApply);
             }
 
             try
@@ -87,12 +87,12 @@ namespace SoundBoard.Update
             }
             catch (IOException ex)
             {
-                throw new UpdateApplyException("Could not replace the executable: " + ex.Message, ex);
+                throw new UpdateApplyException(string.Format(Properties.Resources.UpdateCouldNotReplaceExecutable, ex.Message), ex);
             }
 
             if (!UpdateVerifier.FileMatches(target, expectedHash))
             {
-                throw new UpdateApplyException("The executable was replaced but does not match the expected hash.");
+                throw new UpdateApplyException(Properties.Resources.UpdateReplacedExecutableHashMismatch);
             }
 
             RestartInto(target);
@@ -199,22 +199,22 @@ namespace SoundBoard.Update
             catch (Win32Exception ex)
             {
                 throw new UpdateApplyException(ex.NativeErrorCode == ErrorCancelled
-                    ? "The update was cancelled at the elevation prompt."
-                    : "Could not start the elevated updater: " + ex.Message, ex);
+                    ? Properties.Resources.UpdateElevationCancelled
+                    : string.Format(Properties.Resources.UpdateElevatedHelperStartFailed, ex.Message), ex);
             }
 
             using (helper)
             {
                 if (helper == null)
                 {
-                    throw new UpdateApplyException("Could not start the elevated updater.");
+                    throw new UpdateApplyException(Properties.Resources.UpdateElevatedHelperNotStarted);
                 }
 
                 helper.WaitForExit();
 
                 if (helper.ExitCode != 0)
                 {
-                    throw new UpdateApplyException($"The elevated updater failed (exit code {helper.ExitCode}); see the log for details.");
+                    throw new UpdateApplyException(string.Format(Properties.Resources.UpdateElevatedHelperFailed, helper.ExitCode));
                 }
             }
         }

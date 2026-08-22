@@ -267,22 +267,27 @@ namespace SoundBoard.Tests
             var config = new SoundBoardConfig();
             config.Settings.OutputDevices.Add(Guid.NewGuid());
             config.Settings.AudioPassthroughLatency = 42;
+            config.Settings.Language = "es";
             config.Pages.Add(new Page("a", 1, 1));
 
             SoundBoardConfig clone = config.DeepClone();
+            Assert.Equal("es", clone.Settings.Language);
+
             clone.Settings.OutputDevices.Clear();
             clone.Settings.AudioPassthroughLatency = 1;
+            clone.Settings.Language = "en";
             clone.Pages.Clear();
 
             Assert.Single(config.Settings.OutputDevices);
             Assert.Equal(42, config.Settings.AudioPassthroughLatency);
+            Assert.Equal("es", config.Settings.Language);
             Assert.Single(config.Pages);
         }
 
         [Fact]
         public void Settings_CopyFrom_ReplacesEverything()
         {
-            var source = new BoardSettings { AudioPassthroughLatency = 7, NewPageDefaultRows = 1, NewPageDefaultColumns = 9 };
+            var source = new BoardSettings { AudioPassthroughLatency = 7, NewPageDefaultRows = 1, NewPageDefaultColumns = 9, Language = "es" };
             source.OutputDevices.Add(Guid.NewGuid());
 
             var target = new BoardSettings();
@@ -294,8 +299,20 @@ namespace SoundBoard.Tests
             Assert.Equal(7, target.AudioPassthroughLatency);
             Assert.Equal(1, target.NewPageDefaultRows);
             Assert.Equal(9, target.NewPageDefaultColumns);
+            Assert.Equal("es", target.Language);
             Assert.Equal(source.OutputDevices, target.OutputDevices);
             Assert.Empty(target.InputDevices);
+        }
+
+        [Fact]
+        public void Settings_Language_DefaultsToEmptyAndIsNeverNull()
+        {
+            var settings = new BoardSettings();
+            Assert.Equal(string.Empty, settings.Language);
+
+            settings.Language = "es";
+            settings.Language = null;
+            Assert.Equal(string.Empty, settings.Language);
         }
 
         [Fact]
