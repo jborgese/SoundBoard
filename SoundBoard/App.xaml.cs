@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.Versioning;
 using System.Threading.Tasks;
 using System.Windows;
+using SoundBoard.Update;
 
 namespace SoundBoard
 {
@@ -20,6 +21,17 @@ namespace SoundBoard
         {
             Log.Initialize();
             Log.LogStartup();
+
+            // Elevated update helper mode: replace our own executable and exit without showing any UI.
+            // See UpdateApplier for why this exists and how it is constrained.
+            if (e.Args.Length > 0 && e.Args[0] == UpdateApplier.ApplyUpdateSwitch)
+            {
+                int exitCode = UpdateApplier.RunApplyUpdateMode(e.Args);
+                Log.LogShutdownAndFlush(exitCode);
+                Environment.Exit(exitCode);
+            }
+
+            UpdateApplier.CleanupBackup();
 
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
             {

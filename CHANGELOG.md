@@ -46,7 +46,18 @@ history and release tags.
   was extracted from `SoundButton`; hotkeys and search operate on the model; the
   `MainWindow.Instance` singleton was retired.
 
+### Security
+- The in-app updater now refuses any download that does not match a SHA-256
+  `<FileHash>` in the update manifest (a missing or empty hash is a failure, not a pass).
+- The update is applied in-process by renaming the running exe, instead of through an
+  elevated `cmd.exe` / `powershell.exe` command line built from file paths. UAC is only
+  requested when the exe's folder is not writable, and the elevated mode
+  (`SoundBoard.exe --apply-update <file> <sha256>`) can only replace its own image with a
+  file matching the given hash.
+
 ### Fixed
+- Updating no longer kills the app with `taskkill /f`, so unsaved settings are written
+  before the new version starts.
 - Crash on first launch when no configuration file exists.
 - Progress-bar update loop that never terminated after a sound stopped.
 - Tabs, tab items and menu items leaking through static dictionaries.

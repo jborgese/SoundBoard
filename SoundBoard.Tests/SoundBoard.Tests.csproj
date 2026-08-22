@@ -32,6 +32,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AppHelpers.WPF" Version="0.1.0" />
     <PackageReference Include="MimeMapping" Version="1.0.1.37" />
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="NLog" Version="5.3.4" />

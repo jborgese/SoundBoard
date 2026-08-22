@@ -890,5 +890,32 @@ namespace SoundBoard.Properties {
                 return ResourceManager.GetString("Yes", resourceCulture);
             }
         }
+        /// <summary>
+        ///   Looks up a localized string similar to The update could not be applied. SoundBoard has not been changed..
+        /// </summary>
+        internal static string UpdateApplyFailed {
+            get {
+                return ResourceManager.GetString("UpdateApplyFailed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Update failed.
+        /// </summary>
+        internal static string UpdateFailedTitle {
+            get {
+                return ResourceManager.GetString("UpdateFailedTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The downloaded update could not be verified and has been discarded. SoundBoard has not been changed..
+        /// </summary>
+        internal static string UpdateVerificationFailed {
+            get {
+                return ResourceManager.GetString("UpdateVerificationFailed", resourceCulture);
+            }
+        }
+        
     }
 }
