@@ -176,7 +176,8 @@ namespace SoundBoard.Audio
         /// </summary>
         public void TearDown()
         {
-            foreach (IWavePlayer player in _players)
+            // Iterate a copy: a Stopped listener may start another sound (next-sound chaining), possibly this very player
+            foreach (IWavePlayer player in _players.ToList())
             {
                 player.PlaybackStopped -= PlaybackStoppedHandler;
                 RaiseStopped(player, null);

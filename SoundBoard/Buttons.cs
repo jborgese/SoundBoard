@@ -1449,17 +1449,19 @@ namespace SoundBoard
                     MainWindow.Instance.Playback.StopAll();
                 }
 
-                // Show the additional buttons
+                // Register before starting so that a sound which begins playing can always be silenced, even if Start fails part-way
+                MainWindow.Instance.Playback.Register(_player);
+
+                // Aaaaand play
+                _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
+
+                // Show the additional buttons (only now: if Start threw, nothing is playing and they must stay hidden)
                 foreach (HideableMenuButtonBase hideableButton in ChildButtons
                     .OfType<HideableMenuButtonBase>()
                     .Where(hideableButton => hideableButton.ShowHideAutomatically))
                 {
                     hideableButton.Show();
                 }
-
-                // Aaaaand play
-                _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
-                MainWindow.Instance.Playback.Register(_player);
 
                 CalculateTextMargin();
 
