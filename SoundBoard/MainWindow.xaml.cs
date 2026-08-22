@@ -179,23 +179,14 @@ namespace SoundBoard
         {
             base.OnSourceInitialized(e);
 
-            HotKeyManager = new HotKeyManager(this);
-            HotKeyManager.GlobalHotKeyPressed += (_, args) =>
+            Hotkeys.Attach(new HotKeyManager(this));
+            Hotkeys.HotkeyPressed += (_, name) =>
             {
                 if (!IsHotkeyPickerOpen)
                 {
-                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
-                    {
-                        soundButton.ParentTab.Focus();
-                        soundButton.StartSound();
-                    }
-                }
-            };
-            HotKeyManager.LocalHotKeyPressed += (_, args) =>
-            {
-                if (!IsHotkeyPickerOpen)
-                {
-                    if (GetSoundButtons().FirstOrDefault(sb => Utilities.SanitizeId(sb.Id) == args.HotKey.Name) is SoundButton soundButton)
+                    // Resolve the press through the model, then to the button showing that sound
+                    Sound sound = AllSounds().FirstOrDefault(s => HotkeyRegistry.IsRegistrationFor(name, s));
+                    if (FindButton(sound) is SoundButton soundButton)
                     {
                         soundButton.ParentTab.Focus();
                         soundButton.StartSound();
@@ -205,57 +196,37 @@ namespace SoundBoard
 
             // There is a weird issue where after some changes to the executable (new version, new directory)
             // the first global hotkey registration fails. This only happens during the first launch after the change,
-            // and even that time, all subsequent registrations work.
-            // Therefore, we will use a trick to register a hotkey we don't care about.
-            GlobalHotKey ignore = new GlobalHotKey(Utilities.SanitizeId(Guid.NewGuid().ToString()), ModifierKeys.None, Keys.HangulMode);
+            // and even that time, all subsequent registrations work. Therefore, register a hotkey we don't care about first.
+            Hotkeys.RegisterThrowaway();
 
-            try
-            {
-                HotKeyManager.AddGlobalHotKey(ignore);
-            }
-            catch (Exception ex)
-            {
-                // Expected on the first launch after the executable changes (see above). Only a problem if it happens every time.
-                Logger.Warn(ex, "Throwaway global hotkey registration failed (expected once after the exe changes)");
-            }
-
-            // Unregister -- this will work for all but the bad scenario
-            try
-            {
-                HotKeyManager.RemoveGlobalHotKey(ignore);
-            }
-            catch (Exception ex)
-            {
-                Logger.Debug(ex, "Throwaway global hotkey unregistration failed (expected if registration failed)");
-            }
-
-            // Load existing hotkeys
+            // Register the loaded sounds' hotkeys. (The buttons tried this when they were built, but the manager did not
+            // exist yet, so nothing was registered.)
             List<Tuple<string, Hotkey>> badHotkeys = new List<Tuple<string, Hotkey>>();
-            foreach (SoundButton sb in GetSoundButtons().ToList())
+            foreach (Sound sound in AllSounds().ToList())
             {
-                if (sb.LocalHotkey != null)
+                if (sound.LocalHotkey != null)
                 {
                     try
                     {
-                        sb.ReregisterLocalHotkey();
+                        Hotkeys.RegisterLocal(sound);
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' on load", sb.LocalHotkey, sb.SoundName);
-                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.LocalHotkey));
+                        Logger.Warn(ex, "Failed to register local hotkey {0} for sound '{1}' on load", sound.LocalHotkey, sound.Name);
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sound.Name, sound.LocalHotkey));
                     }
                 }
 
-                if (sb.GlobalHotkey != null)
+                if (sound.GlobalHotkey != null)
                 {
                     try
                     {
-                        sb.ReregisterGlobalHotkey();
+                        Hotkeys.RegisterGlobal(sound);
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' on load", sb.GlobalHotkey, sb.SoundName);
-                        badHotkeys.Add(new Tuple<string, Hotkey>(sb.SoundName, sb.GlobalHotkey));
+                        Logger.Warn(ex, "Failed to register global hotkey {0} for sound '{1}' on load", sound.GlobalHotkey, sound.Name);
+                        badHotkeys.Add(new Tuple<string, Hotkey>(sound.Name, sound.GlobalHotkey));
                     }
                 }
             }
@@ -560,6 +531,11 @@ namespace SoundBoard
         /// The live pages, in tab order. Tabs that are not sound pages (the welcome page) are excluded.
         /// </summary>
         public IEnumerable<Page> Pages => Tabs.Items.OfType<MyMetroTabItem>().Select(tab => tab.Page).Where(page => page != null);
+
+        /// <summary>
+        /// Every sound on every live page, in page order then row-major. Includes empty cells.
+        /// </summary>
+        public IEnumerable<Sound> AllSounds() => Pages.SelectMany(page => page.Sounds);
 
         /// <summary>
         /// Finds the sound with the given <see cref="Sound.Id"/> on any page, or null.
@@ -1068,9 +1044,13 @@ namespace SoundBoard
                     // Perform search
                     if (string.IsNullOrEmpty(_searchString) == false)
                     {
-                        foreach (SoundButton soundButton in GetSoundButtons())
+                        // Query the model, then resolve each hit to the button that shows it
+                        string query = _searchString.ToLower();
+                        Dictionary<Sound, SoundButton> buttonsBySound = GetSoundButtons().ToDictionary(sb => sb.Sound);
+
+                        foreach (Sound sound in AllSounds())
                         {
-                            if (soundButton.SoundName.ToLower().Contains(_searchString.ToLower()))
+                            if (sound.Name.ToLower().Contains(query) && buttonsBySound.TryGetValue(sound, out SoundButton soundButton))
                             {
                                 // The search result displays the source button's sound directly
                                 SoundButton button = new SoundButton(SoundButtonMode.Search, sourceTabAndButton: (soundButton.ParentTab, soundButton));
@@ -1945,9 +1925,9 @@ namespace SoundBoard
         public Font SnackbarMessageFont => new Font(SnackbarMessage.FontFamily.ToString(), (float) SnackbarMessage.FontSize);
 
         /// <summary>
-        /// The hot key manager for the application
+        /// Registers sounds' hotkeys with the system and reports presses. Attached to the window in <see cref="OnSourceInitialized"/>.
         /// </summary>
-        public HotKeyManager HotKeyManager { get; private set; }
+        internal HotkeyRegistry Hotkeys { get; } = new HotkeyRegistry();
 
         /// <summary>
         /// Whether or not any instance of the hotkey picker dialog is open

@@ -149,6 +149,7 @@
     <Compile Include="HotkeyDialog.xaml.cs">
       <DependentUpon>HotkeyDialog.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Hotkeys\HotkeyRegistry.cs" />
     <Compile Include="Hotkeys\HotkeyEditorControl.xaml.cs">
       <DependentUpon>HotkeyEditorControl.xaml</DependentUpon>
     </Compile>
