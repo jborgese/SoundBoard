@@ -499,7 +499,8 @@ namespace SoundBoard
                 GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
             }
 
-            // Remove default tabs
+            // Remove the existing tabs; their buttons are discarded, so stop them listening to sounds that may live on
+            GetSoundButtons().ToList().ForEach(button => button.Detach());
             Tabs.Items.Clear();
 
             TabItem selectedTab = null;
@@ -947,6 +948,7 @@ namespace SoundBoard
                     soundButton.Stop();
                     soundButton.UnregisterLocalHotkey();
                     soundButton.UnregisterGlobalHotkey();
+                    soundButton.Detach();
                 }
 
                 // Resize the page and rebuild just this tab from it
@@ -1208,6 +1210,7 @@ namespace SoundBoard
                     soundButton.Stop();
                     soundButton.UnregisterLocalHotkey();
                     soundButton.UnregisterGlobalHotkey();
+                    soundButton.Detach();
                 }
 
                 // Remove the page
@@ -1319,7 +1322,8 @@ namespace SoundBoard
                 string truncatedMessage = Utilities.Truncate(message, SnackbarMessageFont, (int)Width - 50);
                 ShowUndoSnackbar(truncatedMessage);
 
-                // Clear the config from the UI by removing all the tabs, and persist that so the file matches
+                // Clear the config from the UI by removing all the tabs (detaching their buttons from the sounds), and persist that so the file matches
+                GetSoundButtons().ToList().ForEach(button => button.Detach());
                 Tabs.Items.Clear();
                 SaveSettings();
             }
