@@ -136,7 +136,8 @@ the `{local:Loc Key}` markup extension that XAML uses.
 > the mechanism end to end — that a translation reaches the running app, survives the
 > single-file packing, and is caught by the tests when it drifts. Treat `Resources.es.resx`
 > as a worked example of the *shape* of a translation, not as vetted Spanish, and have a
-> speaker of the language check any translation before relying on it.
+> speaker of the language check any translation before relying on it. Corrections to it are as
+> welcome as new languages — open an issue or a pull request.
 
 ### Why the `.csproj` has an `EmbedOwnSatelliteAssemblies` target
 

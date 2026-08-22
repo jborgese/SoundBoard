@@ -87,6 +87,10 @@ when the app restarts (it offers to do that for you).
 Adding a language is a matter of translating one file — see
 [Localization](BUILDING.md#localization) in BUILDING.md. Translations are very welcome.
 
+The Spanish that ships today has not been checked by a native speaker; it is there to prove the
+mechanism works end to end. Corrections are as welcome as new languages — open an issue or a pull
+request.
+
 ## Building from source
 
 SoundBoard is a WPF app on .NET Framework 4.8 built from a classic (non-SDK) `.csproj`. It needs the
