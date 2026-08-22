@@ -39,6 +39,18 @@ namespace SoundBoard
             set => GlobalHotkeyControl.Hotkey = value;
         }
 
+        /// <summary>
+        /// Finds a sound other than the one being edited that already uses <paramref name="hotkey"/> (as either its local or global hotkey), or null.
+        /// </summary>
+        private Sound FindOtherSoundUsing(Hotkey hotkey)
+        {
+            string text = hotkey.ToString();
+
+            return MainWindow.Instance.AllSounds().FirstOrDefault(sound =>
+                !ReferenceEquals(sound, _soundButton.Sound)
+                && (sound.LocalHotkey?.ToString() == text || sound.GlobalHotkey?.ToString() == text));
+        }
+
         private void OKButton_Click(object sender, RoutedEventArgs e)
         {
             WarningLabel.Visibility = Visibility.Hidden;
@@ -55,30 +67,18 @@ namespace SoundBoard
             // See if the local hotkey is used anywhere else
             if (LocalHotkey != null)
             {
-                if (MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb =>
-                    {
-                        return
-                            ((sb.LocalHotkey != null && sb.LocalHotkey.ToString() == LocalHotkey.ToString())
-                             || sb.GlobalHotkey != null && sb.GlobalHotkey.ToString() == LocalHotkey.ToString())
-                            && sb != _soundButton;
-                    }) is SoundButton sb1)
+                if (FindOtherSoundUsing(LocalHotkey) is Sound other)
                 {
-                    WarningLabel.Text += string.Format(Properties.Resources.LocalHotkeyInUse, LocalHotkey, sb1.SoundName);
+                    WarningLabel.Text += string.Format(Properties.Resources.LocalHotkeyInUse, LocalHotkey, other.Name);
                     WarningLabel.Visibility = Visibility.Visible;
                 }
             }
 
             if (GlobalHotkey != null)
             {
-                if (MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb =>
-                    {
-                        return
-                            ((sb.LocalHotkey != null && sb.LocalHotkey.ToString() == GlobalHotkey.ToString())
-                             || sb.GlobalHotkey != null && sb.GlobalHotkey.ToString() == GlobalHotkey.ToString())
-                            && sb != _soundButton;
-                    }) is SoundButton sb2)
+                if (FindOtherSoundUsing(GlobalHotkey) is Sound other)
                 {
-                    WarningLabel.Text += string.Format(Properties.Resources.GlobalHotkeyInuse, GlobalHotkey, sb2.SoundName);
+                    WarningLabel.Text += string.Format(Properties.Resources.GlobalHotkeyInuse, GlobalHotkey, other.Name);
                     WarningLabel.Visibility = Visibility.Visible;
                 }
             }

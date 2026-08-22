@@ -20,7 +20,6 @@ using MahApps.Metro.SimpleChildWindow;
 using NAudio.Wave.SampleProviders;
 using Timer = System.Timers.Timer;
 using ControlPaint = System.Windows.Forms.ControlPaint;
-using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media.Animation;
 using Humanizer;
 using NLog;
@@ -665,7 +664,7 @@ namespace SoundBoard
 
             if (!string.IsNullOrEmpty(ParentButton.NextSound))
             {
-                SoundButton soundButton = MainWindow.Instance.GetSoundButtons().FirstOrDefault(sb => sb.Id == ParentButton.NextSound);
+                SoundButton soundButton = MainWindow.Instance.FindButton(MainWindow.Instance.FindSound(ParentButton.NextSound));
                 if (soundButton?.HasValidSound == true)
                 {
                     Visibility = Visibility.Visible;
@@ -790,7 +789,7 @@ namespace SoundBoard
             }
 
             // Verify that NextSound is valid. Only the real button may repair its sound; a search result shares it.
-            if (Mode == SoundButtonMode.Normal && !MainWindow.Instance.GetSoundButtons().Any(sb => sb.Id == NextSound)) // Do not replace !Any with All
+            if (Mode == SoundButtonMode.Normal && !string.IsNullOrEmpty(NextSound) && MainWindow.Instance.FindSound(NextSound) is null)
             {
                 NextSound = default;
             }
@@ -1673,87 +1672,25 @@ namespace SoundBoard
             return Grid.GetColumn(this);
         }
 
-        public void UnregisterLocalHotkey()
-        {
-            foreach (var existingLocalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateLocalHotKeys.OfType<LocalHotKey>() ?? Enumerable.Empty<LocalHotKey>())
-            {
-                if (existingLocalHotKey.Name == Utilities.SanitizeId(Id))
-                {
-                    try
-                    {
-                        MainWindow.Instance.HotKeyManager.RemoveLocalHotKey(existingLocalHotKey);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Swallow. The hotkey manager may already have dropped it; either way there's nothing more to do.
-                        Logger.Warn(ex, "Failed to unregister local hotkey {0} for sound '{1}'", LocalHotkey, SoundName);
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        public void UnregisterGlobalHotkey()
-        {
-            foreach (var existingGlobalHotKey in MainWindow.Instance.HotKeyManager?.EnumerateGlobalHotKeys.OfType<GlobalHotKey>() ?? Enumerable.Empty<GlobalHotKey>())
-            {
-                if (existingGlobalHotKey.Name == Utilities.SanitizeId(Id))
-                {
-                    try
-                    {
-                        MainWindow.Instance.HotKeyManager.RemoveGlobalHotKey(existingGlobalHotKey);
-                    }
-                    catch (Exception ex)
-                    {
-                        // Swallow. A global hotkey that fails to unregister stays registered with Windows until the process exits.
-                        Logger.Warn(ex, "Failed to unregister global hotkey {0} for sound '{1}'", GlobalHotkey, SoundName);
-                    }
-
-                    break;
-                }
-            }
-        }
+        /// <summary>
+        /// Releases the local hotkey registration made for this button's current sound id, if any. Never throws.
+        /// </summary>
+        public void UnregisterLocalHotkey() => MainWindow.Instance.Hotkeys.UnregisterLocal(Sound);
 
         /// <summary>
-        /// Always wrap this in a try/catch
+        /// Releases the global hotkey registration made for this button's current sound id, if any. Never throws.
         /// </summary>
-        public void ReregisterLocalHotkey()
-        {
-            if (LocalHotkey != null)
-            {
-                Keys mappedKey = Utilities.MapKey(LocalHotkey.Key);
-
-                // The mapping failed
-                if (mappedKey == default)
-                {
-                    throw new Exception($"Key '{LocalHotkey.Key}' has no equivalent in the hotkey manager");
-                }
-
-                LocalHotKey localHotKey = new LocalHotKey(Utilities.SanitizeId(Id), LocalHotkey.Modifiers, mappedKey, RaiseLocalEvent.OnKeyUp, true);
-                MainWindow.Instance.HotKeyManager?.AddLocalHotKey(localHotKey);
-            }
-        }
+        public void UnregisterGlobalHotkey() => MainWindow.Instance.Hotkeys.UnregisterGlobal(Sound);
 
         /// <summary>
-        /// Always wrap this in a try/catch
+        /// Registers this button's local hotkey, if it has one. Always wrap this in a try/catch.
         /// </summary>
-        public void ReregisterGlobalHotkey()
-        {
-            if (GlobalHotkey != null)
-            {
-                Keys mappedKey = Utilities.MapKey(GlobalHotkey.Key);
+        public void ReregisterLocalHotkey() => MainWindow.Instance.Hotkeys.RegisterLocal(Sound);
 
-                // The mapping failed
-                if (mappedKey == default)
-                {
-                    throw new Exception($"Key '{GlobalHotkey.Key}' has no equivalent in the hotkey manager");
-                }
-
-                GlobalHotKey globalHotKey = new GlobalHotKey(Utilities.SanitizeId(Id), GlobalHotkey.Modifiers, mappedKey, true);
-                MainWindow.Instance.HotKeyManager?.AddGlobalHotKey(globalHotKey);
-            }
-        }
+        /// <summary>
+        /// Registers this button's global hotkey, if it has one. Always wrap this in a try/catch.
+        /// </summary>
+        public void ReregisterGlobalHotkey() => MainWindow.Instance.Hotkeys.RegisterGlobal(Sound);
 
         public void CalculateTextMargin()
         {
