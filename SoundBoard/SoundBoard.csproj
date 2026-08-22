@@ -142,6 +142,8 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Audio\PlaybackCoordinator.cs" />
+    <Compile Include="Audio\SoundPlayer.cs" />
     <Compile Include="Buttons.cs" />
     <Compile Include="GlobalSettings.cs" />
     <Compile Include="HotkeyDialog.xaml.cs">

@@ -32,6 +32,7 @@ using MenuItem = System.Windows.Controls.MenuItem;
 using BondTech.HotKeyManagement.WPF._4;
 using System.Windows.Media;
 using NLog;
+using SoundBoard.Audio;
 using SoundBoard.Model;
 using Logger = NLog.Logger;
 using Page = SoundBoard.Model.Page;
@@ -1099,10 +1100,7 @@ namespace SoundBoard
 
         private void silence_Click(object sender, EventArgs e)
         {
-            foreach (IWavePlayer player in SoundPlayers)
-            {
-                player.Stop();
-            }
+            Playback.StopAll();
         }
 
         private void help_Click(object sender, RoutedEventArgs e)
@@ -1937,9 +1935,9 @@ namespace SoundBoard
         public RoutedEventHandler KeyUpHandler => RoutedKeyUpHandler;
 
         /// <summary>
-        /// Contains the list of <see cref="IWavePlayer"/> objects contained in this instance of the MainWindow
+        /// Tracks every sound player that has been started, so they can all be silenced at once
         /// </summary>
-        public List<IWavePlayer> SoundPlayers { get; } = new List<IWavePlayer>();
+        internal PlaybackCoordinator Playback { get; } = new PlaybackCoordinator();
 
         /// <summary>
         /// Returns the <see cref="Font"/> of the <see cref="SnackbarMessage"/>.
@@ -2012,6 +2010,32 @@ namespace SoundBoard
             if (!IsAnySoundPlayingOnTab(soundButton.ParentTab))
             {
                 soundButton.ParentTab.RemoveSoundPlaying();
+            }
+        }
+
+        /// <summary>
+        /// Invoked when a sound reaches its end on its own. Starts the sound it chains to, if any (and if that sound still
+        /// exists and has a file), switching to its tab first.
+        /// </summary>
+        internal void OnSoundFinished(SoundButton soundButton)
+        {
+            Sound next = FindSound(soundButton.NextSound);
+            if (next is null || next.IsEmpty)
+            {
+                return;
+            }
+
+            if (FindButton(next) is SoundButton nextSoundButton)
+            {
+                Logger.Debug("'{0}' finished; chaining to '{1}'", soundButton.SoundName, next.Name);
+
+                // If the next sound isn't on the current tab, focus that tab.
+                if (nextSoundButton.ParentTab != SelectedTab)
+                {
+                    nextSoundButton.ParentTab.Focus();
+                }
+
+                nextSoundButton.StartSound();
             }
         }
 
