@@ -25,7 +25,9 @@ history and release tags.
 - Build: NuGet dependencies moved from `packages.config` to `PackageReference`
   (`msbuild /restore`; no `nuget.exe` or `packages\` folder needed), Fody 5.1.1 → 6.9.3 and
   Costura.Fody 4.0.0 → 6.2.0.
-- Dependencies: System.Reactive 5.0.0 → 6.1.0, MouseKeyHook 5.6.0 → 5.7.1, NAudio 1.9.0 → 2.2.1.
+- Dependencies: System.Reactive 5.0.0 → 6.1.0, MouseKeyHook 5.6.0 → 5.7.1, NAudio 1.9.0 → 2.2.1,
+  MahApps.Metro 1.6.5 → 2.4.11 (with ControlzEx 5.0.2 and MahApps.Metro.SimpleChildWindow 2.2.1).
+  The UI looks the same apart from slightly wider Windows-10-style title bar buttons.
 ### Removed
 - Extended.Wpf.Toolkit (Xceed) dependency: the row/column spinners in the "Change button grid"
   dialog are now MahApps `NumericUpDown` controls (newer Xceed versions are under a

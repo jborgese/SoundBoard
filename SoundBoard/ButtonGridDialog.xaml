@@ -16,7 +16,7 @@
              CloseByEscape="true">
 
     <simpleChildWindow:ChildWindow.OverlayBrush>
-        <SolidColorBrush Opacity="0.7" Color="{StaticResource BlackColor}" />
+        <SolidColorBrush Opacity="0.7" Color="{StaticResource MahApps.Colors.ThemeForeground}" />
     </simpleChildWindow:ChildWindow.OverlayBrush>
 
     <!-- Content -->

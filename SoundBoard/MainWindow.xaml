@@ -10,7 +10,7 @@
         SaveWindowPosition="True"
     
         BorderThickness="1" 
-        GlowBrush="{DynamicResource AccentColorBrush}"
+        GlowBrush="{DynamicResource MahApps.Brushes.Accent}"
         ResizeMode="CanResizeWithGrip"
         Loaded="Window_Loaded"
         OverlayFadeIn="{StaticResource OverlayFastSemiFadeIn}"
@@ -50,7 +50,7 @@
                              TextAlignment="Center"/>
                     
                     <Button x:Name="UndoButton"
-                            Style="{StaticResource SquareButtonStyle}"
+                            Style="{StaticResource MahApps.Styles.Button.Square}"
                             BorderThickness="0"
                             Grid.Column="2"
                             Controls:ControlsHelper.ContentCharacterCasing="Normal"
@@ -62,7 +62,7 @@
                             Click="UndoButton_Click"/>
                     
                     <Button x:Name="CloseSnackbarButton" 
-                            Style="{StaticResource SquareButtonStyle}"
+                            Style="{StaticResource MahApps.Styles.Button.Square}"
                             BorderThickness="0"
                             Grid.Column="3"
                             FontSize="20"
@@ -98,7 +98,8 @@
     </Controls:MetroWindow.CommandBindings>
 
     <Grid>
-        <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs">
+        <TabControl xmlns:Controls="http://metro.mahapps.com/winfx/xaml/controls" Name="Tabs"
+                    Style="{StaticResource MahApps.Styles.TabControl.AnimatedSingleRow}">
             <!-- Must be a MyMetroTabItem: LoadSettings casts this placeholder when building the welcome page. -->
             <local:MyMetroTabItem>
             </local:MyMetroTabItem>
