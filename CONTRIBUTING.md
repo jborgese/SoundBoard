@@ -65,8 +65,31 @@ and stays that way.
 
 ## Localization
 
-User-facing strings live in `SoundBoard/Properties/Resources.resx`; use `Properties.Resources.<Name>`
-rather than a literal, and add new strings there.
+User-facing strings live in `SoundBoard/Properties/Resources.resx`. Never write a literal: use
+`Properties.Resources.<Name>` from C#, and `{soundBoard:Loc <Name>}` from XAML.
+
+`Resources.resx` is the neutral (English) source of truth. Each translation is a sibling
+`Resources.<tag>.resx` — today only `Resources.es.resx` — compiled into a satellite assembly and
+embedded in the single-file exe.
+
+**Touching a string means touching every translation**, and the tests enforce it, so a change that
+compiles can still fail the suite. `SoundBoard.Tests/LocalizationTests.cs` fails when a translation is
+missing a string the neutral file defines, still has one the neutral file has dropped, or uses a
+different set of `{0}` placeholders. So:
+
+* adding a string → add it to `Resources.es.resx` too;
+* removing one → remove it there too;
+* changing the placeholders in a format string → keep them identical in both.
+
+If you cannot translate it well, say so in the pull request and put the English text in the translation
+rather than guessing — the Spanish that ships today is a worked example rather than vetted Spanish, and
+is documented as such.
+
+Adding a whole new language is a three-step checklist — the `.resx`, an entry in `SoundBoard.csproj`, and
+the tag in `TranslatedLanguageTags` — and you need all three. Miss the last one and nothing complains:
+the build is green, the tests pass, and the language simply never appears in the menu, because the tests
+only check languages that are registered. The steps are in
+[Localization](BUILDING.md#localization) in BUILDING.md.
 
 ## License
 
