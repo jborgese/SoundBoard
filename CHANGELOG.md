@@ -12,6 +12,8 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-08-23
+
 ### Changed
 - **Looping can be turned on and off while a sound is playing.** The loop button used to be
   disabled for as long as the sound ran, so the only way to change it was to stop the sound first.
