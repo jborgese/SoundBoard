@@ -12,6 +12,27 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-23
+
+### Added
+- A **progress bar** along the bottom edge of every sound. It is there whenever the button has a
+  sound, so every card has the same shape: empty while the sound is stopped, filling as it plays,
+  holding while paused, and empty again when it stops. A looping sound's bar runs to the end and
+  starts over. It is drawn in black or white, whichever reads on the sound's colour, like the
+  controls above it.
+
+### Changed
+- The controls on a sound are now laid out in groups — **play/pause, stop, loop**, then
+  **mute, solo**, then **remove** — with a little space between them, so the one control that
+  cannot be undone with another click no longer sits flush against the toggles beside it. The
+  volume slider now spans the full width of the row beneath it, and the strip sits slightly
+  higher, in line with the **···** button, clear of the progress bar.
+
+### Fixed
+- The progress bar that was meant to appear while a sound played almost never did: the loop
+  that moved it along mistook "nothing read from the file yet" on its first tick for "the sound
+  has stopped", and gave up before drawing anything.
+
 ## [1.12.0] - 2026-08-23
 
 ### Added
