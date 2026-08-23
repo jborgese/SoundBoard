@@ -166,15 +166,6 @@ namespace SoundBoard
         }
 
         #endregion
-
-        #region Public properties
-
-        /// <summary>
-        /// Whether or not this button should participate in automatic showing/hiding in relation to sounds playing/stopping
-        /// </summary>
-        public bool ShowHideAutomatically { get; set; } = true;
-
-        #endregion
     }
 
     #endregion
@@ -228,12 +219,134 @@ namespace SoundBoard
 
     #endregion
 
+    #region TransportButtonBase class
+
+    /// <summary>
+    /// Base class for the controls in a sound button's <see cref="SoundButtonControlStrip"/>. Smaller and more tightly
+    /// packed than the buttons in the corners of a sound button, because six of these have to sit side by side.
+    /// </summary>
+    internal abstract class TransportButtonBase : MenuButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        protected TransportButtonBase(SoundButton parentButton) : base(parentButton)
+        {
+            Width = ButtonSize;
+            Height = ButtonSize;
+            Margin = new Thickness(ButtonSpacing, 0, ButtonSpacing, 0);
+            Padding = new Thickness(0);
+            VerticalAlignment = VerticalAlignment.Center;
+            HorizontalAlignment = HorizontalAlignment.Center;
+
+            // Loop disables itself while the sound plays, and its tool tip is where the reason for that is written down
+            ToolTipService.SetShowOnDisabled(this, true);
+        }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Redraws the control from the state of the sound it belongs to. Called whenever anything the strip shows changes:
+        /// playback starting or stopping, a setting being toggled, or a different sound arriving on the button.
+        /// </summary>
+        public virtual void Update() => SetUpStyle();
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void SetUpStyle()
+        {
+            Color iconColor = Mode == ColorMode.Dark ? Colors.White : Colors.Black;
+
+            Style style = new Style(GetType(), (Style)FindResource(@"MahApps.Styles.Button.Circle"));
+            style.Setters.Add(new Setter(BorderBrushProperty, new SolidColorBrush(iconColor)));
+
+            if (ToggleState == true)
+            {
+                // A wash of the icon's own color: translucent enough that the icon on top of it stays readable, which
+                // an opaque fill would not be, since the icon is drawn in that very color.
+                byte alpha = Mode == ColorMode.Dark ? LitAlphaOnDark : LitAlphaOnLight;
+                style.Setters.Add(new Setter(BackgroundProperty, new SolidColorBrush(Color.FromArgb(alpha, iconColor.R, iconColor.G, iconColor.B))));
+            }
+
+            Style = style;
+
+            IsEnabled = IsAvailable;
+
+            // A toggle that is off recedes, and so does a control there is currently nothing to do with. The MahApps circle
+            // style barely marks a disabled button, and on a strip of six a control has to say plainly that it is inert.
+            Opacity = !IsAvailable || ToggleState == false ? DimmedOpacity : 1;
+
+            Content = CreateContent();
+            ToolTip = CreateToolTip();
+        }
+
+        #endregion
+
+        #region Protected methods
+
+        /// <summary>
+        /// Builds the icon shown on the control, for the sound's current state and the current <see cref="MenuButtonBase.Mode"/>.
+        /// </summary>
+        protected abstract object CreateContent();
+
+        /// <summary>
+        /// The tool tip to show, for the sound's current state.
+        /// </summary>
+        protected abstract string CreateToolTip();
+
+        /// <summary>
+        /// For a toggle, whether it is currently on. Null for a control that is not a toggle, which is neither lit nor dimmed.
+        /// </summary>
+        protected virtual bool? ToggleState => null;
+
+        /// <summary>
+        /// Whether the control can be used right now. A control that cannot is disabled and dimmed, and says why in its
+        /// tool tip (which is why the strip shows tool tips on disabled controls).
+        /// </summary>
+        protected virtual bool IsAvailable => true;
+
+        #endregion
+
+        #region Protected consts
+
+        /// <summary>
+        /// Size of the icon drawn inside the control.
+        /// </summary>
+        protected const int IconSize = 14;
+
+        #endregion
+
+        #region Private consts
+
+        private const int ButtonSize = 30;
+
+        private const int ButtonSpacing = 2;
+
+        private const double DimmedOpacity = 0.5;
+
+        private const byte LitAlphaOnDark = 0x55;
+
+        private const byte LitAlphaOnLight = 0x38;
+
+        #endregion
+    }
+
+    #endregion
+
     #region PlayPauseButton class
 
     /// <summary>
-    /// Defines a menu button that is placed on a sound button to offer play/pause functionality
+    /// Starts the sound, or pauses and resumes it once it is running.
     /// </summary>
-    internal sealed class PlayPauseButton : HideableMenuButtonBase
+    internal sealed class PlayPauseButton : TransportButtonBase
     {
         #region Constructor
 
@@ -243,68 +356,39 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public PlayPauseButton(SoundButton parentButton) : base(parentButton)
         {
-            VerticalAlignment = VerticalAlignment.Bottom;
-            HorizontalAlignment = HorizontalAlignment.Center;
-            Margin = new Thickness(0, Margin.Top, Width, Margin.Bottom);
-
-            Visibility = Visibility.Hidden; // Hidden by default
         }
 
         #endregion
 
         #region Overrides
 
+        /// <inheritdoc />
         protected override void OnClick()
         {
             base.OnClick();
 
-            if (_playing)
+            if (ParentButton.IsPlaying)
             {
                 ParentButton.Pause();
-                _playing = false;
-                ParentButton.Host.OnAnySoundStopped(ParentButton);
-                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, Mode == ColorMode.Dark);
             }
-            else
+            else if (ParentButton.IsPaused)
             {
                 ParentButton.Play();
-                _playing = true;
-                ParentButton.Host.OnAnySoundStarted(ParentButton);
-                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
-            }
-        }
-
-        public override void SetMode(ColorMode mode = ColorMode.Dark)
-        {
-            base.SetMode(mode);
-
-            if (_playing)
-            {
-                Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, mode == ColorMode.Dark);
             }
             else
             {
-                Content = ImageHelper.GetImage(ImageHelper.PlayButtonPath, 11, 11, mode == ColorMode.Dark);
+                ParentButton.StartSound();
             }
         }
 
-        #endregion
+        /// <inheritdoc />
+        protected override object CreateContent() => ImageHelper.GetImage(
+            ParentButton?.IsPlaying == true ? ImageHelper.PauseButtonPath : ImageHelper.PlayButtonPath,
+            IconSize, IconSize, Mode == ColorMode.Dark);
 
-        #region Public methods
-
-        public override void Show()
-        {
-            base.Show();
-
-            Content = ImageHelper.GetImage(ImageHelper.PauseButtonPath, 11, 11, Mode == ColorMode.Dark);
-            _playing = true;
-        }
-
-        #endregion
-
-        #region Private fields
-
-        private bool _playing = false;
+        /// <inheritdoc />
+        protected override string CreateToolTip() =>
+            ParentButton?.IsPlaying == true ? Properties.Resources.Pause : Properties.Resources.Play;
 
         #endregion
     }
@@ -314,9 +398,9 @@ namespace SoundBoard
     #region StopButton class
 
     /// <summary>
-    /// Defines a menu button that is placed on a sound button to offer individual silencing (stopping) functionality
+    /// Stops this one sound, leaving every other sound playing.
     /// </summary>
-    internal sealed class StopButton : HideableMenuButtonBase
+    internal sealed class StopButton : TransportButtonBase
     {
         #region Constructor
 
@@ -326,19 +410,18 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public StopButton(SoundButton parentButton) : base(parentButton)
         {
-            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11, Mode == ColorMode.Dark);
-
-            VerticalAlignment = VerticalAlignment.Bottom;
-            HorizontalAlignment = HorizontalAlignment.Center;
-            Margin = new Thickness(Width, Margin.Top, 0, Margin.Bottom);
-
-            Visibility = Visibility.Hidden; // Hidden by default
         }
 
         #endregion
 
         #region Overrides
 
+        /// <summary>
+        /// There is nothing to stop until the sound is running.
+        /// </summary>
+        protected override bool IsAvailable => ParentButton?.IsPlaying == true || ParentButton?.IsPaused == true;
+
+        /// <inheritdoc />
         protected override void OnClick()
         {
             base.OnClick();
@@ -346,12 +429,282 @@ namespace SoundBoard
             ParentButton.Stop();
         }
 
-        public override void SetMode(ColorMode mode = ColorMode.Dark)
-        {
-            base.SetMode(mode);
+        /// <inheritdoc />
+        protected override object CreateContent() =>
+            ImageHelper.GetImage(ImageHelper.StopButtonPath, IconSize, IconSize, Mode == ColorMode.Dark);
 
-            Content = ImageHelper.GetImage(ImageHelper.StopButtonPath, 11, 11, mode == ColorMode.Dark);
+        /// <inheritdoc />
+        protected override string CreateToolTip() => Properties.Resources.Stop;
+
+        #endregion
+    }
+
+    #endregion
+
+    #region LoopButton class
+
+    /// <summary>
+    /// Toggles whether the sound repeats until it is stopped.
+    /// </summary>
+    internal sealed class LoopButton : TransportButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public LoopButton(SoundButton parentButton) : base(parentButton)
+        {
         }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override bool? ToggleState => ParentButton?.Loop;
+
+        /// <summary>
+        /// Whether a sound loops is decided by the stream it is started on, so it cannot be changed part-way through.
+        /// </summary>
+        protected override bool IsAvailable => ParentButton?.IsPlaying != true;
+
+        /// <inheritdoc />
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            ParentButton.ToggleLoop();
+        }
+
+        /// <inheritdoc />
+        protected override object CreateContent() =>
+            ImageHelper.GetImage(ImageHelper.LoopIconPath, IconSize, IconSize, Mode == ColorMode.Dark);
+
+        /// <inheritdoc />
+        protected override string CreateToolTip()
+        {
+            if (ParentButton?.IsPlaying == true)
+            {
+                return Properties.Resources.LoopCannotBeChangedWhilePlaying;
+            }
+
+            return ParentButton?.Loop == true ? Properties.Resources.SoundSetToLoop : Properties.Resources.Loop;
+        }
+
+        #endregion
+    }
+
+    #endregion
+
+    #region MuteButton class
+
+    /// <summary>
+    /// Toggles whether the sound is heard. A muted sound still plays — it runs its progress bar and chains to its next
+    /// sound as usual — so muting part-way through does not lose the place in it.
+    /// </summary>
+    internal sealed class MuteButton : TransportButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public MuteButton(SoundButton parentButton) : base(parentButton)
+        {
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override bool? ToggleState => ParentButton?.Muted;
+
+        /// <inheritdoc />
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            ParentButton.ToggleMuted();
+        }
+
+        /// <inheritdoc />
+        protected override object CreateContent() =>
+            ImageHelper.GetMuteIcon(IconSize, Mode == ColorMode.Dark, ParentButton?.Muted == true);
+
+        /// <inheritdoc />
+        protected override string CreateToolTip() =>
+            ParentButton?.Muted == true ? Properties.Resources.Unmute : Properties.Resources.Mute;
+
+        #endregion
+    }
+
+    #endregion
+
+    #region SoloButton class
+
+    /// <summary>
+    /// Toggles soloing: while anything on the board is soloed, everything that is not is silenced.
+    /// </summary>
+    internal sealed class SoloButton : TransportButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public SoloButton(SoundButton parentButton) : base(parentButton)
+        {
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override bool? ToggleState => ParentButton?.IsSoloed;
+
+        /// <inheritdoc />
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            ParentButton.ToggleSolo();
+        }
+
+        /// <inheritdoc />
+        protected override object CreateContent() => ImageHelper.GetSoloIcon(IconSize, Mode == ColorMode.Dark);
+
+        /// <inheritdoc />
+        protected override string CreateToolTip() => ParentButton?.IsSoloed == true
+            ? Properties.Resources.Unsolo
+            : $"{Properties.Resources.Solo} — {Properties.Resources.SoloToolTip}";
+
+        #endregion
+    }
+
+    #endregion
+
+    #region RemoveButton class
+
+    /// <summary>
+    /// Clears the sound off the button. Undoable through the snackbar, exactly as the context menu's Clear is.
+    /// </summary>
+    internal sealed class RemoveButton : TransportButtonBase
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public RemoveButton(SoundButton parentButton) : base(parentButton)
+        {
+        }
+
+        #endregion
+
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void OnClick()
+        {
+            base.OnClick();
+
+            ParentButton.ClearWithUndo();
+        }
+
+        /// <inheritdoc />
+        protected override object CreateContent() =>
+            ImageHelper.GetImage(ImageHelper.XIconPath, IconSize, IconSize, Mode == ColorMode.Dark);
+
+        /// <inheritdoc />
+        protected override string CreateToolTip() => Properties.Resources.Clear;
+
+        #endregion
+    }
+
+    #endregion
+
+    #region SoundButtonControlStrip class
+
+    /// <summary>
+    /// The row of controls along the bottom of a sound button: play/pause, stop, loop, mute, solo and remove. Shown on any
+    /// button that has a sound and hidden on an empty one.
+    /// </summary>
+    /// <remarks>
+    /// A <see cref="Viewbox"/> rather than a bare panel so that six controls still fit on a button in a wide grid: the strip
+    /// shrinks to whatever room it is given instead of overflowing (and it never grows past the controls' natural size).
+    /// </remarks>
+    internal sealed class SoundButtonControlStrip : Viewbox
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public SoundButtonControlStrip(SoundButton parentButton)
+        {
+            _parentButton = parentButton ?? throw new ArgumentNullException(nameof(parentButton));
+
+            Buttons = new List<TransportButtonBase>
+            {
+                new PlayPauseButton(parentButton),
+                new StopButton(parentButton),
+                new LoopButton(parentButton),
+                new MuteButton(parentButton),
+                new SoloButton(parentButton),
+                new RemoveButton(parentButton)
+            };
+
+            StackPanel panel = new StackPanel {Orientation = Orientation.Horizontal};
+            Buttons.ForEach(button => panel.Children.Add(button));
+            Child = panel;
+
+            Stretch = Stretch.Uniform;
+            StretchDirection = StretchDirection.DownOnly;
+            HorizontalAlignment = HorizontalAlignment.Center;
+            VerticalAlignment = VerticalAlignment.Bottom;
+
+            // Wide enough margins to keep clear of the icons in the two bottom corners, and high enough to clear the progress bar
+            Margin = new Thickness(50, 0, 50, 14);
+
+            Update();
+        }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Shows or hides the strip depending on whether there is a sound to control, and redraws every control on it.
+        /// </summary>
+        public void Update()
+        {
+            Visibility = _parentButton.HasValidSound ? Visibility.Visible : Visibility.Collapsed;
+
+            Buttons.ForEach(button => button.Update());
+        }
+
+        #endregion
+
+        #region Public properties
+
+        /// <summary>
+        /// The controls on the strip, in the order they appear.
+        /// </summary>
+        public List<TransportButtonBase> Buttons { get; }
+
+        #endregion
+
+        #region Private fields
+
+        private readonly SoundButton _parentButton;
 
         #endregion
     }
@@ -373,8 +726,6 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         protected IconButtonBase(SoundButton parentButton) : base(parentButton)
         {
-            ShowHideAutomatically = false;
-
             HorizontalAlignment = HorizontalAlignment.Right;
             VerticalAlignment = VerticalAlignment.Bottom;
 
@@ -401,48 +752,6 @@ namespace SoundBoard
 
     #endregion
 
-    #region LoopIconButton class
-
-    internal sealed class LoopIconButton : IconButtonBase
-    {
-        #region Constructor
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="parentButton"></param>
-        public LoopIconButton(SoundButton parentButton) : base(parentButton)
-        {
-            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 25);
-            ToolTip = Properties.Resources.SoundSetToLoop;
-
-            if (ParentButton.Loop)
-            {
-                Show();
-            }
-            else
-            {
-                Hide();
-            }
-
-            SetUpStyle();
-        }
-
-        #endregion
-
-        #region Overrides
-
-        /// <inheritdoc />
-        protected override void SetUpStyle()
-        {
-            Content = ImageHelper.GetImage(ImageHelper.LoopIconPath, 13, 13, Mode == ColorMode.Dark);
-        }
-
-        #endregion
-    }
-
-    #endregion
-
     #region VolumeOffsetIconButton class
 
     internal sealed class VolumeOffsetIconButton : IconButtonBase
@@ -455,7 +764,8 @@ namespace SoundBoard
         /// <param name="parentButton"></param>
         public VolumeOffsetIconButton(SoundButton parentButton) : base(parentButton)
         {
-            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 45);
+            // Takes the slot the loop indicator used to occupy, now that looping is shown on the control strip instead
+            Margin = new Thickness(Margin.Left, Margin.Top, Margin.Right, Margin.Bottom + 25);
             FontWeight = FontWeights.SemiBold;
 
             SetUpStyle();
@@ -753,6 +1063,10 @@ namespace SoundBoard
             FontSize = 20;
             Margin = new Thickness(10);
 
+            // The text has to leave room for the control strip, and how much room that needs depends on how tall the button
+            // has ended up. Nothing is measured yet at this point, so re-fit it whenever the grid gives the button a size.
+            SizeChanged += (_, __) => CalculateTextMargin();
+
             // Search results share the source cell's Sound, so they must never be a drop target: a drop would rewrite
             // the real sound without the real button knowing.
             AllowDrop = soundButtonMode == SoundButtonMode.Normal;
@@ -841,37 +1155,7 @@ namespace SoundBoard
             Host.ResumeTypeToSearch();
         }
 
-        private void ClearMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (IsSelected)
-            {
-                TabPageSoundsUndoState tabPageSoundsUndoState = ((IUndoable<TabPageSoundsUndoState>)Host).SaveState();
-
-                // Set up our UndoAction
-                Host.SetUndoAction(() => { Host.LoadState(tabPageSoundsUndoState); });
-
-                // Create and show a snackbar
-                string message = Properties.Resources.MultipleSoundsClearedFromTab;
-                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, Host.SnackbarMessageFont, (int)Width - 50, message);
-                Host.ShowUndoSnackbar(string.Format(message, truncatedTabName));
-
-                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
-            }
-            else
-            {
-                Sound soundUndoState = SaveState();
-
-                // Set up our UndoAction
-                Host.SetUndoAction(() => { LoadState(soundUndoState); });
-
-                // Create and show a snackbar
-                string message = Properties.Resources.SoundWasCleared;
-                string truncatedSoundName = Utilities.Truncate(SoundName, Host.SnackbarMessageFont, (int)Host.WindowWidth - 50, message);
-                Host.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
-
-                ClearButton();
-            }
-        }
+        private void ClearMenuItem_Click(object sender, RoutedEventArgs e) => ClearWithUndo();
 
         private void ChooseSoundMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -1101,19 +1385,7 @@ namespace SoundBoard
             }
         }
 
-        private void LoopMenuItem_Click(object sender, RoutedEventArgs e)
-        {
-            if (IsSelected)
-            {
-                bool anyNotLooped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
-
-                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
-            }
-            else
-            {
-                Loop = !Loop;
-            }
-        }
+        private void LoopMenuItem_Click(object sender, RoutedEventArgs e) => ToggleLoop();
 
         private void StopAllSoundsMenuItem_Click(object sender, RoutedEventArgs e)
         {
@@ -1454,18 +1726,15 @@ namespace SoundBoard
                 // Register before starting so that a sound which begins playing can always be silenced, even if Start fails part-way
                 Host.Playback.Register(_player);
 
+                // Whether this sound is heard is settled before it starts, so that a muted or non-soloed sound never leaks
+                // its first buffer at full volume
+                ApplyEffectiveMute();
+
                 // Aaaaand play
                 _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
 
-                // Show the additional buttons (only now: if Start threw, nothing is playing and they must stay hidden)
-                foreach (HideableMenuButtonBase hideableButton in ChildButtons
-                    .OfType<HideableMenuButtonBase>()
-                    .Where(hideableButton => hideableButton.ShowHideAutomatically))
-                {
-                    hideableButton.Show();
-                }
-
-                CalculateTextMargin();
+                // Turn play into pause, enable stop, and lock looping (only now: if Start threw, nothing is playing)
+                UpdateTransportControls();
 
                 Host.OnAnySoundStarted(this);
 
@@ -1555,8 +1824,131 @@ namespace SoundBoard
         public void ClearButton()
         {
             Stop();
+
+            // An empty button has no control strip to unsolo it from, so it must not be left holding the rest of the board silent
+            if (IsSoloed)
+            {
+                IsSoloed = false;
+            }
+
             Color = null;
             SetFile(string.Empty);
+        }
+
+        /// <summary>
+        /// Clears this button — or every selected button, if this one is part of a multi-selection — and offers the clearing
+        /// back through the undo snackbar. Behind both the context menu's Clear and the control strip's remove.
+        /// </summary>
+        public void ClearWithUndo()
+        {
+            if (IsSelected)
+            {
+                TabPageSoundsUndoState tabPageSoundsUndoState = ((IUndoable<TabPageSoundsUndoState>)Host).SaveState();
+
+                // Set up our UndoAction
+                Host.SetUndoAction(() => { Host.LoadState(tabPageSoundsUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.MultipleSoundsClearedFromTab;
+                string truncatedTabName = Utilities.Truncate(ParentTab.HeaderText, Host.SnackbarMessageFont, (int)Width - 50, message);
+                Host.ShowUndoSnackbar(string.Format(message, truncatedTabName));
+
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.ClearButton());
+            }
+            else
+            {
+                Sound soundUndoState = SaveState();
+
+                // Set up our UndoAction
+                Host.SetUndoAction(() => { LoadState(soundUndoState); });
+
+                // Create and show a snackbar
+                string message = Properties.Resources.SoundWasCleared;
+                string truncatedSoundName = Utilities.Truncate(SoundName, Host.SnackbarMessageFont, (int)Host.WindowWidth - 50, message);
+                Host.ShowUndoSnackbar(string.Format(message, truncatedSoundName));
+
+                ClearButton();
+            }
+        }
+
+        /// <summary>
+        /// Turns looping on or off. Applies to every selected button when this one is part of a multi-selection.
+        /// </summary>
+        public void ToggleLoop()
+        {
+            if (IsSelected)
+            {
+                bool anyNotLooped = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Loop);
+
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Loop = anyNotLooped);
+            }
+            else
+            {
+                Loop = !Loop;
+            }
+        }
+
+        /// <summary>
+        /// Mutes or unmutes the sound, taking effect immediately even if it is already playing. Applies to every selected
+        /// button when this one is part of a multi-selection.
+        /// </summary>
+        public void ToggleMuted()
+        {
+            if (IsSelected)
+            {
+                // Match the other multi-selection toggles: if any selected sound is still audible, mute the lot
+                bool anyUnmuted = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Muted);
+
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Muted = anyUnmuted);
+            }
+            else
+            {
+                Muted = !Muted;
+            }
+        }
+
+        /// <summary>
+        /// Solos or unsolos the sound. Applies to every selected button when this one is part of a multi-selection.
+        /// </summary>
+        public void ToggleSolo()
+        {
+            if (IsSelected)
+            {
+                bool anyUnsoloed = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.IsSoloed);
+
+                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb._isSoloed = anyUnsoloed);
+            }
+            else
+            {
+                _isSoloed = !_isSoloed;
+            }
+
+            // One notification for the whole change: every sound on the board has to be re-evaluated either way
+            Host.OnSoloChanged();
+        }
+
+        /// <summary>
+        /// Silences or unsilences this button's playback to match its own mute setting and whether anything else on the board
+        /// is soloed. Takes effect on a sound that is already playing.
+        /// </summary>
+        /// <param name="isAnySoundSoloed">
+        /// Whether anything on the board is soloed. Passed in so that a board-wide update works it out once rather than once
+        /// per button.
+        /// </param>
+        public void ApplyEffectiveMute(bool? isAnySoundSoloed = null)
+        {
+            bool anySoloed = isAnySoundSoloed ?? Host.IsAnySoundSoloed;
+
+            _player.IsMuted = Muted || (anySoloed && !IsSoloed);
+        }
+
+        /// <summary>
+        /// Redraws the control strip (and re-fits the button's text around it) after anything it shows has changed.
+        /// </summary>
+        public void UpdateTransportControls()
+        {
+            ControlStrip?.Update();
+            CalculateTextMargin();
         }
 
         /// <summary>
@@ -1587,12 +1979,25 @@ namespace SoundBoard
         /// <summary>
         /// Resumes the sound
         /// </summary>
-        public void Play() => _player.Resume();
+        public void Play()
+        {
+            _player.Resume();
+
+            // Nothing is raised for a resume, so the tab indicator and the control strip have to be told
+            Host.OnAnySoundStarted(this);
+            UpdateTransportControls();
+        }
 
         /// <summary>
         /// Pauses the sound
         /// </summary>
-        public void Pause() => _player.Pause();
+        public void Pause()
+        {
+            _player.Pause();
+
+            Host.OnAnySoundStopped(this);
+            UpdateTransportControls();
+        }
 
         /// <summary>
         /// Stops the sound
@@ -1699,7 +2104,7 @@ namespace SoundBoard
         {
             if (_viewboxPanel != null && _textBlock != null)
             {
-                if (AreTransportControlsVisible // We only shrink when playing
+                if (AreTransportControlsVisible // We only shrink when there is a control strip to make room for
                     && _viewboxPanel.ActualHeight - _textBlock.ActualHeight < 50 // There's not enough room to comfortable display everything
                     && _targetViewboxMarginBottom < 30) // We haven't done this yet
                 {
@@ -1720,7 +2125,7 @@ namespace SoundBoard
                     _textMarginStoryboard.Children.Add(animation);
                     _textMarginStoryboard.Begin();
                 }
-                else if (!AreTransportControlsVisible // Always reset when not playing
+                else if (!AreTransportControlsVisible // Always reset when there is no strip (an empty button)
                          || (_targetViewboxMarginBottom > 0 && ((_viewboxPanel.ActualHeight + _targetViewboxMarginBottom) - _textBlock.ActualHeight) >= 50)) // The bottom margin is set, but the height that it would be without it set is sufficient
                 {
                     _textMarginStoryboard.Stop();
@@ -1773,7 +2178,8 @@ namespace SoundBoard
             ChildButtons.OfType<StopAllSoundsIconButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<HotkeyIndicatorButton>().FirstOrDefault()?.Update();
             ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
-            UpdateLoopIcon();
+            UpdateTransportControls();
+            ApplyEffectiveMute();
 
             Host.OnAnySoundRenamed();
 
@@ -1824,6 +2230,9 @@ namespace SoundBoard
                     UpdateContent();
                     SetUpStyle();
                     SetUpContextMenu();
+
+                    // The control strip belongs to the sound, so it appears and disappears with one
+                    UpdateTransportControls();
                     break;
 
                 case nameof(Model.Sound.Name):
@@ -1840,7 +2249,12 @@ namespace SoundBoard
                     break;
 
                 case nameof(Model.Sound.Loop):
-                    UpdateLoopIcon();
+                    UpdateTransportControls();
+                    break;
+
+                case nameof(Model.Sound.Muted):
+                    ApplyEffectiveMute();
+                    UpdateTransportControls();
                     break;
 
                 case nameof(Model.Sound.StopAllSounds):
@@ -1859,18 +2273,6 @@ namespace SoundBoard
         }
 
         private void UpdateContent() => SetContent(Sound.IsEmpty ? Properties.Resources.DragASoundHere : SoundName);
-
-        private void UpdateLoopIcon()
-        {
-            if (Loop)
-            {
-                ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Show();
-            }
-            else
-            {
-                ChildButtons.OfType<LoopIconButton>().FirstOrDefault()?.Hide();
-            }
-        }
 
         /// <summary>
         /// Returns false as long as there is still processing to perform.
@@ -2226,15 +2628,8 @@ namespace SoundBoard
         {
             _progressBarCancellationToken?.Cancel();
 
-            // Hide the additional buttons
-            foreach (HideableMenuButtonBase hideableButton in ChildButtons
-                .OfType<HideableMenuButtonBase>()
-                .Where(hideableButton => hideableButton.ShowHideAutomatically))
-            {
-                hideableButton.Hide();
-            }
-
-            CalculateTextMargin();
+            // Turn pause back into play, disable stop, and unlock looping
+            UpdateTransportControls();
 
             Host.OnAnySoundStopped(this);
 
@@ -2487,6 +2882,35 @@ namespace SoundBoard
             private set => Sound.Loop = value;
         }
 
+        /// <summary>
+        /// Whether this sound is silenced. Saved with the sound, so a muted sound comes back muted.
+        /// </summary>
+        public bool Muted
+        {
+            get => Sound.Muted;
+            private set => Sound.Muted = value;
+        }
+
+        /// <summary>
+        /// Whether this sound is soloed, which silences every sound that is not. Live mixer state: it is not saved with the
+        /// sound, so the board never starts up with something soloed and everything else inexplicably silent.
+        /// </summary>
+        /// <remarks>
+        /// Set through <see cref="ToggleSolo"/> rather than directly, so that the rest of the board is told to re-evaluate.
+        /// </remarks>
+        public bool IsSoloed
+        {
+            get => _isSoloed;
+            private set
+            {
+                if (_isSoloed == value) return;
+
+                _isSoloed = value;
+                Host.OnSoloChanged();
+            }
+        }
+        private bool _isSoloed;
+
         public bool StopAllSounds
         {
             get => Sound.StopAllSounds;
@@ -2515,6 +2939,12 @@ namespace SoundBoard
         /// Contains a list of child buttons
         /// </summary>
         public ICollection<MenuButtonBase> ChildButtons { get; } = new List<MenuButtonBase>();
+
+        /// <summary>
+        /// The play/pause, stop, loop, mute, solo and remove controls along the bottom of this button. Null in
+        /// <see cref="SoundButtonMode.Search"/>, where a result is a plain button with no controls of its own.
+        /// </summary>
+        public SoundButtonControlStrip ControlStrip { get; set; }
 
         /// <summary>
         /// When in <see cref="SoundButtonMode.Search"/>, this property specifies the underlying <see cref="MetroTabItem"/> and <see cref="SoundButton"/>
@@ -2550,7 +2980,12 @@ namespace SoundBoard
 
         public bool IsPlaying => _player.IsPlaying;
 
-        public bool AreTransportControlsVisible => ChildButtons.OfType<HideableMenuButtonBase>().Where(b => b.ShowHideAutomatically).Any(b => b.Visibility == Visibility.Visible);
+        /// <summary>
+        /// True while the sound has been started and paused, as opposed to stopped or never started.
+        /// </summary>
+        public bool IsPaused => _player.IsPaused;
+
+        public bool AreTransportControlsVisible => ControlStrip?.Visibility == Visibility.Visible;
 
         public string NextSound
         {

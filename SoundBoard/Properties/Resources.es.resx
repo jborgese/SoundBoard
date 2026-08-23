@@ -249,6 +249,33 @@
   <data name="SoundSetToLoop" xml:space="preserve">
     <value>Este sonido está configurado para repetirse</value>
   </data>
+  <data name="Play" xml:space="preserve">
+    <value>Reproducir</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pausar</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Detener</value>
+  </data>
+  <data name="Mute" xml:space="preserve">
+    <value>Silenciar</value>
+  </data>
+  <data name="Unmute" xml:space="preserve">
+    <value>Activar sonido</value>
+  </data>
+  <data name="Solo" xml:space="preserve">
+    <value>Solo</value>
+  </data>
+  <data name="Unsolo" xml:space="preserve">
+    <value>Quitar solo</value>
+  </data>
+  <data name="SoloToolTip" xml:space="preserve">
+    <value>Reproduce solo los sonidos en solo y silencia el resto</value>
+  </data>
+  <data name="LoopCannotBeChangedWhilePlaying" xml:space="preserve">
+    <value>Detén el sonido para cambiar si se repite</value>
+  </data>
   <data name="VolumeOfSoundIsOffset" xml:space="preserve">
     <value>El volumen de este sonido está desplazado {0}</value>
     <comment>{0} is an offset (like -2 or +1)</comment>

@@ -1006,7 +1006,88 @@ namespace SoundBoard.Properties {
             get {
                 return ResourceManager.GetString("SoundSetToLoop", resourceCulture);
             }
+        }        
+        /// <summary>
+        ///   Looks up a localized string similar to Play.
+        /// </summary>
+        internal static string Play {
+            get {
+                return ResourceManager.GetString("Play", resourceCulture);
+            }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Pause.
+        /// </summary>
+        internal static string Pause {
+            get {
+                return ResourceManager.GetString("Pause", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop.
+        /// </summary>
+        internal static string Stop {
+            get {
+                return ResourceManager.GetString("Stop", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Mute.
+        /// </summary>
+        internal static string Mute {
+            get {
+                return ResourceManager.GetString("Mute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Unmute.
+        /// </summary>
+        internal static string Unmute {
+            get {
+                return ResourceManager.GetString("Unmute", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Solo.
+        /// </summary>
+        internal static string Solo {
+            get {
+                return ResourceManager.GetString("Solo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop soloing.
+        /// </summary>
+        internal static string Unsolo {
+            get {
+                return ResourceManager.GetString("Unsolo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Play only the soloed sounds and silence the rest.
+        /// </summary>
+        internal static string SoloToolTip {
+            get {
+                return ResourceManager.GetString("SoloToolTip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Stop the sound to change whether it loops.
+        /// </summary>
+        internal static string LoopCannotBeChangedWhilePlaying {
+            get {
+                return ResourceManager.GetString("LoopCannotBeChangedWhilePlaying", resourceCulture);
+            }
+        }
+
         
         /// <summary>
         ///   Looks up a localized string similar to Sound &apos;{0}&apos; was cleared..

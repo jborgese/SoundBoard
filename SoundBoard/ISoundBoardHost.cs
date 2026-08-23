@@ -96,6 +96,17 @@ namespace SoundBoard
         HotkeyRegistry Hotkeys { get; }
 
         /// <summary>
+        /// True while at least one sound anywhere on the board is soloed, in which case every sound that is not soloed is
+        /// silenced. Solo is live state and is never saved.
+        /// </summary>
+        bool IsAnySoundSoloed { get; }
+
+        /// <summary>
+        /// Invoked when a sound is soloed or unsoloed, so that every sound on the board can be silenced or let through again.
+        /// </summary>
+        void OnSoloChanged();
+
+        /// <summary>
         /// Invoked when a sound starts.
         /// </summary>
         void OnAnySoundStarted(SoundButton soundButton);

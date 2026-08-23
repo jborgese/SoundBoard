@@ -249,6 +249,33 @@
   <data name="SoundSetToLoop" xml:space="preserve">
     <value>This sound is set to loop</value>
   </data>
+  <data name="Play" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="Pause" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="Stop" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="Mute" xml:space="preserve">
+    <value>Mute</value>
+  </data>
+  <data name="Unmute" xml:space="preserve">
+    <value>Unmute</value>
+  </data>
+  <data name="Solo" xml:space="preserve">
+    <value>Solo</value>
+  </data>
+  <data name="Unsolo" xml:space="preserve">
+    <value>Stop soloing</value>
+  </data>
+  <data name="SoloToolTip" xml:space="preserve">
+    <value>Play only the soloed sounds and silence the rest</value>
+  </data>
+  <data name="LoopCannotBeChangedWhilePlaying" xml:space="preserve">
+    <value>Stop the sound to change whether it loops</value>
+  </data>
   <data name="VolumeOfSoundIsOffset" xml:space="preserve">
     <value>The volume of this sound is offset by {0}</value>
     <comment>{0} is an offset (like -2 or +1)</comment>

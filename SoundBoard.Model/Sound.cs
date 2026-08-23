@@ -14,6 +14,7 @@ namespace SoundBoard.Model
         private SoundColor? _color;
         private int _volumeOffset;
         private bool _loop;
+        private bool _muted;
         private bool _stopAllSounds;
         private string _nextSoundId;
         private Hotkey _localHotkey;
@@ -80,6 +81,20 @@ namespace SoundBoard.Model
         {
             get => _loop;
             set => SetField(ref _loop, value);
+        }
+
+        /// <summary>
+        /// Whether the sound plays silently. A muted sound still plays — it runs its progress bar, chains to its next sound
+        /// and can be stopped — it is simply not heard, and stays muted until it is unmuted.
+        /// </summary>
+        /// <remarks>
+        /// Solo is deliberately not stored here: it is live mixer state that lasts as long as the app is running, so that
+        /// SoundBoard cannot start up with one sound soloed and every other one inexplicably silent.
+        /// </remarks>
+        public bool Muted
+        {
+            get => _muted;
+            set => SetField(ref _muted, value);
         }
 
         /// <summary>
@@ -154,6 +169,7 @@ namespace SoundBoard.Model
             Color = null;
             VolumeOffset = 0;
             Loop = false;
+            Muted = false;
             StopAllSounds = false;
             NextSoundId = null;
             LocalHotkey = null;
@@ -184,6 +200,7 @@ namespace SoundBoard.Model
             Color = other.Color;
             VolumeOffset = other.VolumeOffset;
             Loop = other.Loop;
+            Muted = other.Muted;
             StopAllSounds = other.StopAllSounds;
             NextSoundId = other.NextSoundId;
             LocalHotkey = other.LocalHotkey;

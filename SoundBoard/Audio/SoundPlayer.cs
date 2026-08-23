@@ -45,6 +45,9 @@ namespace SoundBoard.Audio
         private readonly List<IWavePlayer> _players = new List<IWavePlayer>();
         private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
         private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
+        private readonly List<VolumeSampleProvider> _volumeProviders = new List<VolumeSampleProvider>();
+        private float _unmutedVolume = 1f;
+        private bool _isMuted;
         private Stopwatch _stopWatch;
 
         /// <summary>
@@ -56,6 +59,11 @@ namespace SoundBoard.Audio
         /// True if at least one output is currently playing.
         /// </summary>
         public bool IsPlaying => _players.Any(p => p.PlaybackState == PlaybackState.Playing);
+
+        /// <summary>
+        /// True if at least one output is paused and none is playing, i.e. the sound was started and then paused.
+        /// </summary>
+        public bool IsPaused => !IsPlaying && _players.Any(p => p.PlaybackState == PlaybackState.Paused);
 
         /// <summary>
         /// True if at least one output has stopped. False when there are no outputs.
@@ -81,6 +89,29 @@ namespace SoundBoard.Audio
         /// Restarts <see cref="Elapsed"/> from zero (used when a looping sound wraps around).
         /// </summary>
         public void RestartClock() => _stopWatch = Stopwatch.StartNew();
+
+        /// <summary>
+        /// Whether playback is silenced. Setting this takes effect immediately on anything already playing — the sound keeps
+        /// running, it is just not heard — and is remembered for the next <see cref="Start"/>.
+        /// </summary>
+        public bool IsMuted
+        {
+            get => _isMuted;
+            set
+            {
+                _isMuted = value;
+                ApplyVolume();
+            }
+        }
+
+        /// <summary>
+        /// Pushes <see cref="IsMuted"/> and the sound's volume offset out to the live outputs.
+        /// </summary>
+        private void ApplyVolume()
+        {
+            float volume = _isMuted ? 0f : _unmutedVolume;
+            _volumeProviders.ForEach(v => v.Volume = volume);
+        }
 
         /// <summary>
         /// Starts playing <paramref name="sound"/> from the beginning on the given devices, tearing down any previous playback first.
@@ -127,21 +158,28 @@ namespace SoundBoard.Audio
                 _waveProviders[kvp.Key] = sound.Loop ? new LoopStream(kvp.Value) : (WaveStream)kvp.Value;
             }
 
-            // Volume
-            if (sound.VolumeOffset == 0)
+            // Volume. Every output goes through a VolumeSampleProvider, even at an offset of zero and even when nothing is
+            // muted, because mute has to be able to take hold part-way through a sound: DirectSoundOut refuses to have its
+            // own Volume set, so the sample provider is the only thing left to turn down once playback has started.
+            _unmutedVolume = sound.VolumeOffset == 0
+                ? 1f
+                : sound.VolumeOffset < 0 ? 1f / (sound.VolumeOffset * VolumeOffsetMultiplier) : sound.VolumeOffset * VolumeOffsetMultiplier;
+
+            // IsMuted is deliberately not read off the sound here: whether a sound is heard is the caller's decision, because
+            // it also depends on whether anything else on the board is soloed, which this class knows nothing about.
+            foreach (IWavePlayer player in _players)
             {
-                _players.ForEach(p => p.Init(_waveProviders[p]));
+                var volumeProvider = new VolumeSampleProvider(_waveProviders[player].ToSampleProvider());
+                _volumeProviders.Add(volumeProvider);
+                player.Init(volumeProvider);
             }
-            else
-            {
-                float volume = sound.VolumeOffset < 0 ? 1f / (sound.VolumeOffset * VolumeOffsetMultiplier) : (sound.VolumeOffset * VolumeOffsetMultiplier);
-                _players.ForEach(p => p.Init(new VolumeSampleProvider(_waveProviders[p].ToSampleProvider()) { Volume = volume }));
-            }
+
+            ApplyVolume();
 
             // Aaaaand play
             Parallel.ForEach(_players, p => p.Play());
 
-            Logger.Debug("Started '{0}' ({1}) on {2} output(s) [{3}]; loop={4}, volumeOffset={5}", sound.Name, sound.Path, _players.Count, string.Join(",", devices), sound.Loop, sound.VolumeOffset);
+            Logger.Debug("Started '{0}' ({1}) on {2} output(s) [{3}]; loop={4}, volumeOffset={5}, muted={6}", sound.Name, sound.Path, _players.Count, string.Join(",", devices), sound.Loop, sound.VolumeOffset, _isMuted);
         }
 
         /// <summary>
@@ -186,6 +224,10 @@ namespace SoundBoard.Audio
             Stop();
             _players.ForEach(p => p.Dispose());
             _players.Clear();
+
+            // The providers belong to the outputs that have just gone; IsMuted itself survives, so the next Start is silent
+            // if this one was.
+            _volumeProviders.Clear();
 
             // Closing a stream that has already been torn down by NAudio can throw; there is nothing to clean up in that case.
             foreach (var kvp in _waveProviders.ToList())

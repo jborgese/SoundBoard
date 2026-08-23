@@ -250,6 +250,27 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void Muted_RoundTrips()
+        {
+            SoundBoardConfig config = Read(ReadFixture("current-1.10.2.config"));
+            config.Pages[0][0, 0].Muted = true;
+
+            string written = Write(config);
+            Assert.Contains(" muted=\"True\"", written);
+
+            Assert.True(Read(written).Pages[0][0, 0].Muted);
+        }
+
+        [Fact]
+        public void Muted_IsNotWrittenWhenNothingIsMuted()
+        {
+            // Every other addition to the format earns its bytes the same way, so that a config from a user who has never
+            // touched the setting stays exactly what previous releases wrote. CurrentFormat_RoundTripsByteForByte would
+            // catch this too, but only as a wall of diff.
+            Assert.DoesNotContain("muted=", Write(Read(ReadFixture("current-1.10.2.config"))));
+        }
+
+        [Fact]
         public void Theme_RoundTrips()
         {
             // The whole point of storing it: the theme the user picked has to come back the next time the app starts.
@@ -390,6 +411,7 @@ namespace SoundBoard.Tests
             Assert.Null(weird.Color);
             Assert.Equal(0, weird.VolumeOffset);
             Assert.False(weird.Loop);
+            Assert.False(weird.Muted);                                 // muted predates nothing: a file without it is unmuted
             Assert.False(weird.StopAllSounds);
             Assert.Null(weird.NextSoundId);
             Assert.True(Guid.TryParse(weird.Id, out _));               // empty id attribute -> fresh id

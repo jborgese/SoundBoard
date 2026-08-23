@@ -610,29 +610,19 @@ namespace SoundBoard
                     parentGrid.Children.Add(menuButton);
                     soundButton.ChildButtons.Add(menuButton);
 
-                    // Play/pause button
-                    PlayPauseButton playPauseButton = new PlayPauseButton(soundButton);
+                    // Control strip: play/pause, stop, loop, mute, solo and remove
+                    SoundButtonControlStrip controlStrip = new SoundButtonControlStrip(soundButton);
 
-                    Grid.SetColumn(playPauseButton, columnIndex);
-                    Grid.SetRow(playPauseButton, rowIndex);
-                    parentGrid.Children.Add(playPauseButton);
-                    soundButton.ChildButtons.Add(playPauseButton);
+                    Grid.SetColumn(controlStrip, columnIndex);
+                    Grid.SetRow(controlStrip, rowIndex);
+                    parentGrid.Children.Add(controlStrip);
+                    soundButton.ControlStrip = controlStrip;
 
-                    // Stop button
-                    StopButton stopButton = new StopButton(soundButton);
-
-                    Grid.SetColumn(stopButton, columnIndex);
-                    Grid.SetRow(stopButton, rowIndex);
-                    parentGrid.Children.Add(stopButton);
-                    soundButton.ChildButtons.Add(stopButton);
-
-                    // Loop icon
-                    LoopIconButton loopIconButton = new LoopIconButton(soundButton);
-
-                    Grid.SetColumn(loopIconButton, columnIndex);
-                    Grid.SetRow(loopIconButton, rowIndex);
-                    parentGrid.Children.Add(loopIconButton);
-                    soundButton.ChildButtons.Add(loopIconButton);
+                    // The controls join the rest of the child buttons so that they are recolored with the sound button
+                    foreach (TransportButtonBase transportButton in controlStrip.Buttons)
+                    {
+                        soundButton.ChildButtons.Add(transportButton);
+                    }
 
                     // Volume offset icon
                     VolumeOffsetIconButton volumeOffsetIconButton = new VolumeOffsetIconButton(soundButton);
@@ -688,6 +678,10 @@ namespace SoundBoard
             tab.Content = parentGrid;
 
             OnAnySoundRenamed();
+
+            // The buttons that were on this page are gone, and any solo they were holding went with them, so what the
+            // remaining sounds should be hearing has to be worked out again
+            OnSoloChanged();
         }
 
         private void CreateHelpContent(MyMetroTabItem tab)
@@ -2083,6 +2077,10 @@ namespace SoundBoard
         HotkeyRegistry ISoundBoardHost.Hotkeys => Hotkeys;
 
         /// <inheritdoc />
+        bool ISoundBoardHost.IsAnySoundSoloed => IsAnySoundSoloed;
+
+        void ISoundBoardHost.OnSoloChanged() => OnSoloChanged();
+
         void ISoundBoardHost.OnAnySoundStarted(SoundButton soundButton) => OnAnySoundStarted(soundButton);
 
         /// <inheritdoc />
@@ -2184,6 +2182,27 @@ namespace SoundBoard
             SnackbarMessage.Text = message;
             Snackbar.AutoCloseInterval = timeout;
             Snackbar.IsOpen = true;
+        }
+
+        /// <summary>
+        /// True while at least one sound anywhere on the board is soloed.
+        /// </summary>
+        internal bool IsAnySoundSoloed => GetSoundButtons().Any(soundButton => soundButton.IsSoloed);
+
+        /// <summary>
+        /// Re-silences or unsilences every sound on the board after a solo was turned on or off. Soloing is board-wide, so
+        /// there is no cheaper answer than asking every button: a sound on another page is affected just as much as one here.
+        /// </summary>
+        internal void OnSoloChanged()
+        {
+            List<SoundButton> soundButtons = GetSoundButtons().ToList();
+            bool anySoloed = soundButtons.Any(soundButton => soundButton.IsSoloed);
+
+            foreach (SoundButton soundButton in soundButtons)
+            {
+                soundButton.ApplyEffectiveMute(anySoloed);
+                soundButton.UpdateTransportControls();
+            }
         }
 
         /// <summary>

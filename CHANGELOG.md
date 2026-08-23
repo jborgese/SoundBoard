@@ -34,6 +34,17 @@ history and release tags.
 - A **Theme** submenu under **•••** offering a Light and a Dark theme. Unlike the language it
   applies immediately with no restart, and the choice is saved as `Theme` in `soundboard.config`
   so it is still there the next time you start.
+- A row of controls along the bottom of every sound: **play/pause**, **stop**, **loop**,
+  **mute**, **solo** and **remove**, each with a tool tip. They are always there rather than
+  appearing only while a sound plays, so a sound can be started, looped or cleared without
+  going through the **···** menu. Remove is undoable through the usual snackbar, and all six
+  apply to the whole selection when several sounds are selected, exactly as the menu does.
+- **Mute** silences one sound without stopping it — it keeps its place, keeps its progress bar
+  and still chains to its next sound — and takes effect immediately on a sound that is already
+  playing. It is saved with the sound, so a muted sound comes back muted.
+- **Solo** silences everything that is not soloed, for auditioning one sound against a busy
+  board. Any number of sounds can be soloed at once. Unlike mute it is not saved, so the board
+  never starts up silent for a reason you cannot see.
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.
@@ -42,6 +53,9 @@ history and release tags.
   "Change Button Grid" dialogs, the "All files" entry in the sound browser, and the reasons
   the updater gives for rejecting a download — now comes from the resource file like
   everything else.
+- The loop indicator in a sound's bottom-right corner is gone: looping is now shown and toggled
+  by the loop control on the new row of controls. The volume-offset indicator moves down into
+  the space it leaves.
 - The "hotkey already in use" warnings are now whole sentences joined at display time,
   instead of fragments concatenated in a fixed order with trailing spaces baked into the
   resource strings.

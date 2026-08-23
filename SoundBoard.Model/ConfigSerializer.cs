@@ -24,7 +24,7 @@ namespace SoundBoard.Model
     ///                     AudioPassthroughLatency="10" NewPageDefaultRows="5" NewPageDefaultColumns="2" Language="es" /&gt;
     ///     &lt;tab focused="True" rows="5" columns="2"&gt;
     ///         &lt;name&gt;Page name&lt;/name&gt;
-    ///         &lt;button0 name="" path="" color="#FFAABBCC" volumeOffset="0" loop="False" stopAllSounds="False"
+    ///         &lt;button0 name="" path="" color="#FFAABBCC" volumeOffset="0" loop="False" muted="True" stopAllSounds="False"
     ///                  nextSound="" id="guid" localHotkey="" globalHotkey="" row="0" column="0" /&gt;
     ///         &lt;button1 ... /&gt;
     ///     &lt;/tab&gt;
@@ -35,10 +35,10 @@ namespace SoundBoard.Model
     /// element name); <c>row</c>/<c>column</c> attributes take precedence over that index; device lists are comma-joined GUIDs in a
     /// single attribute; an empty output-device set is written as <see cref="Guid.Empty"/>; every attribute that predates
     /// <c>schemaVersion</c> is always written.
-    /// <c>schemaVersion</c>, <c>Language</c> and <c>Theme</c> are the only additions. Both <c>Language</c> and
-    /// <c>Theme</c> are written only when the user has actually chosen a non-default value, so a file written by a user
-    /// who never touched either setting is byte-identical to what earlier releases wrote. Older readers ignore all
-    /// three, as they ignore any unknown attribute.
+    /// <c>schemaVersion</c>, <c>Language</c>, <c>Theme</c> and a sound's <c>muted</c> are the only additions. The last three are
+    /// written only when the user has actually chosen a non-default value, so a file written by a user who never touched any of
+    /// those settings is byte-identical to what earlier releases wrote. Older readers ignore all four, as they ignore any
+    /// unknown attribute.
     /// </para>
     /// </remarks>
     public static class ConfigSerializer
@@ -291,6 +291,11 @@ namespace SoundBoard.Model
                 sound.Loop = loop;
             }
 
+            if (node.Attributes?["muted"]?.Value is string mutedString && bool.TryParse(mutedString, out bool muted))
+            {
+                sound.Muted = muted;
+            }
+
             if (node.Attributes?["stopAllSounds"]?.Value is string stopAllSoundsString && bool.TryParse(stopAllSoundsString, out bool stopAllSounds))
             {
                 sound.StopAllSounds = stopAllSounds;
@@ -402,6 +407,14 @@ namespace SoundBoard.Model
                         writer.WriteAttributeString("color", sound.Color?.ToHtml() ?? string.Empty);
                         writer.WriteAttributeString("volumeOffset", sound.VolumeOffset.ToString());
                         writer.WriteAttributeString("loop", sound.Loop.ToString());
+
+                        // Like Language and Theme, written only once it is actually set, so that a config from someone who
+                        // has never muted a sound is byte-identical to what earlier releases wrote.
+                        if (sound.Muted)
+                        {
+                            writer.WriteAttributeString("muted", sound.Muted.ToString());
+                        }
+
                         writer.WriteAttributeString("stopAllSounds", sound.StopAllSounds.ToString());
                         writer.WriteAttributeString("nextSound", sound.NextSoundId);
                         writer.WriteAttributeString("id", sound.Id);

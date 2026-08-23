@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using SoundBoard.Model;
@@ -34,6 +35,7 @@ namespace SoundBoard.Tests
             Assert.Null(sound.Color);
             Assert.Equal(0, sound.VolumeOffset);
             Assert.False(sound.Loop);
+            Assert.False(sound.Muted);
             Assert.False(sound.StopAllSounds);
             Assert.Null(sound.NextSoundId);
             Assert.Null(sound.LocalHotkey);
@@ -55,6 +57,7 @@ namespace SoundBoard.Tests
             Assert.Equal(sound.Color, clone.Color);
             Assert.Equal(sound.VolumeOffset, clone.VolumeOffset);
             Assert.Equal(sound.Loop, clone.Loop);
+            Assert.Equal(sound.Muted, clone.Muted);
             Assert.Equal(sound.StopAllSounds, clone.StopAllSounds);
             Assert.Equal(sound.NextSoundId, clone.NextSoundId);
             Assert.Equal(sound.LocalHotkey, clone.LocalHotkey);
@@ -78,9 +81,25 @@ namespace SoundBoard.Tests
 
             Assert.Equal(source.Id, target.Id);
             Assert.Equal(source.Path, target.Path);
+            Assert.Equal(source.Muted, target.Muted);
             Assert.Equal(source.GlobalHotkey, target.GlobalHotkey);
             Assert.Equal(7, target.Row);
             Assert.Equal(8, target.Column);
+        }
+
+        [Fact]
+        public void Muted_RaisesPropertyChangedOnlyWhenItActuallyChanges()
+        {
+            // The button silences playback from this notification, so a set that changes nothing must not reach it.
+            var sound = new Sound();
+            var changed = new List<string>();
+            sound.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+            sound.Muted = true;
+            sound.Muted = true;
+            sound.Muted = false;
+
+            Assert.Equal(new[] { nameof(Sound.Muted), nameof(Sound.Muted) }, changed);
         }
 
         [Fact]
@@ -131,6 +150,7 @@ namespace SoundBoard.Tests
             Color = new SoundColor(1, 2, 3, 4),
             VolumeOffset = -2,
             Loop = true,
+            Muted = true,
             StopAllSounds = true,
             NextSoundId = "next",
             LocalHotkey = new Hotkey(Key.A, ModifierKeys.Control),
