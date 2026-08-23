@@ -12,6 +12,8 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-23
+
 ### Added
 - A **volume slider** on every sound, along the top of its row of controls, setting how loud
   that one sound plays. It takes effect straight away on a sound that is already playing, and
