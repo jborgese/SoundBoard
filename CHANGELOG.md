@@ -29,9 +29,10 @@ history and release tags.
   higher, in line with the **···** button, clear of the progress bar.
 
 ### Fixed
-- The progress bar that was meant to appear while a sound played almost never did: the loop
-  that moved it along mistook "nothing read from the file yet" on its first tick for "the sound
-  has stopped", and gave up before drawing anything.
+- The progress bar that appeared while a sound played sometimes did not: the loop that moved it
+  along could mistake "nothing read from the file yet" on its first tick for "the sound has
+  stopped", and give up before drawing anything. Whether it did depended on timing, so some
+  sounds showed progress and others never did.
 
 ## [1.12.0] - 2026-08-23
 
