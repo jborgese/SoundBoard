@@ -630,11 +630,145 @@ namespace SoundBoard
 
     #endregion
 
+    #region VolumeSlider class
+
+    /// <summary>
+    /// Sets how loud one sound is, from silent to its own level. The bottom of the slider is muting rather than a volume
+    /// of zero, so that it and the <see cref="MuteButton"/> next to it are two ways of reaching the same state: dragging
+    /// all the way down mutes, dragging back up (or unmuting) returns to the level the sound was at.
+    /// </summary>
+    internal sealed class VolumeSlider : Slider
+    {
+        #region Constructor
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="parentButton"></param>
+        public VolumeSlider(SoundButton parentButton)
+        {
+            _parentButton = parentButton ?? throw new ArgumentNullException(nameof(parentButton));
+
+            // Default mode is light, unless the parent button specifies otherwise — the same rule the controls beneath
+            // the slider follow, and for the same reason: the sound's own color decides what reads on it.
+            _mode = _parentButton.SoundButtonStyle?.IsLightColor == false
+                ? MenuButtonBase.ColorMode.Dark
+                : MenuButtonBase.ColorMode.Light;
+
+            Minimum = 0;
+            Maximum = Model.Sound.MaxVolume;
+            Width = SliderWidth;
+            Height = SliderHeight;
+            Margin = new Thickness(0, 0, 0, SliderBottomMargin);
+            HorizontalAlignment = HorizontalAlignment.Center;
+            VerticalAlignment = VerticalAlignment.Center;
+
+            Style = (Style) FindResource(@"SoundButtonVolumeSliderStyle");
+
+            ValueChanged += VolumeSlider_ValueChanged;
+
+            Update();
+        }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Redraws the slider from the state of the sound it belongs to. A muted sound reads as zero however loud it is
+        /// set: mute and the bottom of the slider are the same state, so they have to look like it.
+        /// </summary>
+        public void Update()
+        {
+            SetValueFromSound(_parentButton.Muted ? 0 : _parentButton.Volume);
+
+            ToolTip = string.Format(Properties.Resources.VolumeLevel, (int) Value);
+
+            Color color = _mode == MenuButtonBase.ColorMode.Dark ? Colors.White : Colors.Black;
+            Foreground = new SolidColorBrush(color);
+            Background = new SolidColorBrush(Color.FromArgb(RailAlpha, color.R, color.G, color.B));
+        }
+
+        /// <summary>
+        /// Draws the slider in the colors that read on the sound button, and redraws it.
+        /// </summary>
+        public void SetMode(MenuButtonBase.ColorMode mode)
+        {
+            _mode = mode;
+
+            Update();
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void VolumeSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            // Only a drag or a click on the rail is the user asking for a volume. Writing the sound's own level back into
+            // the slider is not, and taking it for one would have the slider argue with what it is showing.
+            if (_isUpdatingFromSound)
+            {
+                return;
+            }
+
+            _parentButton.SetVolume((int) Math.Round(e.NewValue));
+        }
+
+        private void SetValueFromSound(int volume)
+        {
+            _isUpdatingFromSound = true;
+
+            try
+            {
+                Value = volume;
+            }
+            finally
+            {
+                _isUpdatingFromSound = false;
+            }
+        }
+
+        #endregion
+
+        #region Private fields
+
+        private readonly SoundButton _parentButton;
+
+        private MenuButtonBase.ColorMode _mode;
+
+        private bool _isUpdatingFromSound;
+
+        #endregion
+
+        #region Private consts
+
+        /// <summary>
+        /// Wide enough to be worth dragging, and no wider than the row of controls it sits above, which is what sets how
+        /// far the strip as a whole has to shrink on a narrow button.
+        /// </summary>
+        private const int SliderWidth = 150;
+
+        private const int SliderHeight = 16;
+
+        private const int SliderBottomMargin = 4;
+
+        /// <summary>
+        /// How solid the unfilled part of the rail is. Faint enough to read as the empty half of the slider next to the
+        /// fully opaque filled half, and solid enough to show where the slider is on a button of any color.
+        /// </summary>
+        private const byte RailAlpha = 0x55;
+
+        #endregion
+    }
+
+    #endregion
+
     #region SoundButtonControlStrip class
 
     /// <summary>
-    /// The row of controls along the bottom of a sound button: play/pause, stop, loop, mute, solo and remove. Shown on any
-    /// button that has a sound and hidden on an empty one.
+    /// The controls along the bottom of a sound button: a volume slider, and beneath it play/pause, stop, loop, mute, solo
+    /// and remove. Shown on any button that has a sound and hidden on an empty one.
     /// </summary>
     /// <remarks>
     /// A <see cref="Viewbox"/> rather than a bare panel so that six controls still fit on a button in a wide grid: the strip
@@ -662,8 +796,16 @@ namespace SoundBoard
                 new RemoveButton(parentButton)
             };
 
-            StackPanel panel = new StackPanel {Orientation = Orientation.Horizontal};
-            Buttons.ForEach(button => panel.Children.Add(button));
+            VolumeSlider = new VolumeSlider(parentButton);
+
+            StackPanel buttonRow = new StackPanel {Orientation = Orientation.Horizontal};
+            Buttons.ForEach(button => buttonRow.Children.Add(button));
+
+            // The slider goes above the controls rather than in among them. Seven things side by side would make the
+            // whole strip shrink further on every button, and a volume slider that short is not worth dragging.
+            StackPanel panel = new StackPanel {Orientation = Orientation.Vertical};
+            panel.Children.Add(VolumeSlider);
+            panel.Children.Add(buttonRow);
             Child = panel;
 
             Stretch = Stretch.Uniform;
@@ -689,7 +831,14 @@ namespace SoundBoard
             Visibility = _parentButton.HasValidSound ? Visibility.Visible : Visibility.Collapsed;
 
             Buttons.ForEach(button => button.Update());
+            VolumeSlider.Update();
         }
+
+        /// <summary>
+        /// Draws the strip in the colors that read on the sound button. Only the slider needs telling: the controls are
+        /// <see cref="MenuButtonBase"/>s, so the sound button recolors them along with its other child buttons.
+        /// </summary>
+        public void SetMode(MenuButtonBase.ColorMode mode) => VolumeSlider.SetMode(mode);
 
         #endregion
 
@@ -699,6 +848,11 @@ namespace SoundBoard
         /// The controls on the strip, in the order they appear.
         /// </summary>
         public List<TransportButtonBase> Buttons { get; }
+
+        /// <summary>
+        /// The volume slider along the top of the strip.
+        /// </summary>
+        public VolumeSlider VolumeSlider { get; }
 
         #endregion
 
@@ -1894,18 +2048,64 @@ namespace SoundBoard
         /// </summary>
         public void ToggleMuted()
         {
-            if (IsSelected)
-            {
-                // Match the other multi-selection toggles: if any selected sound is still audible, mute the lot
-                bool anyUnmuted = Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Muted);
+            // Match the other multi-selection toggles: if any selected sound is still audible, mute the lot
+            bool muted = IsSelected
+                ? Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).Any(sb => !sb.Muted)
+                : !Muted;
 
-                Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.Muted = anyUnmuted);
-            }
-            else
+            SetMuted(muted);
+        }
+
+        /// <summary>
+        /// Sets how loud the sound is, 0..100. Applies to every selected button when this one is part of a multi-selection,
+        /// exactly as the volume-offset menu does.
+        /// </summary>
+        /// <remarks>
+        /// A volume of zero is stored as <see cref="Muted"/> and not as a volume, which is what makes the bottom of the
+        /// slider and the mute control one state rather than two that look alike: whichever of them silenced the sound,
+        /// the other one shows it, and the level the sound was at is still there for either of them to come back to.
+        /// </remarks>
+        public void SetVolume(int volume)
+        {
+            if (volume <= 0)
             {
-                Muted = !Muted;
+                SetMuted(true);
+                return;
+            }
+
+            foreach (SoundButton soundButton in SelectionOrSelf())
+            {
+                soundButton.Volume = volume;
+                soundButton.Muted = false;
             }
         }
+
+        /// <summary>
+        /// Silences the sound or lets it be heard again, taking effect immediately even if it is already playing. Applies
+        /// to every selected button when this one is part of a multi-selection.
+        /// </summary>
+        private void SetMuted(bool muted)
+        {
+            foreach (SoundButton soundButton in SelectionOrSelf())
+            {
+                // Nothing to come back to: only a hand-edited config can leave a sound at a volume of zero, and unmuting
+                // one into silence would look like the unmute had simply not worked.
+                if (!muted && soundButton.Volume == 0)
+                {
+                    soundButton.Volume = Model.Sound.MaxVolume;
+                }
+
+                soundButton.Muted = muted;
+            }
+        }
+
+        /// <summary>
+        /// The buttons an action on this one applies to: every selected button when this one is part of a multi-selection,
+        /// and otherwise just this one.
+        /// </summary>
+        private IEnumerable<SoundButton> SelectionOrSelf() => IsSelected
+            ? Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList()
+            : new List<SoundButton> {this};
 
         /// <summary>
         /// Solos or unsolos the sound. Applies to every selected button when this one is part of a multi-selection.
@@ -1941,6 +2141,12 @@ namespace SoundBoard
 
             _player.IsMuted = Muted || (anySoloed && !IsSoloed);
         }
+
+        /// <summary>
+        /// Pushes this button's volume out to its playback. Takes effect on a sound that is already playing, which is the
+        /// whole point of a slider: it is dragged while the sound is running.
+        /// </summary>
+        public void ApplyVolume() => _player.Volume = Volume / (float) Model.Sound.MaxVolume;
 
         /// <summary>
         /// Redraws the control strip (and re-fits the button's text around it) after anything it shows has changed.
@@ -2106,7 +2312,7 @@ namespace SoundBoard
             {
                 if (AreTransportControlsVisible // We only shrink when there is a control strip to make room for
                     && _viewboxPanel.ActualHeight - _textBlock.ActualHeight < 50 // There's not enough room to comfortable display everything
-                    && _targetViewboxMarginBottom < 30) // We haven't done this yet
+                    && _targetViewboxMarginBottom < ControlStripTextMargin) // We haven't done this yet
                 {
                     _textMarginStoryboard.Stop();
                     _textMarginStoryboard.Children.Clear();
@@ -2114,11 +2320,11 @@ namespace SoundBoard
                     ThicknessAnimation animation = new ThicknessAnimation
                     {
                         From = new Thickness(30, 0, 30, _viewboxPanel.Margin.Bottom),
-                        To = new Thickness(30, 0, 30, 30),
+                        To = new Thickness(30, 0, 30, ControlStripTextMargin),
                         Duration = TimeSpan.FromSeconds(.1)
                     };
 
-                    _targetViewboxMarginBottom = 30;
+                    _targetViewboxMarginBottom = ControlStripTextMargin;
 
                     Storyboard.SetTarget(animation, _viewboxPanel);
                     Storyboard.SetTargetProperty(animation, new PropertyPath(MarginProperty));
@@ -2180,6 +2386,7 @@ namespace SoundBoard
             ChildButtons.OfType<NextSoundIconButton>().FirstOrDefault()?.Update();
             UpdateTransportControls();
             ApplyEffectiveMute();
+            ApplyVolume();
 
             Host.OnAnySoundRenamed();
 
@@ -2246,6 +2453,11 @@ namespace SoundBoard
 
                 case nameof(Model.Sound.VolumeOffset):
                     ChildButtons.OfType<VolumeOffsetIconButton>().FirstOrDefault()?.Update();
+                    break;
+
+                case nameof(Model.Sound.Volume):
+                    ApplyVolume();
+                    UpdateTransportControls();
                     break;
 
                 case nameof(Model.Sound.Loop):
@@ -2605,20 +2817,18 @@ namespace SoundBoard
             Style = style;
 
             // Restyle the child buttons
-            if (soundButtonStyle.IsLightColor is bool isLightColor && isLightColor == false)
+            MenuButtonBase.ColorMode mode = soundButtonStyle.IsLightColor is bool isLightColor && isLightColor == false
+                ? MenuButtonBase.ColorMode.Dark
+                : MenuButtonBase.ColorMode.Light;
+
+            foreach (MenuButtonBase menuButtonBase in ChildButtons)
             {
-                foreach (MenuButtonBase menuButtonBase in ChildButtons)
-                {
-                    menuButtonBase.SetMode(MenuButtonBase.ColorMode.Dark);
-                }
+                menuButtonBase.SetMode(mode);
             }
-            else
-            {
-                foreach (MenuButtonBase menuButtonBase in ChildButtons)
-                {
-                    menuButtonBase.SetMode(MenuButtonBase.ColorMode.Light);
-                }
-            }
+
+            // The volume slider is a Slider rather than a MenuButtonBase, so it is not among the child buttons and has to
+            // be told separately
+            ControlStrip?.SetMode(mode);
         }
 
         /// <summary>
@@ -2876,6 +3086,17 @@ namespace SoundBoard
             private set => Sound.VolumeOffset = value;
         }
 
+        /// <summary>
+        /// How loud this sound plays, 0..100, as a percentage of the level its <see cref="VolumeOffset"/> puts it at.
+        /// Saved with the sound. A muted sound keeps the level it was turned up to, which is what <see cref="Muted"/>
+        /// comes back to when it is cleared.
+        /// </summary>
+        public int Volume
+        {
+            get => Sound.Volume;
+            private set => Sound.Volume = value;
+        }
+
         public bool Loop
         {
             get => Sound.Loop;
@@ -3027,6 +3248,12 @@ namespace SoundBoard
         // Related to text resizing
         private ViewboxPanel _viewboxPanel;
         private int _targetViewboxMarginBottom;
+
+        /// <summary>
+        /// How much of the bottom of the button the name gives up to the control strip when there is not room for both.
+        /// Enough for the row of controls and the volume slider above it, at the size the strip's Viewbox settles on.
+        /// </summary>
+        private const int ControlStripTextMargin = 45;
         private TextBlock _textBlock;
         private readonly Storyboard _textMarginStoryboard = new Storyboard();
 

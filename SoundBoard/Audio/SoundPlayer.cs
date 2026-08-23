@@ -46,7 +46,8 @@ namespace SoundBoard.Audio
         private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
         private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
         private readonly List<VolumeSampleProvider> _volumeProviders = new List<VolumeSampleProvider>();
-        private float _unmutedVolume = 1f;
+        private float _offsetGain = 1f;
+        private float _volume = 1f;
         private bool _isMuted;
         private Stopwatch _stopWatch;
 
@@ -105,11 +106,47 @@ namespace SoundBoard.Audio
         }
 
         /// <summary>
-        /// Pushes <see cref="IsMuted"/> and the sound's volume offset out to the live outputs.
+        /// Playback level, 0 (silent) to 1 (the sound's own level, after its volume offset). Setting this takes effect
+        /// immediately on anything already playing, and it is re-read from the sound on the next <see cref="Start"/>.
+        /// </summary>
+        public float Volume
+        {
+            get => _volume;
+            set
+            {
+                _volume = value;
+                ApplyVolume();
+            }
+        }
+
+        /// <summary>
+        /// The gain a <see cref="Sound.VolumeOffset"/> asks for: 1 at an offset of zero, the offset times
+        /// <see cref="VolumeOffsetMultiplier"/> above that, and the reciprocal of the same below it — so +1 is twice as
+        /// loud, +5 ten times, -1 half and -5 a tenth.
+        /// </summary>
+        /// <remarks>
+        /// A negative offset used to produce a negative gain (the offset's own sign was left in the reciprocal), which
+        /// inverted the waveform. Nobody could hear it on a sound playing by itself, which is why it survived, but the
+        /// gain is now the amplitude it always claimed to be.
+        /// </remarks>
+        internal static float GainForVolumeOffset(int volumeOffset)
+        {
+            if (volumeOffset == 0)
+            {
+                return 1f;
+            }
+
+            return volumeOffset > 0
+                ? volumeOffset * VolumeOffsetMultiplier
+                : 1f / (-volumeOffset * VolumeOffsetMultiplier);
+        }
+
+        /// <summary>
+        /// Pushes <see cref="IsMuted"/>, <see cref="Volume"/> and the sound's volume offset out to the live outputs.
         /// </summary>
         private void ApplyVolume()
         {
-            float volume = _isMuted ? 0f : _unmutedVolume;
+            float volume = _isMuted ? 0f : _offsetGain * _volume;
             _volumeProviders.ForEach(v => v.Volume = volume);
         }
 
@@ -161,9 +198,8 @@ namespace SoundBoard.Audio
             // Volume. Every output goes through a VolumeSampleProvider, even at an offset of zero and even when nothing is
             // muted, because mute has to be able to take hold part-way through a sound: DirectSoundOut refuses to have its
             // own Volume set, so the sample provider is the only thing left to turn down once playback has started.
-            _unmutedVolume = sound.VolumeOffset == 0
-                ? 1f
-                : sound.VolumeOffset < 0 ? 1f / (sound.VolumeOffset * VolumeOffsetMultiplier) : sound.VolumeOffset * VolumeOffsetMultiplier;
+            _offsetGain = GainForVolumeOffset(sound.VolumeOffset);
+            _volume = sound.Volume / (float)Sound.MaxVolume;
 
             // IsMuted is deliberately not read off the sound here: whether a sound is heard is the caller's decision, because
             // it also depends on whether anything else on the board is soloed, which this class knows nothing about.
@@ -179,7 +215,7 @@ namespace SoundBoard.Audio
             // Aaaaand play
             Parallel.ForEach(_players, p => p.Play());
 
-            Logger.Debug("Started '{0}' ({1}) on {2} output(s) [{3}]; loop={4}, volumeOffset={5}, muted={6}", sound.Name, sound.Path, _players.Count, string.Join(",", devices), sound.Loop, sound.VolumeOffset, _isMuted);
+            Logger.Debug("Started '{0}' ({1}) on {2} output(s) [{3}]; loop={4}, volumeOffset={5}, volume={6}, muted={7}", sound.Name, sound.Path, _players.Count, string.Join(",", devices), sound.Loop, sound.VolumeOffset, sound.Volume, _isMuted);
         }
 
         /// <summary>

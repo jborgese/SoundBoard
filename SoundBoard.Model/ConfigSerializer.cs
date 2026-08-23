@@ -24,7 +24,7 @@ namespace SoundBoard.Model
     ///                     AudioPassthroughLatency="10" NewPageDefaultRows="5" NewPageDefaultColumns="2" Language="es" /&gt;
     ///     &lt;tab focused="True" rows="5" columns="2"&gt;
     ///         &lt;name&gt;Page name&lt;/name&gt;
-    ///         &lt;button0 name="" path="" color="#FFAABBCC" volumeOffset="0" loop="False" muted="True" stopAllSounds="False"
+    ///         &lt;button0 name="" path="" color="#FFAABBCC" volumeOffset="0" volume="60" loop="False" muted="True" stopAllSounds="False"
     ///                  nextSound="" id="guid" localHotkey="" globalHotkey="" row="0" column="0" /&gt;
     ///         &lt;button1 ... /&gt;
     ///     &lt;/tab&gt;
@@ -286,6 +286,11 @@ namespace SoundBoard.Model
                 sound.VolumeOffset = volumeOffset;
             }
 
+            if (TryReadInt(node, "volume", out int volume))
+            {
+                sound.Volume = volume;
+            }
+
             if (node.Attributes?["loop"]?.Value is string loopString && bool.TryParse(loopString, out bool loop))
             {
                 sound.Loop = loop;
@@ -406,6 +411,14 @@ namespace SoundBoard.Model
                         writer.WriteAttributeString("path", sound.Path);
                         writer.WriteAttributeString("color", sound.Color?.ToHtml() ?? string.Empty);
                         writer.WriteAttributeString("volumeOffset", sound.VolumeOffset.ToString());
+
+                        // Like muted below, written only once it is actually set, so that a config from someone who has
+                        // never touched the volume slider is byte-identical to what earlier releases wrote.
+                        if (sound.Volume != Sound.MaxVolume)
+                        {
+                            writer.WriteAttributeString("volume", sound.Volume.ToString());
+                        }
+
                         writer.WriteAttributeString("loop", sound.Loop.ToString());
 
                         // Like Language and Theme, written only once it is actually set, so that a config from someone who

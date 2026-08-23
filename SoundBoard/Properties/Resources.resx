@@ -241,7 +241,11 @@
     <value>Set color</value>
   </data>
   <data name="AdjustVolume" xml:space="preserve">
-    <value>Adjust volume</value>
+    <value>Adjust volume offset</value>
+  </data>
+  <data name="VolumeLevel" xml:space="preserve">
+    <value>Volume: {0}%</value>
+    <comment>{0} is a percentage from 0 to 100</comment>
   </data>
   <data name="Loop" xml:space="preserve">
     <value>Loop</value>

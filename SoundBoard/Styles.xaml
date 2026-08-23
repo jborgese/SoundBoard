@@ -23,4 +23,67 @@
         <Setter Property="mah:ControlsHelper.ContentCharacterCasing" Value="Normal"/>
     </Style>
 
+    <!--
+        The volume slider on a sound button's control strip. It is templated from scratch rather than based on the
+        MahApps slider because it has to draw itself in whichever of black or white reads on the button's own colour,
+        and both of those arrive as plain Foreground/Background brushes rather than as a theme: the sound button picks
+        them per button, not per app theme. Foreground is the filled part and the thumb; Background is the empty rail.
+    -->
+    <Style x:Key="SoundButtonVolumeSliderStyle" TargetType="{x:Type Slider}">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsMoveToPointEnabled" Value="True"/>
+        <Setter Property="SmallChange" Value="1"/>
+        <Setter Property="LargeChange" Value="10"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Slider}">
+                    <!-- Transparent rather than unset, so that the whole height of the control takes the click that
+                         IsMoveToPointEnabled turns into a value, not just the few pixels of the rail itself. -->
+                    <Grid Background="Transparent">
+                        <Border Height="4"
+                                CornerRadius="2"
+                                VerticalAlignment="Center"
+                                Background="{TemplateBinding Background}"/>
+                        <Track x:Name="PART_Track">
+                            <Track.DecreaseRepeatButton>
+                                <!-- The part of the rail that is filled in: a repeat button is what the Track lays out
+                                     to the left of the thumb, so it is what there is to paint. -->
+                                <RepeatButton Command="Slider.DecreaseLarge" Focusable="False" IsTabStop="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Grid Background="Transparent">
+                                                <Border Height="4"
+                                                        CornerRadius="2"
+                                                        VerticalAlignment="Center"
+                                                        Background="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Slider}}}"/>
+                                            </Grid>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.DecreaseRepeatButton>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="Slider.IncreaseLarge" Focusable="False" IsTabStop="False">
+                                    <RepeatButton.Template>
+                                        <ControlTemplate TargetType="{x:Type RepeatButton}">
+                                            <Grid Background="Transparent"/>
+                                        </ControlTemplate>
+                                    </RepeatButton.Template>
+                                </RepeatButton>
+                            </Track.IncreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb Width="12" Height="12" Focusable="False" IsTabStop="False">
+                                    <Thumb.Template>
+                                        <ControlTemplate TargetType="{x:Type Thumb}">
+                                            <Ellipse Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType={x:Type Slider}}}"/>
+                                        </ControlTemplate>
+                                    </Thumb.Template>
+                                </Thumb>
+                            </Track.Thumb>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

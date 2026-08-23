@@ -88,7 +88,7 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Adjust volume.
+        ///   Looks up a localized string similar to Adjust volume offset.
         /// </summary>
         internal static string AdjustVolume {
             get {
@@ -1085,6 +1085,15 @@ namespace SoundBoard.Properties {
         internal static string LoopCannotBeChangedWhilePlaying {
             get {
                 return ResourceManager.GetString("LoopCannotBeChangedWhilePlaying", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Volume: {0}%.
+        /// </summary>
+        internal static string VolumeLevel {
+            get {
+                return ResourceManager.GetString("VolumeLevel", resourceCulture);
             }
         }
 

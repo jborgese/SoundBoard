@@ -13,6 +13,7 @@ namespace SoundBoard.Model
         private string _path = string.Empty;
         private SoundColor? _color;
         private int _volumeOffset;
+        private int _volume = MaxVolume;
         private bool _loop;
         private bool _muted;
         private bool _stopAllSounds;
@@ -72,6 +73,20 @@ namespace SoundBoard.Model
         {
             get => _volumeOffset;
             set => SetField(ref _volumeOffset, value);
+        }
+
+        /// <summary>
+        /// Playback level, 0..100, as a percentage of the level the sound plays at with its <see cref="VolumeOffset"/>
+        /// applied. 100 (the default) is that level unchanged.
+        /// </summary>
+        /// <remarks>
+        /// Turning a sound all the way down is stored as <see cref="Muted"/> rather than as a volume of 0. The two sound
+        /// identical, but keeping the level here is what gives unmuting somewhere to come back to.
+        /// </remarks>
+        public int Volume
+        {
+            get => _volume;
+            set => SetField(ref _volume, Math.Min(MaxVolume, Math.Max(0, value)));
         }
 
         /// <summary>
@@ -168,6 +183,7 @@ namespace SoundBoard.Model
             Path = string.Empty;
             Color = null;
             VolumeOffset = 0;
+            Volume = MaxVolume;
             Loop = false;
             Muted = false;
             StopAllSounds = false;
@@ -199,6 +215,7 @@ namespace SoundBoard.Model
             Path = other.Path;
             Color = other.Color;
             VolumeOffset = other.VolumeOffset;
+            Volume = other.Volume;
             Loop = other.Loop;
             Muted = other.Muted;
             StopAllSounds = other.StopAllSounds;
@@ -221,5 +238,10 @@ namespace SoundBoard.Model
         /// Generates a fresh <see cref="Id"/>.
         /// </summary>
         public static string NewId() => Guid.NewGuid().ToString();
+
+        /// <summary>
+        /// The top of the <see cref="Volume"/> range, and the level a sound is at until it is turned down.
+        /// </summary>
+        public const int MaxVolume = 100;
     }
 }

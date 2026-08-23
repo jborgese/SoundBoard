@@ -241,7 +241,11 @@
     <value>Elegir color</value>
   </data>
   <data name="AdjustVolume" xml:space="preserve">
-    <value>Ajustar volumen</value>
+    <value>Ajustar el desplazamiento de volumen</value>
+  </data>
+  <data name="VolumeLevel" xml:space="preserve">
+    <value>Volumen: {0} %</value>
+    <comment>{0} is a percentage from 0 to 100</comment>
   </data>
   <data name="Loop" xml:space="preserve">
     <value>Repetir</value>

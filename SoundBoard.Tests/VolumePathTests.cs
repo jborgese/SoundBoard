@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using SoundBoard.Audio;
 using Xunit;
 
 namespace SoundBoard.Tests
@@ -140,6 +141,39 @@ namespace SoundBoard.Tests
             // A loop never ends, so ask for more than the source holds and expect a full buffer rather than a short read.
             var buffer = new byte[Samples().Length * sizeof(float) * 3];
             Assert.Equal(buffer.Length, wrapped.Read(buffer, 0, buffer.Length));
+        }
+    }
+
+    /// <summary>
+    /// The gain a sound's volume offset asks for. The volume slider multiplies this rather than replacing it, so what
+    /// the offset means has to keep meaning it: a board someone set up with offsets has to sound the same afterwards.
+    /// </summary>
+    public class VolumeOffsetGainTests
+    {
+        [Theory]
+        [InlineData(0, 1.0)]
+        [InlineData(1, 2.0)]
+        [InlineData(2, 4.0)]
+        [InlineData(5, 10.0)]
+        [InlineData(-1, 0.5)]
+        [InlineData(-2, 0.25)]
+        [InlineData(-5, 0.1)]
+        public void GainForVolumeOffset_IsWhatTheMenuHasAlwaysMeant(int volumeOffset, double expected)
+        {
+            Assert.Equal(expected, SoundPlayer.GainForVolumeOffset(volumeOffset), 5);
+        }
+
+        [Fact]
+        public void NegativeOffsets_TurnTheSoundDownRatherThanInvertingIt()
+        {
+            // These used to come out negative, because the offset's own sign was left in the reciprocal. The amplitude
+            // was right, so it was inaudible on a sound playing by itself — but a gain is an amplitude, not a phase.
+            foreach (int volumeOffset in new[] {-1, -2, -3, -4, -5})
+            {
+                float gain = SoundPlayer.GainForVolumeOffset(volumeOffset);
+
+                Assert.InRange(gain, float.Epsilon, 1f);
+            }
         }
     }
 }

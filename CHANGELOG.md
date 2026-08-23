@@ -12,6 +12,25 @@ history and release tags.
 
 ## [Unreleased]
 
+### Added
+- A **volume slider** on every sound, along the top of its row of controls, setting how loud
+  that one sound plays. It takes effect straight away on a sound that is already playing, and
+  it is saved with the sound. The bottom of the slider is the same state as **mute**: dragging
+  all the way down mutes, the mute control moves the slider to the bottom, and unmuting either
+  way comes back to the level the sound was at. Like the other controls it applies to the whole
+  selection when several sounds are selected.
+
+### Changed
+- **Adjust volume** in the **···** menu is now **Adjust volume offset**, to tell it apart from
+  the new slider. It is otherwise unchanged: the offset is the sound's own trim, and the slider
+  scales whatever the offset puts it at.
+
+### Fixed
+- A negative volume offset inverted the waveform as well as turning the sound down, because the
+  offset's own sign was left in the reciprocal that produced the gain. Every sound is exactly as
+  loud as it was before; only sounds played against a non-inverted copy of themselves were ever
+  affected, and those no longer cancel out.
+
 ## [1.11.0] - 2026-08-23
 
 ### Added

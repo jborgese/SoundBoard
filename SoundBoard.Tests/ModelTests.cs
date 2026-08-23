@@ -34,6 +34,7 @@ namespace SoundBoard.Tests
             Assert.Equal(string.Empty, sound.Name);
             Assert.Null(sound.Color);
             Assert.Equal(0, sound.VolumeOffset);
+            Assert.Equal(Sound.MaxVolume, sound.Volume);
             Assert.False(sound.Loop);
             Assert.False(sound.Muted);
             Assert.False(sound.StopAllSounds);
@@ -56,6 +57,7 @@ namespace SoundBoard.Tests
             Assert.Equal(sound.Path, clone.Path);
             Assert.Equal(sound.Color, clone.Color);
             Assert.Equal(sound.VolumeOffset, clone.VolumeOffset);
+            Assert.Equal(sound.Volume, clone.Volume);
             Assert.Equal(sound.Loop, clone.Loop);
             Assert.Equal(sound.Muted, clone.Muted);
             Assert.Equal(sound.StopAllSounds, clone.StopAllSounds);
@@ -100,6 +102,28 @@ namespace SoundBoard.Tests
             sound.Muted = false;
 
             Assert.Equal(new[] { nameof(Sound.Muted), nameof(Sound.Muted) }, changed);
+        }
+
+        [Fact]
+        public void NewSound_IsAtFullVolume()
+        {
+            // Not zero: a sound nobody has touched has to be audible, and the default has to be the top of the slider.
+            Assert.Equal(100, Sound.MaxVolume);
+            Assert.Equal(Sound.MaxVolume, new Sound().Volume);
+        }
+
+        [Fact]
+        public void Volume_IsClampedToItsRange()
+        {
+            // The slider cannot ask for anything outside the range, but a hand-edited config can, and a gain of 2.5
+            // would be a good deal louder than the sound has ever played.
+            var sound = new Sound();
+
+            sound.Volume = 250;
+            Assert.Equal(Sound.MaxVolume, sound.Volume);
+
+            sound.Volume = -40;
+            Assert.Equal(0, sound.Volume);
         }
 
         [Fact]
@@ -149,6 +173,7 @@ namespace SoundBoard.Tests
             Path = @"C:\x.mp3",
             Color = new SoundColor(1, 2, 3, 4),
             VolumeOffset = -2,
+            Volume = 40,
             Loop = true,
             Muted = true,
             StopAllSounds = true,

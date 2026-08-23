@@ -271,6 +271,36 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void Volume_RoundTrips()
+        {
+            SoundBoardConfig config = Read(ReadFixture("current-1.10.2.config"));
+            config.Pages[0][0, 0].Volume = 35;
+
+            string written = Write(config);
+            Assert.Contains(" volume=\"35\"", written);
+
+            Assert.Equal(35, Read(written).Pages[0][0, 0].Volume);
+        }
+
+        [Fact]
+        public void Volume_IsNotWrittenWhenNothingHasBeenTurnedDown()
+        {
+            // Earns its bytes the same way muted does: a config from a user who has never moved the slider stays exactly
+            // what previous releases wrote.
+            Assert.DoesNotContain("volume=\"", Write(Read(ReadFixture("current-1.10.2.config"))));
+        }
+
+        [Fact]
+        public void Volume_IsFullWhenTheFileDoesNotSayOtherwise()
+        {
+            // Every config written before the slider existed is in this state, and every sound in one has to come back
+            // audible rather than silent.
+            SoundBoardConfig config = Read(ReadFixture("current-1.10.2.config"));
+
+            Assert.All(config.Pages[0].Sounds, sound => Assert.Equal(Sound.MaxVolume, sound.Volume));
+        }
+
+        [Fact]
         public void Theme_RoundTrips()
         {
             // The whole point of storing it: the theme the user picked has to come back the next time the app starts.
@@ -410,6 +440,7 @@ namespace SoundBoard.Tests
             Assert.Equal("Weird", weird.Name);
             Assert.Null(weird.Color);
             Assert.Equal(0, weird.VolumeOffset);
+            Assert.Equal(Sound.MaxVolume, weird.Volume);               // no volume attribute: full volume, not silence
             Assert.False(weird.Loop);
             Assert.False(weird.Muted);                                 // muted predates nothing: a file without it is unmuted
             Assert.False(weird.StopAllSounds);
