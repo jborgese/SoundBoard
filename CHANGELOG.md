@@ -12,6 +12,8 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-08-23
+
 ### Added
 - A `--config <path>` command-line switch, naming the configuration file to use instead of the one
   under `%AppData%`. Everything follows it — the configuration itself, its `.bak` backups and the
