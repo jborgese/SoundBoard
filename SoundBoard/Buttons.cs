@@ -252,7 +252,8 @@ namespace SoundBoard
             VerticalAlignment = VerticalAlignment.Center;
             HorizontalAlignment = HorizontalAlignment.Center;
 
-            // Loop disables itself while the sound plays, and its tool tip is where the reason for that is written down
+            // Some of these disable themselves (stop, when nothing is playing), and a control that cannot be clicked is
+            // exactly the one whose tool tip is worth reading
             ToolTipService.SetShowOnDisabled(this, true);
         }
 
@@ -479,11 +480,6 @@ namespace SoundBoard
         /// <inheritdoc />
         protected override bool? ToggleState => ParentButton?.Loop;
 
-        /// <summary>
-        /// Whether a sound loops is decided by the stream it is started on, so it cannot be changed part-way through.
-        /// </summary>
-        protected override bool IsAvailable => ParentButton?.IsPlaying != true;
-
         /// <inheritdoc />
         protected override void OnClick()
         {
@@ -496,16 +492,12 @@ namespace SoundBoard
         protected override object CreateContent() =>
             ImageHelper.GetImage(ImageHelper.LoopIconPath, IconSize, IconSize, Mode == ColorMode.Dark);
 
-        /// <inheritdoc />
-        protected override string CreateToolTip()
-        {
-            if (ParentButton?.IsPlaying == true)
-            {
-                return Properties.Resources.LoopCannotBeChangedWhilePlaying;
-            }
-
-            return ParentButton?.Loop == true ? Properties.Resources.SoundSetToLoop : Properties.Resources.Loop;
-        }
+        /// <summary>
+        /// Looping can be toggled while the sound plays: turning it off leaves the sound to end where it would have ended
+        /// anyway, and turning it on makes it wrap around at the end.
+        /// </summary>
+        protected override string CreateToolTip() =>
+            ParentButton?.Loop == true ? Properties.Resources.SoundSetToLoop : Properties.Resources.Loop;
 
         #endregion
     }
@@ -1435,8 +1427,6 @@ namespace SoundBoard
                 }
             }
 
-            _loopMenuItem.IsEnabled = !IsPlaying;
-
             if (ContextMenu?.Items.Contains(_stopAllSoundsMenuItem) == true)
             {
                 if (IsSelected)
@@ -2074,7 +2064,7 @@ namespace SoundBoard
                 // Aaaaand play
                 _player.Start(Sound, GlobalSettings.GetOutputDeviceGuids());
 
-                // Turn play into pause, enable stop, and lock looping (only now: if Start threw, nothing is playing)
+                // Turn play into pause and enable stop (only now: if Start threw, nothing is playing)
                 UpdateTransportControls();
 
                 Host.OnAnySoundStarted(this);
@@ -2334,6 +2324,13 @@ namespace SoundBoard
         /// whole point of a slider: it is dragged while the sound is running.
         /// </summary>
         public void ApplyVolume() => _player.Volume = Volume / (float) Model.Sound.MaxVolume;
+
+        /// <summary>
+        /// Pushes this button's loop setting out to its playback. Takes effect on a sound that is already playing: turning
+        /// looping off part-way through lets the sound end where it would have ended anyway, and turning it on makes it
+        /// wrap around at the end.
+        /// </summary>
+        public void ApplyLoop() => _player.Loop = Loop;
 
         /// <summary>
         /// Redraws the control strip (and re-fits the button's text around it) after anything it shows has changed.
@@ -2609,6 +2606,7 @@ namespace SoundBoard
             UpdateTransportControls();
             ApplyEffectiveMute();
             ApplyVolume();
+            ApplyLoop();
 
             Host.OnAnySoundRenamed();
 
@@ -2683,6 +2681,7 @@ namespace SoundBoard
                     break;
 
                 case nameof(Model.Sound.Loop):
+                    ApplyLoop();
                     UpdateTransportControls();
                     break;
 
@@ -3073,7 +3072,7 @@ namespace SoundBoard
             // last tick put it
             SoundProgressBar?.SetProgress(0);
 
-            // Turn pause back into play, disable stop, and unlock looping
+            // Turn pause back into play and disable stop
             UpdateTransportControls();
 
             Host.OnAnySoundStopped(this);

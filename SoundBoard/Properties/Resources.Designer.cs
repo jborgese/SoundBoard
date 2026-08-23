@@ -1080,15 +1080,6 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Stop the sound to change whether it loops.
-        /// </summary>
-        internal static string LoopCannotBeChangedWhilePlaying {
-            get {
-                return ResourceManager.GetString("LoopCannotBeChangedWhilePlaying", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   Looks up a localized string similar to {0} needs the path of a configuration file after it..
         /// </summary>
         internal static string ConfigSwitchNeedsAPath {

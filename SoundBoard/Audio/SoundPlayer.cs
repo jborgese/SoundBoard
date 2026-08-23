@@ -44,11 +44,12 @@ namespace SoundBoard.Audio
 
         private readonly List<IWavePlayer> _players = new List<IWavePlayer>();
         private readonly Dictionary<IWavePlayer, AudioFileReader> _audioFileReaders = new Dictionary<IWavePlayer, AudioFileReader>();
-        private readonly Dictionary<IWavePlayer, WaveStream> _waveProviders = new Dictionary<IWavePlayer, WaveStream>();
+        private readonly Dictionary<IWavePlayer, LoopStream> _loopStreams = new Dictionary<IWavePlayer, LoopStream>();
         private readonly List<VolumeSampleProvider> _volumeProviders = new List<VolumeSampleProvider>();
         private float _offsetGain = 1f;
         private float _volume = 1f;
         private bool _isMuted;
+        private bool _loop;
         private Stopwatch _stopWatch;
         private TimeSpan _seekOffset;
 
@@ -159,6 +160,21 @@ namespace SoundBoard.Audio
         }
 
         /// <summary>
+        /// Whether playback starts over when it reaches the end of the sound. Setting this takes effect immediately on
+        /// anything already playing — turning it off part-way through leaves the sound to end where it would have ended
+        /// anyway, turning it on makes it wrap around — and it is re-read from the sound on the next <see cref="Start"/>.
+        /// </summary>
+        public bool Loop
+        {
+            get => _loop;
+            set
+            {
+                _loop = value;
+                ApplyLoop();
+            }
+        }
+
+        /// <summary>
         /// The gain a <see cref="Sound.VolumeOffset"/> asks for: 1 at an offset of zero, the offset times
         /// <see cref="VolumeOffsetMultiplier"/> above that, and the reciprocal of the same below it — so +1 is twice as
         /// loud, +5 ten times, -1 half and -5 a tenth.
@@ -187,6 +203,17 @@ namespace SoundBoard.Audio
         {
             float volume = _isMuted ? 0f : _offsetGain * _volume;
             _volumeProviders.ForEach(v => v.Volume = volume);
+        }
+
+        /// <summary>
+        /// Pushes <see cref="Loop"/> out to the live streams.
+        /// </summary>
+        private void ApplyLoop()
+        {
+            foreach (LoopStream loopStream in _loopStreams.Values)
+            {
+                loopStream.EnableLooping = _loop;
+            }
         }
 
         /// <summary>
@@ -229,10 +256,13 @@ namespace SoundBoard.Audio
             _seekOffset = TimeSpan.Zero;
             _stopWatch = Stopwatch.StartNew();
 
-            // Looping
+            // Looping. Every output is fed through a LoopStream whether or not the sound loops, because looping has to be
+            // able to be turned on and off part-way through: the stream an output was initialised with cannot be swapped
+            // out, so the only thing that can change while a sound plays is whether that stream wraps around at the end.
+            _loop = sound.Loop;
             foreach (var kvp in _audioFileReaders.ToList())
             {
-                _waveProviders[kvp.Key] = sound.Loop ? new LoopStream(kvp.Value) : (WaveStream)kvp.Value;
+                _loopStreams[kvp.Key] = new LoopStream(kvp.Value) { EnableLooping = _loop };
             }
 
             // Volume. Every output goes through a VolumeSampleProvider, even at an offset of zero and even when nothing is
@@ -245,7 +275,7 @@ namespace SoundBoard.Audio
             // it also depends on whether anything else on the board is soloed, which this class knows nothing about.
             foreach (IWavePlayer player in _players)
             {
-                var volumeProvider = new VolumeSampleProvider(_waveProviders[player].ToSampleProvider());
+                var volumeProvider = new VolumeSampleProvider(_loopStreams[player].ToSampleProvider());
                 _volumeProviders.Add(volumeProvider);
                 player.Init(volumeProvider);
             }
@@ -306,11 +336,11 @@ namespace SoundBoard.Audio
             _volumeProviders.Clear();
 
             // Closing a stream that has already been torn down by NAudio can throw; there is nothing to clean up in that case.
-            foreach (var kvp in _waveProviders.ToList())
+            foreach (var kvp in _loopStreams.ToList())
             {
-                try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous wave provider failed"); }
+                try { kvp.Value.Close(); } catch (Exception ex) { Logger.Debug(ex, "Closing previous loop stream failed"); }
             }
-            _waveProviders.Clear();
+            _loopStreams.Clear();
 
             foreach (var kvp in _audioFileReaders.ToList())
             {

@@ -123,6 +123,18 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void LoopingCanBeTurnedOnMidway()
+        {
+            // Every sound is played through a LoopStream, looping or not, so that the loop button can be toggled while it plays
+            var source = new MemoryWaveStream(Sequence(10));
+            var loop = new LoopStream(source) { EnableLooping = false };
+
+            Assert.Equal(new byte[] { 0, 1, 2, 3, 4, 5, 6 }, ReadAll(loop, 7));
+            loop.EnableLooping = true;
+            Assert.Equal(new byte[] { 7, 8, 9, 0, 1, 2, 3 }, ReadAll(loop, 7));
+        }
+
+        [Fact]
         public void EmptySource_ReturnsZeroInsteadOfSpinningForever()
         {
             var source = new MemoryWaveStream(new byte[0]);

@@ -12,6 +12,12 @@ history and release tags.
 
 ## [Unreleased]
 
+### Changed
+- **Looping can be turned on and off while a sound is playing.** The loop button used to be
+  disabled for as long as the sound ran, so the only way to change it was to stop the sound first.
+  Turning looping off part-way through leaves the sound to finish the pass it is on and stop there,
+  exactly as if it had never been set to loop; turning it on makes it wrap around at the end.
+
 ## [1.15.0] - 2026-08-23
 
 ### Added
