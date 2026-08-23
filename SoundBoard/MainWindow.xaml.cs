@@ -1455,6 +1455,11 @@ namespace SoundBoard
             GlobalSettings.Theme = theme;
             AppTheme.Apply(theme);
 
+            // Everything else on a MahApps control reads its colors through DynamicResource brushes and follows the new
+            // theme on its own. A sound button does not: it builds its Style in code, and on a sound with no color of
+            // its own the theme is what decides whether its controls are drawn in black or in white.
+            RestyleSoundButtons();
+
             // Persist straight away, exactly like the language setting: this should survive a crash rather than only
             // the next clean exit.
             await TrySaveSettingsAsync();
@@ -1465,6 +1470,11 @@ namespace SoundBoard
                 item.Icon = Equals(item.Tag, theme) ? ImageHelper.GetImage(ImageHelper.CheckIconPath) : null;
             }
         }
+
+        /// <summary>
+        /// Redraws every sound button, on every page, from the theme now in place.
+        /// </summary>
+        private void RestyleSoundButtons() => GetSoundButtons().ToList().ForEach(soundButton => soundButton.Restyle());
 
         /// <summary>
         /// Saves the config, reporting a failure the way the other settings menus do rather than throwing out of an

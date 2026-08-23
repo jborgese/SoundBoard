@@ -63,7 +63,7 @@ namespace SoundBoard
 
             // Default mode is light, unless the parent button specifies otherwise
             Mode = ColorMode.Light;
-            if (ParentButton?.SoundButtonStyle?.IsLightColor == false)
+            if (ParentButton?.SoundButtonStyle?.IsLightBackground == false)
             {
                 Mode = ColorMode.Dark;
             }
@@ -651,7 +651,7 @@ namespace SoundBoard
 
             // Default mode is light, unless the parent button specifies otherwise — the same rule the controls beneath
             // the slider follow, and for the same reason: the sound's own color decides what reads on it.
-            _mode = _parentButton.SoundButtonStyle?.IsLightColor == false
+            _mode = _parentButton.SoundButtonStyle?.IsLightBackground == false
                 ? MenuButtonBase.ColorMode.Dark
                 : MenuButtonBase.ColorMode.Light;
 
@@ -2761,6 +2761,12 @@ namespace SoundBoard
         }
 
         /// <summary>
+        /// Redraws the button and its controls. Called when the app theme changes, which decides the control color on a
+        /// sound that has no color of its own.
+        /// </summary>
+        public void Restyle() => SetUpStyle();
+
+        /// <summary>
         /// Creates and sets a <see cref="Style"/> from the current <see cref="Color"/>.
         /// </summary>
         private void SetUpStyle()
@@ -2817,9 +2823,9 @@ namespace SoundBoard
             Style = style;
 
             // Restyle the child buttons
-            MenuButtonBase.ColorMode mode = soundButtonStyle.IsLightColor is bool isLightColor && isLightColor == false
-                ? MenuButtonBase.ColorMode.Dark
-                : MenuButtonBase.ColorMode.Light;
+            MenuButtonBase.ColorMode mode = soundButtonStyle.IsLightBackground
+                ? MenuButtonBase.ColorMode.Light
+                : MenuButtonBase.ColorMode.Dark;
 
             foreach (MenuButtonBase menuButtonBase in ChildButtons)
             {
@@ -3395,6 +3401,18 @@ namespace SoundBoard
         /// Whether the main color palette of this style is light (e.g., requiring dark foreground)
         /// </summary>
         public bool? IsLightColor { get; set; }
+
+        /// <summary>
+        /// Whether the controls drawn on the button have to be black rather than white. This is <see cref="IsLightColor"/>
+        /// wherever the sound has a color of its own, and otherwise the app theme: a button with no color is painted in
+        /// MahApps' own button color, which is light in the Light theme and dark in the Dark one.
+        /// </summary>
+        /// <remarks>
+        /// Reading the theme here rather than leaving <see cref="IsLightColor"/> null is what keeps the control strip
+        /// legible in the Dark theme. Left to the null default the controls came out black on a near-black button, at
+        /// about 1.4:1 — visible only if you knew where to look.
+        /// </remarks>
+        public bool IsLightBackground => IsLightColor ?? AppTheme.Current != AppTheme.Dark;
     }
 
     #endregion

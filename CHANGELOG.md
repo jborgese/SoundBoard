@@ -26,6 +26,10 @@ history and release tags.
   scales whatever the offset puts it at.
 
 ### Fixed
+- In the Dark theme, the controls on a sound with no colour of its own were drawn in black on a
+  near-black button and were all but invisible. A sound with no colour is painted in the theme's
+  own button colour, so the theme now decides whether its controls are black or white — and it
+  does so as soon as the theme is switched, with no restart.
 - A negative volume offset inverted the waveform as well as turning the sound down, because the
   offset's own sign was left in the reciprocal that produced the gain. Every sound is exactly as
   loud as it was before; only sounds played against a non-inverted copy of themselves were ever
