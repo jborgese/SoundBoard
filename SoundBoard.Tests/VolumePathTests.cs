@@ -142,6 +142,24 @@ namespace SoundBoard.Tests
             var buffer = new byte[Samples().Length * sizeof(float) * 3];
             Assert.Equal(buffer.Length, wrapped.Read(buffer, 0, buffer.Length));
         }
+
+        [Fact]
+        public void ANonLoopingStreamStillEndsThroughTheWholeChain()
+        {
+            // Every sound goes through a LoopStream now, looping or not, so that the loop button can be toggled while it
+            // plays. That only stops a sound that is not looping because the end of the source travels out through the
+            // whole chain as a short read and then a zero: that zero is what stops the output, which is what raises
+            // PlaybackStopped, which is what empties the progress bar and chains to the next sound. A layer that padded a
+            // short read with silence instead would leave every non-looping sound running silently past its end forever.
+            var stream = new LoopStream(new FloatWaveStream(Samples())) { EnableLooping = false };
+            IWaveProvider wrapped = new SampleToWaveProvider(new VolumeSampleProvider(stream.ToSampleProvider()));
+
+            int length = Samples().Length * sizeof(float);
+            var buffer = new byte[length * 3];
+
+            Assert.Equal(length, wrapped.Read(buffer, 0, buffer.Length));
+            Assert.Equal(0, wrapped.Read(buffer, 0, buffer.Length));
+        }
     }
 
     /// <summary>
