@@ -86,4 +86,29 @@
         </Setter>
     </Style>
 
+    <!--
+        The playback progress bar along the bottom edge of a sound button. Templated from scratch for the same reason as
+        the slider above: it is drawn in whichever of black or white reads on the button's own colour, which arrives as
+        plain Foreground/Background brushes. Foreground is the part that has played; Background is the rail. The part
+        names are the ones the framework's ProgressBar looks for to size the indicator from Value.
+    -->
+    <Style x:Key="SoundButtonProgressBarStyle" TargetType="{x:Type ProgressBar}">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ProgressBar}">
+                    <Border x:Name="PART_Track"
+                            CornerRadius="2"
+                            Background="{TemplateBinding Background}">
+                        <Border x:Name="PART_Indicator"
+                                CornerRadius="2"
+                                HorizontalAlignment="Left"
+                                Background="{TemplateBinding Foreground}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

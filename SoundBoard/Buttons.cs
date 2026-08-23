@@ -47,7 +47,7 @@ namespace SoundBoard
             FontSize = 13;
             Width = 35;
             Height = 35;
-            Margin = new Thickness(0, 15, 15, 15);
+            Margin = new Thickness(0, 15, 15, BottomMargin);
             Padding = new Thickness(0.5, 0, 0, 1.5);
 
             Style = (Style) FindResource(@"MahApps.Styles.Button.Circle");
@@ -125,6 +125,16 @@ namespace SoundBoard
             /// </summary>
             Dark
         }
+
+        #endregion
+
+        #region Public consts
+
+        /// <summary>
+        /// How far the buttons along the bottom of a sound button sit above its bottom edge: clear of the progress bar
+        /// that runs along it, with a little air between. The control strip sits on the same line.
+        /// </summary>
+        public const int BottomMargin = SoundProgressBar.EdgeMargin + SoundProgressBar.BarHeight + 4;
 
         #endregion
     }
@@ -328,7 +338,11 @@ namespace SoundBoard
 
         private const int ButtonSize = 30;
 
-        private const int ButtonSpacing = 2;
+        /// <summary>
+        /// The air on either side of each control. Internal so that the strip can line its slider up with the outermost
+        /// controls' edges rather than their margins.
+        /// </summary>
+        internal const int ButtonSpacing = 2;
 
         private const double DimmedOpacity = 0.5;
 
@@ -657,10 +671,12 @@ namespace SoundBoard
 
             Minimum = 0;
             Maximum = Model.Sound.MaxVolume;
-            Width = SliderWidth;
             Height = SliderHeight;
-            Margin = new Thickness(0, 0, 0, SliderBottomMargin);
-            HorizontalAlignment = HorizontalAlignment.Center;
+
+            // As wide as the row of controls beneath it, edge to edge, so that the two read as one block. The strip
+            // sets the width; the slider only keeps clear of the outermost controls' own spacing.
+            Margin = new Thickness(TransportButtonBase.ButtonSpacing, 0, TransportButtonBase.ButtonSpacing, SliderBottomMargin);
+            HorizontalAlignment = HorizontalAlignment.Stretch;
             VerticalAlignment = VerticalAlignment.Center;
 
             Style = (Style) FindResource(@"SoundButtonVolumeSliderStyle");
@@ -743,12 +759,6 @@ namespace SoundBoard
 
         #region Private consts
 
-        /// <summary>
-        /// Wide enough to be worth dragging, and no wider than the row of controls it sits above, which is what sets how
-        /// far the strip as a whole has to shrink on a narrow button.
-        /// </summary>
-        private const int SliderWidth = 150;
-
         private const int SliderHeight = 16;
 
         private const int SliderBottomMargin = 4;
@@ -786,23 +796,36 @@ namespace SoundBoard
         {
             _parentButton = parentButton ?? throw new ArgumentNullException(nameof(parentButton));
 
-            Buttons = new List<TransportButtonBase>
+            // In groups, by what they do to the sound: run it, shape what is heard of it, and get rid of it. The gap
+            // between groups is what keeps remove, the one control that cannot be undone with another click, from sitting
+            // flush against the toggles next to it.
+            List<List<TransportButtonBase>> groups = new List<List<TransportButtonBase>>
             {
-                new PlayPauseButton(parentButton),
-                new StopButton(parentButton),
-                new LoopButton(parentButton),
-                new MuteButton(parentButton),
-                new SoloButton(parentButton),
-                new RemoveButton(parentButton)
+                new List<TransportButtonBase> {new PlayPauseButton(parentButton), new StopButton(parentButton), new LoopButton(parentButton)},
+                new List<TransportButtonBase> {new MuteButton(parentButton), new SoloButton(parentButton)},
+                new List<TransportButtonBase> {new RemoveButton(parentButton)}
             };
+
+            Buttons = groups.SelectMany(group => group).ToList();
 
             VolumeSlider = new VolumeSlider(parentButton);
 
             StackPanel buttonRow = new StackPanel {Orientation = Orientation.Horizontal};
-            Buttons.ForEach(button => buttonRow.Children.Add(button));
+
+            foreach (List<TransportButtonBase> group in groups)
+            {
+                if (buttonRow.Children.Count > 0)
+                {
+                    TransportButtonBase first = group[0];
+                    first.Margin = new Thickness(first.Margin.Left + GroupGap, first.Margin.Top, first.Margin.Right, first.Margin.Bottom);
+                }
+
+                group.ForEach(button => buttonRow.Children.Add(button));
+            }
 
             // The slider goes above the controls rather than in among them. Seven things side by side would make the
-            // whole strip shrink further on every button, and a volume slider that short is not worth dragging.
+            // whole strip shrink further on every button, and a volume slider that short is not worth dragging. It is
+            // the row's width that sets the slider's: the slider stretches to it.
             StackPanel panel = new StackPanel {Orientation = Orientation.Vertical};
             panel.Children.Add(VolumeSlider);
             panel.Children.Add(buttonRow);
@@ -813,8 +836,9 @@ namespace SoundBoard
             HorizontalAlignment = HorizontalAlignment.Center;
             VerticalAlignment = VerticalAlignment.Bottom;
 
-            // Wide enough margins to keep clear of the icons in the two bottom corners, and high enough to clear the progress bar
-            Margin = new Thickness(50, 0, 50, 14);
+            // Wide enough margins to keep clear of the icons in the two bottom corners, and sitting on the same line as
+            // them, above the progress bar
+            Margin = new Thickness(SideMargin, 0, SideMargin, MenuButtonBase.BottomMargin);
 
             Update();
         }
@@ -859,6 +883,22 @@ namespace SoundBoard
         #region Private fields
 
         private readonly SoundButton _parentButton;
+
+        #endregion
+
+        #region Private consts
+
+        /// <summary>
+        /// Room on either side for the buttons in the bottom corners (35 wide, 15 in from the edge), plus a little air so that
+        /// the strip does not butt up against them.
+        /// </summary>
+        private const int SideMargin = 54;
+
+        /// <summary>
+        /// The extra air between one group of controls and the next. Wide enough to read as a break at the size the strip
+        /// usually ends up drawn at, and no wider, since every pixel of it is a pixel the strip has to shrink to fit.
+        /// </summary>
+        private const int GroupGap = 6;
 
         #endregion
     }
@@ -1146,23 +1186,104 @@ namespace SoundBoard
     #region SoundProgressBar class
 
     /// <summary>
-    /// Defines a ProgressBar control to visually indicate the progress of a playing sound
+    /// How far through its sound a button is, as a thin bar along the button's bottom edge. Shown on every button that
+    /// has a sound, so that a sound's card always has the same shape: the bar is empty while the sound is stopped, fills
+    /// while it plays, holds while it is paused, and empties again when it stops.
     /// </summary>
-    internal sealed class SoundProgressBar : MetroProgressBar
+    internal sealed class SoundProgressBar : ProgressBar
     {
         #region Constructor
 
         /// <summary>
         /// Constructor
         /// </summary>
-        public SoundProgressBar()
+        /// <param name="parentButton"></param>
+        public SoundProgressBar(SoundButton parentButton)
         {
-            Margin = new Thickness(10);
+            _parentButton = parentButton ?? throw new ArgumentNullException(nameof(parentButton));
+
+            // The same rule as the slider and the controls: the sound's own color decides what reads on it
+            _mode = _parentButton.SoundButtonStyle?.IsLightBackground == false
+                ? MenuButtonBase.ColorMode.Dark
+                : MenuButtonBase.ColorMode.Light;
+
+            Minimum = 0;
+            Maximum = 1;
+            Height = BarHeight;
             VerticalAlignment = VerticalAlignment.Bottom;
 
-            // Hide by default
-            Visibility = Visibility.Hidden;
+            // Just inside the button's border (the button has a margin of 10 and a border of 2, or 5 while selected), and
+            // as wide as the button: the bar's length is the sound's length, and every pixel of it is resolution.
+            Margin = new Thickness(EdgeMargin, 0, EdgeMargin, EdgeMargin);
+
+            Style = (Style) FindResource(@"SoundButtonProgressBarStyle");
+
+            Update();
         }
+
+        #endregion
+
+        #region Public methods
+
+        /// <summary>
+        /// Shows or hides the bar depending on whether there is a sound to show progress for, and redraws it in the
+        /// colors that read on the sound button.
+        /// </summary>
+        public void Update()
+        {
+            Visibility = _parentButton.HasValidSound ? Visibility.Visible : Visibility.Collapsed;
+
+            Color color = _mode == MenuButtonBase.ColorMode.Dark ? Colors.White : Colors.Black;
+            Foreground = new SolidColorBrush(color);
+            Background = new SolidColorBrush(Color.FromArgb(RailAlpha, color.R, color.G, color.B));
+        }
+
+        /// <summary>
+        /// Draws the bar in the colors that read on the sound button, and redraws it.
+        /// </summary>
+        public void SetMode(MenuButtonBase.ColorMode mode)
+        {
+            _mode = mode;
+
+            Update();
+        }
+
+        /// <summary>
+        /// Sets how much of the bar is filled, from 0 (nothing has played) to 1 (the whole sound has).
+        /// </summary>
+        public void SetProgress(double fraction) => Value = Math.Max(0, Math.Min(1, fraction));
+
+        #endregion
+
+        #region Public consts
+
+        /// <summary>
+        /// How far the bar is inset from the button's edge: the button's margin, its border, and a little air.
+        /// </summary>
+        public const int EdgeMargin = 16;
+
+        /// <summary>
+        /// The bar's thickness. A hairline rather than a block: it is an underline to the card, not a control on it.
+        /// </summary>
+        public const int BarHeight = 4;
+
+        #endregion
+
+        #region Private fields
+
+        private readonly SoundButton _parentButton;
+
+        private MenuButtonBase.ColorMode _mode;
+
+        #endregion
+
+        #region Private consts
+
+        /// <summary>
+        /// How solid the unplayed part of the bar is. Fainter than the slider's rail, because the bar is there on every
+        /// card all the time and should not compete with the controls above it.
+        /// </summary>
+        private const byte RailAlpha = 0x33;
 
         #endregion
     }
@@ -1896,7 +2017,7 @@ namespace SoundBoard
                 _progressBarCancellationToken?.Cancel();
                 _progressBarCancellationToken?.Dispose();
                 _progressBarCancellationToken = new CancellationTokenSource();
-                await UpdateProgressTask(UpdateProgressAction, TimeSpan.FromMilliseconds(5), _progressBarCancellationToken.Token);
+                await UpdateProgressTask(UpdateProgressAction, ProgressBarInterval, _progressBarCancellationToken.Token);
             }
             catch (Exception ex)
             {
@@ -2154,6 +2275,7 @@ namespace SoundBoard
         public void UpdateTransportControls()
         {
             ControlStrip?.Update();
+            SoundProgressBar?.Update();
             CalculateTextMargin();
         }
 
@@ -2490,35 +2612,37 @@ namespace SoundBoard
         /// Returns false as long as there is still processing to perform.
         /// Returns true when progress no longer needs to be updated.
         /// </summary>
+        /// <remarks>
+        /// Whether the sound is still going is read from the player's state, not from how far into the file it is: a
+        /// sound that has only just started has not necessarily had a buffer pulled from it yet, and a position of zero
+        /// on the first tick used to be mistaken for the sound having stopped, which ended the loop before the bar had
+        /// shown anything. Stopping is what cancels the loop (see <see cref="HandleSoundStopped"/>), so it only has to
+        /// stop itself once there is nothing left to show.
+        /// </remarks>
         private bool UpdateProgressAction()
         {
-            bool result = false;
-
-            if (_player.Duration is TimeSpan duration)
+            if (!IsPlaying && !IsPaused)
             {
-                double maxSeconds = duration.TotalMilliseconds;
-                double curSeconds = _player.Elapsed.TotalMilliseconds;
-
-                SoundProgressBar.Visibility = Visibility.Visible;
-                SoundProgressBar.Maximum = maxSeconds;
-                SoundProgressBar.Value = curSeconds;
-
-                // Hide the progress bar if the sound is done or has been stopped
-                if (curSeconds > maxSeconds || _player.Position == 0)
-                {
-                    if (Loop && !_player.IsAnyOutputStopped)
-                    {
-                        _player.RestartClock();
-                    }
-                    else
-                    {
-                        SoundProgressBar.Visibility = Visibility.Hidden;
-                        result = true;
-                    }
-                }
+                SoundProgressBar?.SetProgress(0);
+                return true;
             }
 
-            return result;
+            if (_player.Duration is TimeSpan duration && duration > TimeSpan.Zero)
+            {
+                TimeSpan elapsed = _player.Elapsed;
+
+                // A looping sound wraps its clock around with the file. Its bar runs to the end and starts over, rather
+                // than pinning at the end for as long as the loop lasts.
+                if (elapsed > duration && Loop && !_player.IsAnyOutputStopped)
+                {
+                    _player.RestartClock();
+                    elapsed = _player.Elapsed;
+                }
+
+                SoundProgressBar?.SetProgress(elapsed.TotalMilliseconds / duration.TotalMilliseconds);
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -2832,9 +2956,10 @@ namespace SoundBoard
                 menuButtonBase.SetMode(mode);
             }
 
-            // The volume slider is a Slider rather than a MenuButtonBase, so it is not among the child buttons and has to
-            // be told separately
+            // The volume slider and the progress bar are not MenuButtonBases, so they are not among the child buttons and
+            // have to be told separately
             ControlStrip?.SetMode(mode);
+            SoundProgressBar?.SetMode(mode);
         }
 
         /// <summary>
@@ -2843,6 +2968,10 @@ namespace SoundBoard
         private void HandleSoundStopped(bool finished)
         {
             _progressBarCancellationToken?.Cancel();
+
+            // The loop may have been cancelled between ticks, so the bar is emptied here rather than left wherever the
+            // last tick put it
+            SoundProgressBar?.SetProgress(0);
 
             // Turn pause back into play, disable stop, and unlock looping
             UpdateTransportControls();
@@ -3040,9 +3169,10 @@ namespace SoundBoard
         public SoundButtonMode Mode { get; }
 
         /// <summary>
-        /// Defines the progress bar used to show the progress of this sound
+        /// The progress bar along the bottom edge of this button. Null on a button that is not on a page (a search result),
+        /// which has no progress to show.
         /// </summary>
-        public SoundProgressBar SoundProgressBar { get; set; } = new SoundProgressBar();
+        public SoundProgressBar SoundProgressBar { get; set; }
 
         /// <summary>
         /// The window hosting this button: model/view lookups, playback, hotkeys, undo and dialogs.
@@ -3259,7 +3389,14 @@ namespace SoundBoard
         /// How much of the bottom of the button the name gives up to the control strip when there is not room for both.
         /// Enough for the row of controls and the volume slider above it, at the size the strip's Viewbox settles on.
         /// </summary>
-        private const int ControlStripTextMargin = 45;
+        private const int ControlStripTextMargin = 55;
+
+        /// <summary>
+        /// How often the progress bar is moved along. The bar is a few hundred pixels at most, so this is already more
+        /// than a pixel's worth of precision on any sound longer than a few seconds.
+        /// </summary>
+        private static readonly TimeSpan ProgressBarInterval = TimeSpan.FromMilliseconds(30);
+
         private TextBlock _textBlock;
         private readonly Storyboard _textMarginStoryboard = new Storyboard();
 

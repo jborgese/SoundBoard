@@ -665,7 +665,7 @@ namespace SoundBoard
                     soundButton.ChildButtons.Add(nextSoundIconButton);
 
                     // Progress bar
-                    SoundProgressBar progressBar = new SoundProgressBar();
+                    SoundProgressBar progressBar = new SoundProgressBar(soundButton);
 
                     Grid.SetColumn(progressBar, columnIndex);
                     Grid.SetRow(progressBar, rowIndex);
