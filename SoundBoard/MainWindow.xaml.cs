@@ -281,6 +281,15 @@ namespace SoundBoard
         /// </summary>
         private void LoadSettingsCompat()
         {
+            if (ConfigStore.IsConfigFileOverridden)
+            {
+                // --config names the file outright, so there is nothing to migrate — and skipping the migration is
+                // most of the point of the switch. It saves whatever legacy config it finds in the working directory
+                // over the current one, which is how a scratch board can end up replacing the user's real board.
+                LoadSettings();
+                return;
+            }
+
             ConfigStore.LoadWithLegacyMigration(LegacyConfigFilePath, ConfigFilePath, TempConfigFilePath, LoadSettings, SaveSettings);
         }
 

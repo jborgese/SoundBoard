@@ -1089,6 +1089,24 @@ namespace SoundBoard.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} needs the path of a configuration file after it..
+        /// </summary>
+        internal static string ConfigSwitchNeedsAPath {
+            get {
+                return ResourceManager.GetString("ConfigSwitchNeedsAPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The path given with {0} cannot be used: {1}.
+        /// </summary>
+        internal static string ConfigSwitchPathIsNotUsable {
+            get {
+                return ResourceManager.GetString("ConfigSwitchPathIsNotUsable", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Volume: {0}%.
         /// </summary>
         internal static string VolumeLevel {

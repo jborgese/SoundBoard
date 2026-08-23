@@ -12,6 +12,14 @@ history and release tags.
 
 ## [Unreleased]
 
+### Added
+- A `--config <path>` command-line switch, naming the configuration file to use instead of the one
+  under `%AppData%`. Everything follows it — the configuration itself, its `.bak` backups and the
+  `.temp` file — and the pre-1.3 legacy migration is skipped, so a board started this way cannot
+  disturb your real one. A missing or unusable path stops the app with an error rather than quietly
+  falling back to the default configuration, which would be the very thing the switch is for
+  avoiding.
+
 ## [1.13.0] - 2026-08-23
 
 ### Added

@@ -25,10 +25,33 @@ namespace SoundBoard
         public const string ApplicationName = @"SoundBoard";
 
         /// <summary>
-        /// Where the config lives (since 1.3).
+        /// Where the config lives (since 1.3), unless <see cref="UseConfigFile"/> has pointed it somewhere else.
         /// </summary>
-        public static string ConfigFilePath =>
+        public static string ConfigFilePath => _configFilePathOverride ??
             Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), ApplicationName, @"soundboard.config");
+
+        /// <summary>
+        /// Whether <see cref="UseConfigFile"/> has named the config file outright, i.e. the app was started with
+        /// <see cref="StartupOptions.ConfigSwitch"/>.
+        /// </summary>
+        public static bool IsConfigFileOverridden => _configFilePathOverride != null;
+
+        /// <summary>
+        /// Points every read and write at <paramref name="path"/> instead of the file under <c>%AppData%</c>. Pass
+        /// null or whitespace to go back to the default.
+        /// </summary>
+        /// <remarks>
+        /// Stored as an absolute path deliberately: the process's working directory does not stay put (a file dialog
+        /// is enough to move it), so a relative path would resolve somewhere else later in the same run. Callers must
+        /// also skip the legacy migration when this is set — see <see cref="LoadWithLegacyMigration"/>.
+        /// </remarks>
+        /// <exception cref="ArgumentException"><paramref name="path"/> is not a usable path.</exception>
+        public static void UseConfigFile(string path)
+        {
+            _configFilePathOverride = string.IsNullOrWhiteSpace(path) ? null : Path.GetFullPath(path);
+        }
+
+        private static string _configFilePathOverride;
 
         /// <summary>
         /// Where a pre-1.3 config lives: next to the executable. See <see cref="LoadWithLegacyMigration"/>.
@@ -118,6 +141,12 @@ namespace SoundBoard
         /// <param name="load">Loads the config at the given path.</param>
         /// <param name="save">Saves the current config to the given path.</param>
         /// <returns><see langword="true"/> if a legacy config was found and migrated.</returns>
+        /// <remarks>
+        /// Callers must not reach this at all once <see cref="UseConfigFile"/> has been used. The migration writes the
+        /// legacy file over <paramref name="configPath"/>, so running it against an explicitly chosen config would do
+        /// exactly what choosing one was meant to avoid: a <c>soundboard.config</c> that happens to be sitting in the
+        /// working directory would be saved over the config the user named.
+        /// </remarks>
         public static bool LoadWithLegacyMigration(string legacyPath, string configPath, string tempPath, Action<string> load, Action<string> save)
         {
             // For backwards compatibility, see if the legacy config file exists.

@@ -243,6 +243,14 @@
   <data name="AdjustVolume" xml:space="preserve">
     <value>Ajustar el desplazamiento de volumen</value>
   </data>
+  <data name="ConfigSwitchNeedsAPath" xml:space="preserve">
+    <value>{0} necesita a continuación la ruta de un archivo de configuración.</value>
+    <comment>{0} is the --config command line switch</comment>
+  </data>
+  <data name="ConfigSwitchPathIsNotUsable" xml:space="preserve">
+    <value>No se puede usar la ruta indicada con {0}: {1}</value>
+    <comment>{0} is the --config command line switch, {1} is the reason from the operating system</comment>
+  </data>
   <data name="VolumeLevel" xml:space="preserve">
     <value>Volumen: {0} %</value>
     <comment>{0} is a percentage from 0 to 100</comment>

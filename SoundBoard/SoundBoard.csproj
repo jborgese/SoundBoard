@@ -113,6 +113,7 @@
     <Compile Include="Update\UpdateApplier.cs" />
     <Compile Include="Update\UpdateVerifier.cs" />
     <Compile Include="ShortcutCommands.cs" />
+    <Compile Include="StartupOptions.cs" />
     <Compile Include="UndoClasses.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="ViewboxPanel.cs" />

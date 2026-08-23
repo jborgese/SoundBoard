@@ -33,6 +33,19 @@ namespace SoundBoard
 
             UpdateApplier.CleanupBackup();
 
+            // Before anything reads the config, because --config decides which file that is. A bad command line stops
+            // the app rather than falling back to the default config: the switch exists so that a scratch board cannot
+            // touch the real one, and silently using the real one would be the failure it is there to prevent.
+            if (StartupOptions.Apply(e.Args) is string commandLineError)
+            {
+                Logger.Fatal("Bad command line: {0}", commandLineError);
+
+                MessageBox.Show(commandLineError, SoundBoard.Properties.Resources.Error, MessageBoxButton.OK, MessageBoxImage.Error);
+
+                Log.LogShutdownAndFlush(2);
+                Environment.Exit(2);
+            }
+
             // The UI language has to be in place before the first piece of XAML is parsed, which base.OnStartup below
             // triggers via StartupUri. That is why it is read straight off the config file here instead of waiting for
             // MainWindow to load the config properly.
