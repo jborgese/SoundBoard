@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -257,31 +258,70 @@ namespace SoundBoard.Tests
             // The whole design rests on Windows permitting a running image to be renamed. Prove it with a real
             // process rather than trusting the documentation.
             string target = Path.Combine(_dir, "sleeper.exe");
-            File.Copy(Path.Combine(Environment.SystemDirectory, "timeout.exe"), target);
+
+            // ping, not timeout: timeout refuses to start at all when its input is redirected ("ERROR: Input
+            // redirection is not supported, exiting the process immediately") and exits within a few hundred
+            // milliseconds, so the swap this test is about was landing on an image nobody was running. ping needs
+            // no input, so there is nothing to redirect, and it stays up for the moment the swap needs.
+            File.Copy(Path.Combine(Environment.SystemDirectory, "ping.exe"), target);
             string source = Write("download.exe", "new");
 
             using (Process sleeper = Process.Start(new ProcessStartInfo
             {
                 FileName = target,
-                Arguments = "/t 30 /nobreak",
+                Arguments = "-n 30 127.0.0.1",
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardInput = true,
+                RedirectStandardOutput = true,
             }))
             {
                 try
                 {
+                    // A sleeper that has already exited proves nothing, and the whole point is to be sure about a
+                    // running image, so that has to fail the test rather than quietly pass it.
+                    Assert.False(sleeper.HasExited, "the sleeper exited before the swap, so this proves nothing about a running image");
+
                     UpdateApplier.Swap(source, target);
 
                     Assert.Equal("new", File.ReadAllText(target));
                     Assert.True(File.Exists(UpdateApplier.GetBackupPath(target)));
+                    Assert.False(sleeper.HasExited, "the sleeper did not survive the swap of its own image");
                 }
                 finally
                 {
-                    sleeper.Kill();
-                    sleeper.WaitForExit();
+                    KillIfRunning(sleeper);
                 }
             }
+        }
+
+        /// <summary>
+        /// Ends <paramref name="process"/>, tolerating its having ended on its own already.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="Process.Kill"/> on a process that is already gone throws rather than doing nothing, and
+        /// <see cref="Process.HasExited"/> cannot rule that out — the process is free to exit between the check and
+        /// the call. Killing a sleeper that had died on its own is how this file used to fail on CI, reported as an
+        /// "Access is denied" from the teardown rather than as the dead sleeper it really was.
+        /// </remarks>
+        private static void KillIfRunning(Process process)
+        {
+            try
+            {
+                if (!process.HasExited)
+                {
+                    process.Kill();
+                }
+            }
+            catch (Win32Exception)
+            {
+                // Terminating a handle whose process has already gone reports "Access is denied"
+            }
+            catch (InvalidOperationException)
+            {
+                // The process had already exited and been reaped
+            }
+
+            process.WaitForExit();
         }
 
         [Fact]
