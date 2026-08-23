@@ -12,6 +12,18 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-08-23
+
+### Added
+- The progress bar along the bottom of a sound can be **clicked or dragged** to move a playing or
+  paused sound to that point in the track. It thickens under the mouse to show it will take a click.
+  (A stopped sound has no place to move; a click on its bar is a click on the sound, which plays it.)
+
+### Changed
+- **Clicking a sound while it plays pauses it, and clicking again resumes it** from where it was.
+  A click used to start the sound over from the beginning, throwing away its place; that is now
+  only what **stop** followed by **play** does. Hotkeys still retrigger the sound as before.
+
 ## [1.14.0] - 2026-08-23
 
 ### Added

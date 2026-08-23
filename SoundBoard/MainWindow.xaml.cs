@@ -611,6 +611,15 @@ namespace SoundBoard
                     Grid.SetRow(soundButton, rowIndex);
                     parentGrid.Children.Add(soundButton);
 
+                    // Progress bar. Added before the buttons along the bottom so that they are drawn over it and take
+                    // the click where its hit area reaches under them.
+                    SoundProgressBar progressBar = new SoundProgressBar(soundButton);
+
+                    Grid.SetColumn(progressBar, columnIndex);
+                    Grid.SetRow(progressBar, rowIndex);
+                    parentGrid.Children.Add(progressBar);
+                    soundButton.SoundProgressBar = progressBar;
+
                     // Menu button
                     MenuButton menuButton = new MenuButton(soundButton);
 
@@ -672,15 +681,6 @@ namespace SoundBoard
                     Grid.SetRow(nextSoundIconButton, rowIndex);
                     parentGrid.Children.Add(nextSoundIconButton);
                     soundButton.ChildButtons.Add(nextSoundIconButton);
-
-                    // Progress bar
-                    SoundProgressBar progressBar = new SoundProgressBar(soundButton);
-
-                    Grid.SetColumn(progressBar, columnIndex);
-                    Grid.SetRow(progressBar, rowIndex);
-                    parentGrid.Children.Add(progressBar);
-
-                    soundButton.SoundProgressBar = progressBar;
                 }
             }
 

@@ -1188,7 +1188,8 @@ namespace SoundBoard
     /// <summary>
     /// How far through its sound a button is, as a thin bar along the button's bottom edge. Shown on every button that
     /// has a sound, so that a sound's card always has the same shape: the bar is empty while the sound is stopped, fills
-    /// while it plays, holds while it is paused, and empties again when it stops.
+    /// while it plays, holds while it is paused, and empties again when it stops. Clicking or dragging along it moves a
+    /// running or paused sound to that point.
     /// </summary>
     internal sealed class SoundProgressBar : ProgressBar
     {
@@ -1209,7 +1210,7 @@ namespace SoundBoard
 
             Minimum = 0;
             Maximum = 1;
-            Height = BarHeight;
+            Height = HitHeight;
             VerticalAlignment = VerticalAlignment.Bottom;
 
             // Just inside the button's border (the button has a margin of 10 and a border of 2, or 5 while selected), and
@@ -1217,6 +1218,10 @@ namespace SoundBoard
             Margin = new Thickness(EdgeMargin, 0, EdgeMargin, EdgeMargin);
 
             Style = (Style) FindResource(@"SoundButtonProgressBarStyle");
+
+            // The bar only takes the mouse while it can be scrubbed (see Update), so whenever the cursor is over it at
+            // all, it is something that can be dragged
+            Cursor = Cursors.Hand;
 
             Update();
         }
@@ -1232,6 +1237,10 @@ namespace SoundBoard
         public void Update()
         {
             Visibility = _parentButton.HasValidSound ? Visibility.Visible : Visibility.Collapsed;
+
+            // Only a sound that is somewhere can be moved somewhere else. While the sound is stopped the bar is not there
+            // to the mouse at all, so a click on it is a click on the button beneath, which plays the sound.
+            IsHitTestVisible = _parentButton.IsPlaying || _parentButton.IsPaused;
 
             Color color = _mode == MenuButtonBase.ColorMode.Dark ? Colors.White : Colors.Black;
             Foreground = new SolidColorBrush(color);
@@ -1255,6 +1264,56 @@ namespace SoundBoard
 
         #endregion
 
+        #region Overrides
+
+        /// <inheritdoc />
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            e.Handled = true;
+            CaptureMouse();
+            SeekToMouse(e);
+        }
+
+        /// <inheritdoc />
+        protected override void OnMouseMove(MouseEventArgs e)
+        {
+            base.OnMouseMove(e);
+
+            // Scrubbing: the sound follows the mouse for as long as the button is held
+            if (IsMouseCaptured && e.LeftButton == MouseButtonState.Pressed)
+            {
+                SeekToMouse(e);
+            }
+        }
+
+        /// <inheritdoc />
+        protected override void OnMouseLeftButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonUp(e);
+
+            if (IsMouseCaptured)
+            {
+                ReleaseMouseCapture();
+                e.Handled = true;
+            }
+        }
+
+        #endregion
+
+        #region Private methods
+
+        private void SeekToMouse(MouseEventArgs e)
+        {
+            if (ActualWidth > 0)
+            {
+                _parentButton.Seek(e.GetPosition(this).X / ActualWidth);
+            }
+        }
+
+        #endregion
+
         #region Public consts
 
         /// <summary>
@@ -1266,6 +1325,13 @@ namespace SoundBoard
         /// The bar's thickness. A hairline rather than a block: it is an underline to the card, not a control on it.
         /// </summary>
         public const int BarHeight = 4;
+
+        /// <summary>
+        /// How tall the control is, including the transparent strip above the bar that takes the mouse. Taller than the
+        /// air between the bar and the controls above it, so it reaches under their bottom edge; they are drawn over it
+        /// and take the click where they overlap, so nothing is lost.
+        /// </summary>
+        public const int HitHeight = 12;
 
         #endregion
 
@@ -1757,17 +1823,17 @@ namespace SoundBoard
                     {
                         if (IsSelected)
                         {
-                            Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.StartSound());
+                            Host.GetSoundButtons(ParentTab).Where(sb => sb.IsSelected).ToList().ForEach(sb => sb.TogglePlayback());
                         }
                         else
                         {
-                            StartSound();
+                            TogglePlayback();
                         }
                     }
                     else if (Mode == SoundButtonMode.Search &&
                              SourceTabAndButton.SourceButton is SoundButton sourceButton)
                     {
-                        sourceButton.StartSound();
+                        sourceButton.TogglePlayback();
                     }
                 }
             }
@@ -2331,6 +2397,40 @@ namespace SoundBoard
         /// Stops the sound
         /// </summary>
         public void Stop() => _player.Stop();
+
+        /// <summary>
+        /// What a click on the button does: starts the sound if it is stopped, pauses it if it is playing, and resumes it
+        /// if it is paused. A sound that is running is never restarted from a click; that would throw away its place.
+        /// (Hotkeys still retrigger, which is what a hotkey is for.)
+        /// </summary>
+        public void TogglePlayback()
+        {
+            if (IsPlaying)
+            {
+                Pause();
+            }
+            else if (IsPaused)
+            {
+                Play();
+            }
+            else
+            {
+                StartSound();
+            }
+        }
+
+        /// <summary>
+        /// Moves a running or paused sound to <paramref name="fraction"/> of the way through itself. Does nothing to a
+        /// stopped sound, which has no place to move.
+        /// </summary>
+        public void Seek(double fraction)
+        {
+            if ((IsPlaying || IsPaused) && _player.Duration is TimeSpan duration)
+            {
+                _player.Seek(TimeSpan.FromMilliseconds(duration.TotalMilliseconds * Math.Max(0, Math.Min(1, fraction))));
+                SoundProgressBar?.SetProgress(fraction);
+            }
+        }
 
         /// <summary>
         /// Temporarily highlights the button to draw the user's attention to it

@@ -50,6 +50,7 @@ namespace SoundBoard.Audio
         private float _volume = 1f;
         private bool _isMuted;
         private Stopwatch _stopWatch;
+        private TimeSpan _seekOffset;
 
         /// <summary>
         /// Raised once per output when it stops, whether it finished, was stopped, was torn down by a new <see cref="Start"/>, or failed.
@@ -82,14 +83,52 @@ namespace SoundBoard.Audio
         public long? Position => _audioFileReaders.Values.FirstOrDefault()?.Position;
 
         /// <summary>
-        /// Wall-clock time played since <see cref="Start"/> or the last <see cref="RestartClock"/>, excluding time paused.
+        /// Where playback is in the sound: wall-clock time played since <see cref="Start"/> or the last
+        /// <see cref="RestartClock"/>, excluding time paused, on top of wherever the last <see cref="Seek"/> went.
         /// </summary>
-        public TimeSpan Elapsed => _stopWatch?.Elapsed ?? TimeSpan.Zero;
+        /// <remarks>
+        /// A clock rather than the reader's own position, because the reader runs ahead of what is being heard by however
+        /// much the output has buffered, and a bar driven by it would jump at every seek and lead the sound thereafter.
+        /// </remarks>
+        public TimeSpan Elapsed => _seekOffset + (_stopWatch?.Elapsed ?? TimeSpan.Zero);
 
         /// <summary>
         /// Restarts <see cref="Elapsed"/> from zero (used when a looping sound wraps around).
         /// </summary>
-        public void RestartClock() => _stopWatch = Stopwatch.StartNew();
+        public void RestartClock()
+        {
+            _seekOffset = TimeSpan.Zero;
+            _stopWatch = Stopwatch.StartNew();
+        }
+
+        /// <summary>
+        /// Moves playback to <paramref name="position"/> in the sound. Takes effect on every output at once, whether it is
+        /// playing or paused; does nothing when nothing has been started. <see cref="Elapsed"/> continues from there.
+        /// </summary>
+        public void Seek(TimeSpan position)
+        {
+            if (_audioFileReaders.Count == 0)
+            {
+                return;
+            }
+
+            if (position < TimeSpan.Zero) position = TimeSpan.Zero;
+            if (Duration is TimeSpan duration && position > duration) position = duration;
+
+            // The reader takes the position under its own lock, so the output thread reading from it sees either the old
+            // place or the new, never a torn one
+            foreach (AudioFileReader reader in _audioFileReaders.Values)
+            {
+                reader.CurrentTime = position;
+            }
+
+            _seekOffset = position;
+
+            // Keep the clock's running/paused state; only its zero moves
+            bool wasRunning = _stopWatch?.IsRunning == true;
+            _stopWatch = new Stopwatch();
+            if (wasRunning) _stopWatch.Start();
+        }
 
         /// <summary>
         /// Whether playback is silenced. Setting this takes effect immediately on anything already playing — the sound keeps
@@ -187,6 +226,7 @@ namespace SoundBoard.Audio
 
             _players.ForEach(p => p.PlaybackStopped += PlaybackStoppedHandler);
 
+            _seekOffset = TimeSpan.Zero;
             _stopWatch = Stopwatch.StartNew();
 
             // Looping

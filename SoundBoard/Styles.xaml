@@ -94,18 +94,31 @@
     -->
     <Style x:Key="SoundButtonProgressBarStyle" TargetType="{x:Type ProgressBar}">
         <Setter Property="Focusable" Value="False"/>
-        <Setter Property="IsHitTestVisible" Value="False"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ProgressBar}">
-                    <Border x:Name="PART_Track"
-                            CornerRadius="2"
-                            Background="{TemplateBinding Background}">
-                        <Border x:Name="PART_Indicator"
+                    <!-- The control is taller than the bar it draws: the rest is a transparent strip above it that takes
+                         the click, because a four-pixel line is not something anyone can aim at. The bar grows a little
+                         under the mouse to say that it can be. -->
+                    <Grid Background="Transparent">
+                        <Border x:Name="PART_Track"
+                                Height="4"
+                                VerticalAlignment="Bottom"
                                 CornerRadius="2"
-                                HorizontalAlignment="Left"
-                                Background="{TemplateBinding Foreground}"/>
-                    </Border>
+                                Background="{TemplateBinding Background}">
+                            <Border x:Name="PART_Indicator"
+                                    CornerRadius="2"
+                                    HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}"/>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="PART_Track" Property="Height" Value="6"/>
+                            <Setter TargetName="PART_Track" Property="CornerRadius" Value="3"/>
+                            <Setter TargetName="PART_Indicator" Property="CornerRadius" Value="3"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
