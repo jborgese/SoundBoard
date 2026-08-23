@@ -12,6 +12,8 @@ history and release tags.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-23
+
 ### Added
 - File logging to `%AppData%\SoundBoard\soundboard.log` and an "Open log folder" menu item.
 - Reproducible build documentation (`BUILDING.md`), a CI build on every push, and unit
@@ -253,7 +255,8 @@ history and release tags.
 ### Fixed
 - Removing a page.
 
-[Unreleased]: https://github.com/micahmo/SoundBoard/compare/v1.10.2...HEAD
+[Unreleased]: https://github.com/micahmo/SoundBoard/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/micahmo/SoundBoard/compare/v1.10.2...v1.11.0
 [1.10.2]: https://github.com/micahmo/SoundBoard/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/micahmo/SoundBoard/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/micahmo/SoundBoard/compare/v1.9...v1.10.0
