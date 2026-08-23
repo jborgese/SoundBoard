@@ -22,6 +22,12 @@ namespace SoundBoard
         public const string Dark = "Dark";
 
         /// <summary>
+        /// The theme <see cref="Apply"/> last put in place: <see cref="Dark"/>, or the empty string for the light
+        /// theme. Null before the first call, i.e. before the app has started up.
+        /// </summary>
+        public static string Current { get; private set; }
+
+        /// <summary>
         /// Applies <paramref name="theme"/> to the running application: <see cref="Dark"/> for the dark theme, or
         /// anything else (including the empty string) for the default light theme. The accent color (Blue) is not
         /// user-configurable and stays the same either way.
@@ -32,6 +38,7 @@ namespace SoundBoard
             string mahAppsThemeName = dark ? "Dark.Blue" : "Light.Blue";
 
             ThemeManager.Current.ChangeTheme(Application.Current, mahAppsThemeName);
+            Current = dark ? Dark : string.Empty;
 
             Logger.Info("UI theme: {0}", dark ? Dark : "Light");
         }

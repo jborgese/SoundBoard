@@ -321,6 +321,7 @@ namespace SoundBoard
                     NewPageDefaultRows = GlobalSettings.NewPageDefaultRows,
                     NewPageDefaultColumns = GlobalSettings.NewPageDefaultColumns,
                     Language = GlobalSettings.Language,
+                    Theme = GlobalSettings.Theme,
                 };
 
                 SoundBoardConfig config = ConfigStore.Load(configFilePath, currentSettings);
@@ -482,6 +483,14 @@ namespace SoundBoard
                 GlobalSettings.Current.NewPageDefaultRows = settings.NewPageDefaultRows;
                 GlobalSettings.Current.NewPageDefaultColumns = settings.NewPageDefaultColumns;
                 GlobalSettings.Current.Language = settings.Language;
+                GlobalSettings.Current.Theme = settings.Theme;
+            }
+
+            // The config that was just loaded can name a different theme than the one running - an import, or an undo
+            // across a theme change - and unlike the language that takes effect without a restart.
+            if (GlobalSettings.Theme != AppTheme.Current)
+            {
+                AppTheme.Apply(GlobalSettings.Theme);
             }
 
             // Remove the existing tabs; their buttons are discarded, so stop them listening to sounds that may live on

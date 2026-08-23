@@ -31,6 +31,9 @@ history and release tags.
   ships next to it. See [Localization](BUILDING.md#localization) for how to add a language,
   and `SoundBoard.Tests/LocalizationTests.cs` for the checks that keep translations honest
   (no missing strings, no stale ones, and the same `{0}` placeholders as the English).
+- A **Theme** submenu under **•••** offering a Light and a Dark theme. Unlike the language it
+  applies immediately with no restart, and the choice is saved as `Theme` in `soundboard.config`
+  so it is still there the next time you start.
 
 ### Changed
 - Target framework unified at .NET Framework 4.8 across all projects.

@@ -375,6 +375,13 @@ namespace SoundBoard.Model
                     writer.WriteAttributeString(LanguageAttribute, settings.Language);
                 }
 
+                // Likewise only written once the user has picked a theme, so that the default (light) stays the absent
+                // value and a config from someone who never opened the menu is untouched.
+                if (!string.IsNullOrEmpty(settings.Theme))
+                {
+                    writer.WriteAttributeString(ThemeAttribute, settings.Theme);
+                }
+
                 writer.WriteEndElement();
 
                 foreach (Page page in config.Pages)

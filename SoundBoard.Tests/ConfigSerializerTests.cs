@@ -250,6 +250,35 @@ namespace SoundBoard.Tests
         }
 
         [Fact]
+        public void Theme_RoundTrips()
+        {
+            // The whole point of storing it: the theme the user picked has to come back the next time the app starts.
+            SoundBoardConfig config = Read("<tabs><GlobalSettings Theme=\"Dark\" /><tab><name>x</name></tab></tabs>");
+            Assert.Equal("Dark", config.Settings.Theme);
+
+            Assert.Contains(" Theme=\"Dark\"", Write(config));
+        }
+
+        [Fact]
+        public void Theme_IsNotWrittenWhenNoneHasBeenChosen()
+        {
+            // Absent means the default (light) theme, exactly as with Language.
+            Assert.DoesNotContain("Theme=", Write(new SoundBoardConfig()));
+
+            var config = new SoundBoardConfig();
+            config.Settings.Theme = "Dark";
+            config.Settings.Theme = string.Empty;
+            Assert.DoesNotContain("Theme=", Write(config));
+        }
+
+        [Fact]
+        public void Theme_MissingFromTheFile_MeansTheDefaultTheme()
+        {
+            Assert.Equal(string.Empty, Read(ReadFixture("current-1.10.2.config")).Settings.Theme);
+            Assert.Equal(string.Empty, Read(ReadFixture("legacy-minimal.config")).Settings.Theme);
+        }
+
+        [Fact]
         public void Defaults_FillSettingsTheFileDoesNotSpecify_ButNeverOverrideIt()
         {
             var defaults = new BoardSettings { AudioPassthroughLatency = 50, NewPageDefaultRows = 4, NewPageDefaultColumns = 3, Language = "es" };
